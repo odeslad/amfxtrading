@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$Root      = 'C:\amfxtradingv2'
+$Root      = 'C:\amfxtrading'
 $Backend   = Join-Path $Root 'backend'
 $Ecosystem = Join-Path $Backend 'ecosystem.config.js'
 $AppName   = 'amfxtrading-backend'
@@ -81,7 +81,7 @@ Invoke-Step "free port 3000" {
         if ($null -eq $proc) { continue }
         # pm2 forks run wrapped in ProcessContainerFork.js, so the backend path
         # never appears in their command line — a pm2 child on OUR port is ours.
-        $isBackend = $proc.CommandLine -like '*amfxtradingv2\backend*' -or
+        $isBackend = $proc.CommandLine -like '*amfxtrading\backend*' -or
             $proc.CommandLine -like '*pm2\lib\ProcessContainerFork.js*'
         if ($isBackend) {
             Write-Host "  killing orphaned backend process $ownerPid"
