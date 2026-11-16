@@ -49,3 +49,15 @@
   - El instalador de PostgreSQL falla lanzado desde una sesión SSH ("Error writing file … temp_check_comspec.bat"); se ejecutó con una tarea programada puntual como `SYSTEM`, eliminada después.
   - Limpieza pendiente: `C:\deploy\backend.env` (copia del `.env` antiguo, usada para leer la contraseña de la base) se mueve a `backend\.env` en la tarea 4; `C:\deploy\installers` se puede borrar al final.
 - **Est vs Actual:** 2 SP vs 1,5 SP.
+
+## Tarea 3 — Dominio raíz como origen permitido
+
+- **Mecanismo:** vitest + `npm run build` (más `npm run lint`).
+- **Resultado:** ✅ pasa (2026-11-16)
+- **Evidencia:**
+  - `ALLOWED_ORIGINS` en `backend/src/ws/policy.ts`: `/\.amfxtrading\.com(:\d+)?$/` → `/(^https:\/\/|\.)amfxtrading\.com(:\d+)?$/`. La misma lista alimenta CORS (`app.ts`) y el upgrade del WebSocket.
+  - `npx vitest run src/ws/policy.test.ts`: pasan 13 tests. Casos nuevos: `https://amfxtrading.com` y `https://api.amfxtrading.com` aceptados; `https://evilamfxtrading.com` y `http://amfxtrading.com` rechazados. Los casos existentes (subdominios aceptados, `amfxtrading.com.evil.com` rechazado) siguen pasando.
+  - `npm run build` (tsc) y `npm run lint` limpios.
+  - `backend/docs/architecture.md` actualizado en el mismo commit (orígenes permitidos).
+- **Aún sin probar:** el navegador real en `https://amfxtrading.com` contra el backend desplegado — esa es la verificación de la tarea 8.
+- **Est vs Actual:** 0,5 SP vs 0,25 SP.

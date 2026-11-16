@@ -10,9 +10,16 @@ describe('isAllowedOrigin', () => {
     expect(isAllowedOrigin('https://local.amfxtrading.com:5174')).toBe(true);
   });
 
+  it('accepts the apex domain over HTTPS and its API subdomain', () => {
+    expect(isAllowedOrigin('https://amfxtrading.com')).toBe(true);
+    expect(isAllowedOrigin('https://api.amfxtrading.com')).toBe(true);
+  });
+
   it('rejects other sites, look-alikes and a missing header', () => {
     expect(isAllowedOrigin('https://evil.com')).toBe(false);
     expect(isAllowedOrigin('https://amfxtrading.com.evil.com')).toBe(false);
+    expect(isAllowedOrigin('https://evilamfxtrading.com')).toBe(false);
+    expect(isAllowedOrigin('http://amfxtrading.com')).toBe(false);
     expect(isAllowedOrigin('http://localhost:5174')).toBe(false);
     expect(isAllowedOrigin(undefined)).toBe(false);
     expect(isAllowedOrigin('')).toBe(false);

@@ -49,3 +49,15 @@
   - The PostgreSQL installer fails when launched from an SSH session ("Error writing file … temp_check_comspec.bat"); it was run through a one-off scheduled task as `SYSTEM`, deleted afterwards.
   - Pending cleanup: `C:\deploy\backend.env` (copy of the old `.env`, used to read the database password) is moved to `backend\.env` in task 4; `C:\deploy\installers` can be deleted at the end.
 - **Est vs Actual:** 2 SP vs 1.5 SP.
+
+## Task 3 — Apex domain as an allowed origin
+
+- **Mechanism:** vitest + `npm run build` (plus `npm run lint`).
+- **Outcome:** ✅ pass (2026-11-16)
+- **Evidence:**
+  - `ALLOWED_ORIGINS` in `backend/src/ws/policy.ts`: `/\.amfxtrading\.com(:\d+)?$/` → `/(^https:\/\/|\.)amfxtrading\.com(:\d+)?$/`. The same list feeds CORS (`app.ts`) and the WebSocket upgrade.
+  - `npx vitest run src/ws/policy.test.ts`: 13 tests pass. New cases: `https://amfxtrading.com` and `https://api.amfxtrading.com` accepted; `https://evilamfxtrading.com` and `http://amfxtrading.com` rejected. The existing cases (subdomains accepted, `amfxtrading.com.evil.com` rejected) still pass.
+  - `npm run build` (tsc) and `npm run lint` clean.
+  - `backend/docs/architecture.md` updated in the same commit (allowed origins).
+- **Not yet proven:** the real browser at `https://amfxtrading.com` against the deployed backend — that is the verification of task 8.
+- **Est vs Actual:** 0.5 SP vs 0.25 SP.

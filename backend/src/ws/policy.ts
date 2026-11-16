@@ -1,5 +1,5 @@
 // Shared by the CORS middleware and the WebSocket upgrade gate.
-export const ALLOWED_ORIGINS: ReadonlyArray<string | RegExp> = [/\.amfxtrading\.com(:\d+)?$/];
+export const ALLOWED_ORIGINS: ReadonlyArray<string | RegExp> = [/(^https:\/\/|\.)amfxtrading\.com(:\d+)?$/];
 
 // A browser always sends Origin on a WebSocket handshake, so a missing one is rejected
 // here (the CORS middleware keeps accepting origin-less requests: curl, health checks).

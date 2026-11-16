@@ -201,7 +201,7 @@ Sends a trading command to the EA by writing `command.json` to the bridge folder
 
 ### `/ws`
 
-The upgrade is accepted only for an allowed `Origin` (`*.amfxtrading.com`) and a valid session cookie; anything else gets a plain HTTP `403`/`401`. Clients are pinged every 30 s and terminated when they miss a whole interval; a client whose send buffer grows past 1 MiB stops receiving until it drains, past 8 MiB it is terminated.
+The upgrade is accepted only for an allowed `Origin` (`https://amfxtrading.com` or `*.amfxtrading.com`) and a valid session cookie; anything else gets a plain HTTP `403`/`401`. Clients are pinged every 30 s and terminated when they miss a whole interval; a client whose send buffer grows past 1 MiB stops receiving until it drains, past 8 MiB it is terminated.
 
 Every message is `{ "type", … }` with `broker` at the root (never per item):
 
