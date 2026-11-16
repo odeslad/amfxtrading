@@ -219,7 +219,7 @@ Every message is `{ "type", … }` with `broker` at the root (never per item):
 
 **Tick subscription (spec 041).** A client receives no `ticks` until it sends the only inbound message, `{ "type": "subscribe", "ticks": [ { "broker", "symbol" }, … ] }` (at most 16 pairs, names up to 64 characters, frame up to 4 KiB). Each frame replaces the whole set and an empty list stops the ticks; an invalid frame is ignored and the previous set kept. Every batch is filtered per client and skipped when nothing matches, so a client only pays for the charts it has open (the frontend re-sends its set on every reconnect). Every other message type is delivered regardless of the subscription. `scripts/ws-measure.ts` connects as a client and reports the bytes received per type, with or without a subscription.
 
-A tick carries `symbol`, `bid`, `ask`, `time`, `broker_offset` and the open/high/low/time of the current M5, M15, H1, H4 and D1 candles, so the frontend builds the live candle itself; only closed candles are persisted. When a tick's `<tf>_time` advances, the previous bar (its OHLC from the last tick, close = that tick's bid) is upserted into `candles` without overwriting a row the EA already wrote, and broadcast as `candle`; the EA's `candles_<SYM>_<TF>.json` keeps authority because the watcher upserts the file's last two closed bars with their values.
+A tick carries `symbol`, `bid`, `ask`, `time`, `broker_offset` and the open/high/low/time of the current M5, M15, H1, H4 and D1 candles, so the frontend builds the live candle itself; only closed candles are persisted. When a tick's `<tf>_time` advances, the previous bar (its OHLC from the last tick, close = that tick's bid) is upserted into `candles` without overwriting a row the EA already wrote, and broadcast as `candle` — only when that bar was really in progress at its last tick: server time (`time + broker_offset`) inside the bar or the period after it, and the bid between its low and high. A terminal that starts with stale history reports an old bar next to the live bid and produces no candle (spec 044). The EA's `candles_<SYM>_<TF>.json` has authority over every closed bar: the watcher inserts the missing ones and overwrites a stored bar whose values differ.
 
 ## Libro de esquemas (book)
 
@@ -231,7 +231,7 @@ Managed with **Prisma**; see `prisma/schema.prisma`. Migrations are hand-written
 
 | Table | Written by | Pattern |
 |-------|------------|---------|
-| `candles` | file watcher | `createMany({ skipDuplicates })` of closed bars; PK `(broker, symbol, timeframe, time)`; `time` is the bar open in broker time stored as UTC |
+| `candles` | file watcher | one `INSERT … ON CONFLICT DO UPDATE … WHERE … IS DISTINCT FROM` per 5,000 closed bars: missing bars inserted, differing ones overwritten, matching ones untouched; PK `(broker, symbol, timeframe, time)`; `time` is the bar open in broker time stored as UTC |
 | `trades` | file watcher | `createMany({ skipDuplicates })` by ticket, never updated; indexes `(broker, closeTime)`, `(closeTime)`, `(broker, symbol)` |
 | `balance_operations` | file watcher | deposits/withdrawals from `history.json`, `createMany({ skipDuplicates })` by ticket |
 | `balances` | file watcher | one `upsert` per broker and UTC `day`, `timestamp` refreshed on every poll |
