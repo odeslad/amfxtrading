@@ -31,8 +31,9 @@ export function toColumns(candles: BridgeCandle[]): CandleColumns {
 }
 
 // A full history shorter than this is not trusted to say where the history starts:
-// a terminal that has not loaded its history yet must not wipe what is stored.
-export const MIN_BARS_TO_TRIM = 500;
+// a terminal that has not loaded its history yet must not wipe what is stored. Low
+// enough for a real stretch after a recent hole: a few months of H4 are about 450 bars.
+export const MIN_BARS_TO_TRIM = 100;
 
 // The first bar of a full history, in seconds, or null when it is too short to trim by.
 export function historyStart(bars: BridgeCandle[]): number | null {
