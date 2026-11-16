@@ -73,8 +73,8 @@ function startBroker(brokerName: string, bridgePath: string, wss: Wss) {
   // The watcher awaits each handler and logs failures with its own prefix.
   watcher?.onCandles(async ({ symbol, timeframe, ...data }) => { await upsertCandles(brokerName, symbol, timeframe, data); });
   watcher?.onFullCandles(async ({ symbol, timeframe, ...data }) => {
-    const { written, trimmed } = await replaceCandleHistory(brokerName, symbol, timeframe, data);
-    console.log(`[CANDLES:${brokerName}] ${symbol} ${timeframe} full history | bars: ${data.candles.length} | written: ${written} | trimmed: ${trimmed}`);
+    const { written, orphaned, trimmed } = await replaceCandleHistory(brokerName, symbol, timeframe, data);
+    console.log(`[CANDLES:${brokerName}] ${symbol} ${timeframe} full history | bars: ${data.candles.length} | written: ${written} | orphaned: ${orphaned} | trimmed: ${trimmed}`);
   });
 
   watcher?.onHistory(async (entries: BridgeTrade[]) => {

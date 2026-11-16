@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { closedBars, historyStart, toColumns, MIN_BARS_TO_TRIM } from './candles';
+import { closedBars, historyRange, historyStart, toColumns, MIN_BARS_TO_TRIM } from './candles';
 
 const bar = (time: number, close: number) => ({ time, open: 1.1, high: 1.2, low: 1.0, close });
 
@@ -30,6 +30,20 @@ describe('historyStart', () => {
   it('is unknown for a short history, so nothing stored is dropped', () => {
     expect(historyStart(bars(MIN_BARS_TO_TRIM - 1))).toBeNull();
     expect(historyStart([])).toBeNull();
+  });
+});
+
+describe('historyRange', () => {
+  const bars = (count: number) => Array.from({ length: count }, (_, i) => bar(1_000 + i * 300, 1.1));
+
+  it('spans from the oldest to the newest bar, whatever their order', () => {
+    const last = 1_000 + (MIN_BARS_TO_TRIM - 1) * 300;
+    expect(historyRange(bars(MIN_BARS_TO_TRIM))).toEqual({ first: 1_000, last });
+    expect(historyRange([...bars(MIN_BARS_TO_TRIM)].reverse())).toEqual({ first: 1_000, last });
+  });
+
+  it('is unknown for a short history, so nothing stored is dropped', () => {
+    expect(historyRange(bars(MIN_BARS_TO_TRIM - 1))).toBeNull();
   });
 });
 

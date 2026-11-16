@@ -54,13 +54,25 @@ export async function upsertCandles(
 
 export interface HistoryReplaced {
   written: number;
+  orphaned: number;
   trimmed: number;
 }
 
-// A full history is the whole of what MT4 holds without holes (spec 044). Its bars are
-// stored; when the EA had to cut it at a hole, whatever is stored from before its first
-// bar lies behind that hole and is dropped. Without a cut the older stored bars connect
-// to it and stay: the table keeps more history than the terminal's own bar limit.
+// The first and last bar of a full history, in seconds, or null when it is too short to trust.
+export function historyRange(bars: BridgeCandle[]): { first: number; last: number } | null {
+  const first = historyStart(bars);
+  if (first === null) return null;
+  return { first, last: bars.reduce((last, c) => Math.max(last, c.time), bars[0].time) };
+}
+
+// A full history is the whole of what MT4 holds without holes (spec 044), and the table
+// mirrors it inside its range:
+// - its bars are stored;
+// - a stored candle inside that range that MT4 does not hold is dropped (a bar the tick
+//   rollover stored for a terminal that then replaced it with the broker's history);
+// - when the EA had to cut the history at a hole, whatever is stored from before its
+//   first bar lies behind that hole and is dropped too. Without a cut the older stored
+//   bars connect to it and stay: the table keeps more than the terminal's own bar limit.
 export async function replaceCandleHistory(
   broker: string,
   symbol: string,
@@ -69,14 +81,28 @@ export async function replaceCandleHistory(
 ): Promise<HistoryReplaced> {
   const bars = closedBars(data.candles);
   const written = await writeBars(broker, symbol, timeframe, bars);
-  const start = data.cutAtHole === true ? historyStart(bars) : null;
-  if (start === null) return { written, trimmed: 0 };
+  const range = historyRange(bars);
+  if (range === null) return { written, orphaned: 0, trimmed: 0 };
+
+  const times = bars.map((c) => c.time);
+  const orphaned = await db.$executeRaw`
+    DELETE FROM "candles" AS stored
+    WHERE stored."broker" = ${broker} AND stored."symbol" = ${symbol} AND stored."timeframe" = ${timeframe}
+      AND stored."time" >= to_timestamp(${range.first}::double precision) AT TIME ZONE 'UTC'
+      AND stored."time" <= to_timestamp(${range.last}::double precision) AT TIME ZONE 'UTC'
+      AND NOT EXISTS (
+        SELECT 1 FROM unnest(${times}::double precision[]) AS bar("time")
+        WHERE to_timestamp(bar."time") AT TIME ZONE 'UTC' = stored."time"
+      )
+  `;
+  if (data.cutAtHole !== true) return { written, orphaned, trimmed: 0 };
+
   const trimmed = await db.$executeRaw`
     DELETE FROM "candles"
     WHERE "broker" = ${broker} AND "symbol" = ${symbol} AND "timeframe" = ${timeframe}
-      AND "time" < to_timestamp(${start}::double precision) AT TIME ZONE 'UTC'
+      AND "time" < to_timestamp(${range.first}::double precision) AT TIME ZONE 'UTC'
   `;
-  return { written, trimmed };
+  return { written, orphaned, trimmed };
 }
 
 async function writeBars(broker: string, symbol: string, timeframe: string, bars: BridgeCandle[]): Promise<number> {
