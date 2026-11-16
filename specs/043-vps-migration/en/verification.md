@@ -75,3 +75,9 @@
   - `git status` on the new VPS clean (the `package-lock.json` change left by `npm install` was discarded, as `deploy.ps1` does with `git reset --hard`).
 - **Not yet proven:** the backend has not been started (no database yet — task 5); the clone does not include the task 3 commit until `master` is pushed and pulled.
 - **Est vs Actual:** 1.5 SP vs 0.75 SP.
+- **Addendum (same day) — `v2` dropped from the server names**, at the user's request (see "Dropping the `v2` name" in the design): `C:\amfxtradingv2` renamed to `C:\amfxtrading` on the new VPS; `backend\.env` now has `DATABASE_URL` → database `amfxtrading` and `BROKERS_FILE` → `C:\amfxtrading\backend\brokers.json`; `nginx.conf` `root C:/amfxtrading/frontend/dist`, nginx restarted and answering `200`; Defender path exclusion moved to `C:\amfxtrading`; `git status` clean after the rename. The repo scripts still say `C:\amfxtradingv2` until tasks 9–12.
+
+## Push of tasks 1–4 (2026-11-16)
+
+- `master` pushed at `4e8022c`. Before the push the five local commits were rewritten so that the new VPS IP appears in none of them (the repository is publicly readable); the documents now say `<new VPS IP>`.
+- The push triggered the backend pipeline on the **old** VPS: its `git` head moved to `4e8022c` and `https://api-v2.amfxtrading.com/health` answered `200` with 11 of 13 brokers connected and receiving ticks. `solidary isa` and `demo` show `pipe: listening`; the user confirmed both were already disconnected before the deploy.

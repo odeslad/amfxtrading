@@ -2,7 +2,7 @@
 
 ## Approach
 
-Build the new VPS as a **replica of the old one with identical paths, user name, versions and secrets**, and publish it under **its own names** through **its own Cloudflare tunnel**, so that both systems run side by side:
+Build the new VPS as a **replica of the old one with the same user name, versions and secrets** (and the same paths except the project folder, see "Dropping the `v2` name"), and publish it under **its own names** through **its own Cloudflare tunnel**, so that both systems run side by side:
 
 | | Old VPS (`WIN-16ESVKMCVCR`) | New VPS (`WIN-E5FGF0D8OH7`) |
 |---|---|---|
@@ -36,9 +36,9 @@ DNS today: `amfxtrading.com`, `www` and `api` already have proxied records in Cl
 
 ### infra — new machine
 
-1. **Base system**: time zone UTC (already), power plan without sleep, Windows Update restricted so that it never reboots by itself during market hours, Defender exclusions for `C:\amfxtradingv2`, the PostgreSQL data directory and the MT4 folders.
+1. **Base system**: time zone UTC (already), power plan without sleep, Windows Update restricted so that it never reboots by itself during market hours, Defender exclusions for `C:\amfxtrading`, the PostgreSQL data directory and the MT4 folders.
 2. **Software, same versions as the inventory**: Node 24.16.0, git, pm2 7.0.1 (`npm i -g`), PostgreSQL 17 (silent installer, same port, same role and password as `DATABASE_URL`), nginx (the whole `C:\nginx` folder copied, including `nginx.conf`, with `server_name` adapted if it names `v2`) registered as a service with `nssm`, cloudflared 2026.6.0.
-3. **Project**: `git clone` into `C:\amfxtradingv2`; `backend\.env` and `backend\brokers.json` copied from the old VPS; `npm install`, `prisma generate`, backend build, frontend build with `VITE_API_BASE=https://api.amfxtrading.com`.
+3. **Project**: `git clone` into `C:\amfxtrading`; `backend\.env` and `backend\brokers.json` copied from the old VPS; `npm install`, `prisma generate`, backend build, frontend build with `VITE_API_BASE=https://api.amfxtrading.com`.
 4. **Tasks**: `register-startup-tasks.ps1` for `AMFX-Startup` / `AMFX-Watchdog`; `RAM-Log` and `PoolWatch` replicated; `C:\monitoring` and `C:\deploy` created.
 5. **Autologon**: the user, by RDP.
 
@@ -70,6 +70,24 @@ DNS today: `amfxtrading.com`, `www` and `api` already have proxied records in Cl
 ### ea — MT4 terminals
 
 Copy the 13 installation folders and the whole `MetaQuotes\Terminal` tree to the **same paths**. The data-folder hash is derived from the installation path, so the hashes, `origin.txt`, `brokers.json` and each bridge `config.json` remain valid. The 13 terminals run on both machines at once (authorised by the user).
+
+## Dropping the `v2` name
+
+Requested by the user during implementation (after task 4): on the new system the name is `amfxtrading`, without `v2`.
+
+| Where | Old | New | In this spec |
+|---|---|---|---|
+| Project folder on the server | `C:\amfxtradingv2` | `C:\amfxtrading` | yes |
+| Database | `amfxtradingv2` | `amfxtrading` | yes (created with the new name; the dump is restored into it) |
+| Public names | `v2`, `api-v2`, `ssh-v2` | apex, `api`, `ssh` | yes |
+| Tunnel | `amfxtrading-v2` | `amfxtrading` | yes |
+| GitHub repository `odeslad/amfxtradingv2` and the local folder | — | — | **no**: the name `amfxtrading` is taken there by the v1 MVP; the user decides later |
+
+Consequences:
+
+- The repo hard-codes `C:\amfxtradingv2` in 14 files (workflows, `backend/scripts/deploy.ps1`, `backend/ecosystem.config.js`, `backend/.env.example`, `frontend/scripts/deploy.ps1`, `ea/scripts/*.ps1`, `infra/scripts/*.ps1`, docs). They change to `C:\amfxtrading` in the same commits that switch the host names, one commit per layer.
+- Once those commits are on `master`, the repo scripts no longer match the old VPS. A push before the workflows point at the new host would run the pipelines against the old machine with the new paths (the EA workflow would even create the folder and restart the terminals), so **the path and host-name commits are pushed together, and only when the new tunnel answers**. That moves the tunnel (task 8) and the repo changes (tasks 9–12) ahead of the database rehearsal and the terminals (tasks 5–7).
+- `backend\.env` on the new VPS: `DATABASE_URL` → database `amfxtrading`, `BROKERS_FILE` → `C:\amfxtrading\backend\brokers.json`. `nginx.conf`: `root C:/amfxtrading/frontend/dist`.
 
 ## Coexistence rules
 

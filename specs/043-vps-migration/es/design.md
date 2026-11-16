@@ -2,7 +2,7 @@
 
 ## Enfoque
 
-Montar el VPS nuevo como una **réplica del antiguo con rutas, nombre de usuario, versiones y secretos idénticos**, y publicarlo con **sus propios nombres** a través de **su propio túnel de Cloudflare**, de modo que los dos sistemas funcionen a la vez:
+Montar el VPS nuevo como una **réplica del antiguo con el mismo nombre de usuario, versiones y secretos** (y las mismas rutas salvo la carpeta del proyecto, ver "Quitar el nombre `v2`"), y publicarlo con **sus propios nombres** a través de **su propio túnel de Cloudflare**, de modo que los dos sistemas funcionen a la vez:
 
 | | VPS antiguo (`WIN-16ESVKMCVCR`) | VPS nuevo (`WIN-E5FGF0D8OH7`) |
 |---|---|---|
@@ -36,9 +36,9 @@ DNS hoy: `amfxtrading.com`, `www` y `api` ya tienen registros proxied en Cloudfl
 
 ### infra — máquina nueva
 
-1. **Sistema base**: zona horaria UTC (ya lo está), plan de energía sin suspensión, Windows Update restringido para que nunca reinicie por su cuenta en horario de mercado, exclusiones de Defender para `C:\amfxtradingv2`, el directorio de datos de PostgreSQL y las carpetas de MT4.
+1. **Sistema base**: zona horaria UTC (ya lo está), plan de energía sin suspensión, Windows Update restringido para que nunca reinicie por su cuenta en horario de mercado, exclusiones de Defender para `C:\amfxtrading`, el directorio de datos de PostgreSQL y las carpetas de MT4.
 2. **Software, mismas versiones que el inventario**: Node 24.16.0, git, pm2 7.0.1 (`npm i -g`), PostgreSQL 17 (instalador silencioso, mismo puerto, mismo rol y contraseña que `DATABASE_URL`), nginx (la carpeta `C:\nginx` entera copiada, con su `nginx.conf` y el `server_name` adaptado si nombra `v2`) registrado como servicio con `nssm`, cloudflared 2026.6.0.
-3. **Proyecto**: `git clone` en `C:\amfxtradingv2`; `backend\.env` y `backend\brokers.json` copiados del VPS antiguo; `npm install`, `prisma generate`, build del backend, build del frontend con `VITE_API_BASE=https://api.amfxtrading.com`.
+3. **Proyecto**: `git clone` en `C:\amfxtrading`; `backend\.env` y `backend\brokers.json` copiados del VPS antiguo; `npm install`, `prisma generate`, build del backend, build del frontend con `VITE_API_BASE=https://api.amfxtrading.com`.
 4. **Tareas**: `register-startup-tasks.ps1` para `AMFX-Startup` / `AMFX-Watchdog`; `RAM-Log` y `PoolWatch` replicadas; se crean `C:\monitoring` y `C:\deploy`.
 5. **Autologon**: el usuario, por RDP.
 
@@ -70,6 +70,24 @@ DNS hoy: `amfxtrading.com`, `www` y `api` ya tienen registros proxied en Cloudfl
 ### ea — terminales MT4
 
 Copiar las 13 carpetas de instalación y todo el árbol `MetaQuotes\Terminal` a las **mismas rutas**. El hash de la carpeta de datos se deriva de la ruta de instalación, así que los hashes, `origin.txt`, `brokers.json` y el `config.json` de cada bridge siguen siendo válidos. Los 13 terminales corren en las dos máquinas a la vez (autorizado por el usuario).
+
+## Quitar el nombre `v2`
+
+Pedido por el usuario durante la implementación (después de la tarea 4): en el sistema nuevo el nombre es `amfxtrading`, sin `v2`.
+
+| Dónde | Antiguo | Nuevo | En esta spec |
+|---|---|---|---|
+| Carpeta del proyecto en el servidor | `C:\amfxtradingv2` | `C:\amfxtrading` | sí |
+| Base de datos | `amfxtradingv2` | `amfxtrading` | sí (se crea con el nombre nuevo; el dump se restaura en ella) |
+| Nombres públicos | `v2`, `api-v2`, `ssh-v2` | raíz, `api`, `ssh` | sí |
+| Túnel | `amfxtrading-v2` | `amfxtrading` | sí |
+| Repositorio de GitHub `odeslad/amfxtradingv2` y carpeta local | — | — | **no**: ahí el nombre `amfxtrading` lo ocupa el MVP v1; el usuario lo decide más adelante |
+
+Consecuencias:
+
+- El repo lleva escrito `C:\amfxtradingv2` en 14 ficheros (workflows, `backend/scripts/deploy.ps1`, `backend/ecosystem.config.js`, `backend/.env.example`, `frontend/scripts/deploy.ps1`, `ea/scripts/*.ps1`, `infra/scripts/*.ps1`, documentación). Pasan a `C:\amfxtrading` en los mismos commits que cambian los nombres de host, un commit por capa.
+- Una vez esos commits estén en `master`, los scripts del repo ya no encajan con el VPS antiguo. Un push antes de que los workflows apunten al host nuevo lanzaría los pipelines contra la máquina antigua con las rutas nuevas (el workflow del EA incluso crearía la carpeta y reiniciaría los terminales), así que **los commits de rutas y de nombres de host se suben juntos, y solo cuando el túnel nuevo responda**. Eso adelanta el túnel (tarea 8) y los cambios del repo (tareas 9–12) al ensayo de la base de datos y a los terminales (tareas 5–7).
+- `backend\.env` en el VPS nuevo: `DATABASE_URL` → base `amfxtrading`, `BROKERS_FILE` → `C:\amfxtrading\backend\brokers.json`. `nginx.conf`: `root C:/amfxtrading/frontend/dist`.
 
 ## Reglas de convivencia
 
