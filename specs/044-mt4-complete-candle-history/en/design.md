@@ -18,12 +18,12 @@ The existing EA ↔ backend contract does not change (same candle files, same JS
 
 Today `trackCandleCloses` emits the previous snapshot as a closed candle whenever `<tf>_time` changes. The snapshot gains the server time of its last tick, `serverNow = tick.time + tick.broker_offset * 1000` (which equals MT4's `TimeCurrent`, in the same broker-time base as the bar time), and a candle is emitted only when both hold:
 
-- `prev.time <= prev.serverNow < prev.time + period` — the bar was in progress at its last tick;
+- `prev.time <= prev.serverNow < prev.time + 2 × period` — the bar was the one in progress at its last tick. The second period is the margin for a symbol that has no quote in the first seconds (or minutes) of the next bar: its bar time has not moved yet although the server clock has;
 - `prev.low <= prev.bid <= prev.high` — the closing price belongs to the bar.
 
 A terminal that starts with stale history fails the first condition (bar of 20 October, server time of today), so nothing is stored and no `candle` message is broadcast for it. The real candle arrives with the EA's file. Over a weekend `TimeCurrent` stays at Friday's last quote, so Friday's last bar still passes and is emitted at Monday's open, as today.
 
-Accepted side effect: a symbol with no quote during a whole bar no longer gets its rollover candle from ticks; it arrives with the next EA file (≤ 60 s later). The frontend's active candle is not affected.
+Accepted side effects: a symbol with no quote for more than a whole bar no longer gets its rollover candle from ticks, it arrives with the next EA file (≤ 60 s later); a terminal that was offline for less than two periods can still produce one candle closed with a late bid, which the EA's file then corrects (point 2). The frontend's active candle is not affected.
 
 ### 2. The EA's file has authority over every closed bar — `services/candles.ts`
 

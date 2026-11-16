@@ -1,6 +1,6 @@
 # 044 — MT4 como fuente completa y única de velas
 
-> Status: **draft**
+> Status: **implementing**
 
 ## Contexto
 

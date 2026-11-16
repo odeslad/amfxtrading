@@ -51,6 +51,47 @@ describe('trackCandleCloses', () => {
     expect(trackCandleCloses(state, 'darwinex', [tick('EURUSD', hour, 59, 1.1012)])).toEqual([]);
   });
 
+  it('stores nothing for a stale bar a terminal reports next to the live bid', () => {
+    const state = createCandleCloseState();
+    const staleHour = Date.UTC(2026, 9, 20, 13);
+    const now = Date.UTC(2026, 10, 16, 16);
+    const stale = { time: now, h1_time: staleHour, h1_open: 1.1215, h1_high: 1.1219, h1_low: 1.1209, m5_time: staleHour + 9 * M5, m15_time: staleHour + 9 * M5 };
+    trackCandleCloses(state, 'ftmo', [tick('EURUSD', staleHour, 45, 1.1003, stale)]);
+    const closed = trackCandleCloses(state, 'ftmo', [tick('EURUSD', now, 0, 1.1003, { time: now + 1000 })]);
+    expect(closed).toEqual([]);
+  });
+
+  it('stores nothing when the last bid lies outside the bar range', () => {
+    const state = createCandleCloseState();
+    trackCandleCloses(state, 'ftmo', [tick('EURUSD', hour, 4, 1.1003, { m5_open: 1.1212, m5_high: 1.1213, m5_low: 1.1210 })]);
+    const closed = trackCandleCloses(state, 'ftmo', [tick('EURUSD', hour, 5, 1.1004)]);
+    expect(closed.filter(c => c.timeframe === 'M5')).toEqual([]);
+  });
+
+  it('still closes a bar whose symbol stayed quiet into the next period', () => {
+    const state = createCandleCloseState();
+    const quiet = { time: hour + 6 * 60_000, m5_time: hour, m5_open: 1.1012, m5_high: 1.1030, m5_low: 1.1005 };
+    trackCandleCloses(state, 'ftmo', [tick('EURUSD', hour, 4, 1.1025, quiet)]);
+    const closed = trackCandleCloses(state, 'ftmo', [tick('EURUSD', hour, 7, 1.1026)]);
+    expect(closed.filter(c => c.timeframe === 'M5')).toEqual([
+      { symbol: 'EURUSD', timeframe: 'M5', time: hour, open: 1.1012, high: 1.1030, low: 1.1005, close: 1.1025 },
+    ]);
+  });
+
+  it('closes the last bar of Friday at the Monday open: the server clock stops over the weekend', () => {
+    const state = createCandleCloseState();
+    const fridayLastHour = Date.UTC(2026, 9, 23, 23);
+    const monday = Date.UTC(2026, 9, 26, 0);
+    const brokerOffsetS = 7200;
+    const serverFriday = fridayLastHour + 59 * 60_000;
+    // Sunday evening GMT: the wall clock moved on, the offset shrank with it, their sum is still Friday's last quote.
+    const sundayGmt = Date.UTC(2026, 9, 25, 21);
+    const weekend = { time: sundayGmt, broker_offset: (serverFriday - sundayGmt) / 1000, h1_time: fridayLastHour };
+    trackCandleCloses(state, 'ftmo', [tick('EURUSD', fridayLastHour, 59, 1.1010, weekend)]);
+    const closed = trackCandleCloses(state, 'ftmo', [tick('EURUSD', monday, 0, 1.1015, { time: monday - brokerOffsetS * 1000, broker_offset: brokerOffsetS })]);
+    expect(closed.find(c => c.timeframe === 'H1')).toMatchObject({ time: fridayLastHour, close: 1.1010 });
+  });
+
   it('skips a tick whose candle time is missing', () => {
     const state = createCandleCloseState();
     trackCandleCloses(state, 'ftmo', [tick('EURUSD', hour, 0, 1.1)]);

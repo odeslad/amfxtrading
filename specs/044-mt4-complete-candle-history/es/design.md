@@ -18,12 +18,12 @@ El contrato EA ↔ backend existente no cambia (mismos ficheros de velas, mismo 
 
 Hoy `trackCandleCloses` emite el snapshot anterior como vela cerrada siempre que cambia `<tf>_time`. El snapshot pasa a guardar la hora de servidor de su último tick, `serverNow = tick.time + tick.broker_offset * 1000` (que equivale al `TimeCurrent` de MT4, en la misma base de hora de broker que la hora de la barra), y solo se emite una vela cuando se cumplen las dos condiciones:
 
-- `prev.time <= prev.serverNow < prev.time + periodo` — la barra estaba en curso en su último tick;
+- `prev.time <= prev.serverNow < prev.time + 2 × periodo` — la barra era la que estaba en curso en su último tick. El segundo periodo es el margen para un símbolo que no cotiza en los primeros segundos (o minutos) de la barra siguiente: su hora de barra aún no se ha movido aunque el reloj del servidor sí;
 - `prev.low <= prev.bid <= prev.high` — el precio de cierre pertenece a la barra.
 
 Un terminal que arranca con el histórico atrasado no cumple la primera (barra del 20 de octubre, hora de servidor de hoy), así que no se guarda nada ni se emite el mensaje `candle`. La vela real llega con el fichero del EA. En fin de semana `TimeCurrent` se queda en la última cotización del viernes, así que la última barra del viernes sigue cumpliendo y se emite en la apertura del lunes, como hoy.
 
-Efecto secundario aceptado: un símbolo sin cotización durante una barra entera deja de recibir su vela de cambio de barra por ticks; llega con el siguiente fichero del EA (≤ 60 s después). La vela activa del frontend no se ve afectada.
+Efectos secundarios aceptados: un símbolo sin cotización durante más de una barra entera deja de recibir su vela de cambio de barra por ticks, le llega con el siguiente fichero del EA (≤ 60 s después); un terminal que estuvo desconectado menos de dos periodos todavía puede producir una vela cerrada con un bid tardío, que el fichero del EA corrige después (punto 2). La vela activa del frontend no se ve afectada.
 
 ### 2. El fichero del EA tiene autoridad sobre todas las velas cerradas — `services/candles.ts`
 
