@@ -61,3 +61,17 @@
   - `backend/docs/architecture.md` actualizado en el mismo commit (orígenes permitidos).
 - **Aún sin probar:** el navegador real en `https://amfxtrading.com` contra el backend desplegado — esa es la verificación de la tarea 8.
 - **Est vs Actual:** 0,5 SP vs 0,25 SP.
+
+## Tarea 4 — Proyecto en el VPS nuevo
+
+- **Mecanismo:** los dos builds en el VPS nuevo + el frontend cargado desde el PC del desarrollador por `ssh -L 8080:127.0.0.1:80`.
+- **Resultado:** ✅ pasa (2026-11-16)
+- **Evidencia:**
+  - `git clone https://github.com/odeslad/amfxtradingv2.git C:\amfxtradingv2` (anónimo: el repositorio es de lectura pública) → `ff3d307`, el mismo commit que tiene desplegado el VPS antiguo.
+  - `backend\.env`: el fichero del VPS antiguo con `FEATURE_ALERTS=false` (flags: `PIPE=true`, `WATCHER=true`, `ENGINE=false`, `ALERTS=false`, `WS_BROADCAST=true`). `backend\brokers.json`: el fichero del VPS antiguo, 13 brokers. La copia temporal `C:\deploy\backend.env` ya no existe.
+  - Backend: `npm install`, `npx prisma generate`, `npm run build` → existe `dist\index.js`.
+  - Frontend: `.env.production` = `VITE_API_BASE=https://api.amfxtrading.com`, `npm ci`, `npm run build` → existe `dist\index.html`; el único host de API dentro del bundle es `api.amfxtrading.com`.
+  - nginx responde `200` en `/` en local; por la redirección de puertos `http://127.0.0.1:8080/` devuelve `200` (título `AMFX`) y la ruta de la SPA `/settings` devuelve `200`.
+  - `git status` en el VPS nuevo limpio (el cambio de `package-lock.json` que deja `npm install` se descartó, como hace `deploy.ps1` con `git reset --hard`).
+- **Aún sin probar:** el backend no se ha arrancado (todavía no hay base de datos — tarea 5); el clon no incluye el commit de la tarea 3 hasta que se suba `master` y se haga pull.
+- **Est vs Actual:** 1,5 SP vs 0,75 SP.
