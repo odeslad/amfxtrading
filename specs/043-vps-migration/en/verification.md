@@ -81,3 +81,72 @@
 
 - `master` pushed at `4e8022c`. Before the push the five local commits were rewritten so that the new VPS IP appears in none of them (the repository is publicly readable); the documents now say `<new VPS IP>`.
 - The push triggered the backend pipeline on the **old** VPS: its `git` head moved to `4e8022c` and `https://api-v2.amfxtrading.com/health` answered `200` with 11 of 13 brokers connected and receiving ticks. `solidary isa` and `demo` show `pipe: listening`; the user confirmed both were already disconnected before the deploy.
+
+## Task 8 — Tunnel, DNS and Access
+
+- **Mechanism:** manual — probes from the developer PC after creating the tunnel.
+- **Outcome:** ✅ pass (2026-11-16)
+- **Evidence:**
+  - The `cert.pem` copied from the old VPS was accepted: `cloudflared tunnel list` showed the account's tunnels, and `cloudflared tunnel create amfxtrading` created tunnel `420ad992-bc3a-4079-b5c0-8f1bcd6d4820`. No `cloudflared tunnel login` by the user was needed.
+  - `C:\Users\Administrator\.cloudflared\config.yml`: ingress `ssh.amfxtrading.com` → `ssh://localhost:22`, `amfxtrading.com` → `http://localhost:80`, `api.amfxtrading.com` → `http://localhost:3000`, catch-all 404; `ingress validate` OK.
+  - DNS: `tunnel route dns --overwrite-dns` added the CNAME of the three names (the previous records of the apex and `api` were replaced).
+  - Service `Cloudflared`: running, automatic, `LocalSystem`, same command line as on the old VPS; `tunnel info` shows one connector with four edge connections.
+  - `https://amfxtrading.com/` → `200` (title `AMFX`), `/settings` → `200`. `https://api.amfxtrading.com/health` → `502`, expected: the backend is not started until tasks 5–6.
+  - `ssh` through `ssh.amfxtrading.com` (`cloudflared access ssh`) returns `WIN-E5FGF0D8OH7`.
+  - Unchanged: `https://v2.amfxtrading.com/` → `200`, `https://api-v2.amfxtrading.com/health` → `200`, `https://www.amfxtrading.com/` → `200` (title "AMFX Trading Terminal v1.0").
+- **Pending:**
+  - Done by the user: `ssh.amfxtrading.com` added to the "VPS SSH" Access application next to `ssh-v2`. Checked afterwards: an unauthenticated request to either hostname is redirected (`302`) to the Cloudflare Access login, and `ssh` reaches `WIN-16ESVKMCVCR` through `ssh-v2` and `WIN-E5FGF0D8OH7` through `ssh`. The `github-actions` service token on the new hostname is proven by the workflows after the joint push.
+  - The public login and live ticks at `https://amfxtrading.com` are verified in task 6, when the backend and terminals run.
+- **Est vs Actual:** 2 SP vs 1 SP — the old certificate worked, so no login step was needed.
+
+## Task 5 — Rehearsal of the data transfer
+
+- **Mechanism:** row counts on both sides + `prisma migrate status` on the new database, timed.
+- **Outcome:** ✅ pass with a deviation agreed with the user (2026-11-16): every table except the data of `candles`, which is damaged on the old VPS (see below and "Candles" in the design).
+- **What happened on the old VPS:**
+  - `pg_dump -Fc` of the whole database failed three times in a row at the same point: `COPY public.candles … ERROR: invalid memory alloc request size 18446744073709551613`. It is not the transient "invalid page" error the design expected: the table holds at least one permanently damaged row.
+  - `pg_dump --exclude-table-data=public.candles` succeeded: 2.0 MB, 1 second. Every other table is readable.
+  - `select count(*) from candles` answered (7,766,113 rows; 2004 MB with indexes). The next query, `select min(time), max(time) from candles`, **crashed a PostgreSQL server process at 15:30:40 UTC**; PostgreSQL ran automatic recovery (redo done in under a second) and was accepting connections again immediately. The backend process was not restarted (`/health` afterwards: same 11 of 13 brokers connected, uptime uninterrupted). Production lost database access for some seconds, in market hours, because of this query.
+  - No further query has been run against `candles` on the old VPS.
+- **Row counts on the old VPS (2026-11-16 15:31 UTC):** `_prisma_migrations` 39 · `balance_operations` 625 · `balances` 859 · `book_schemes` 459 · `book_trades` 888 · `candles` 7,766,113 · `chart_indicators` 1 · `drawings` 46 · `ema_cross_alerts` 0 · `ema_notification_events` 25 · `ema_notifications` 1 · `mirror_presets` 7 · `position_colors` 0 · `price_alerts` 7 · `push_subscriptions` 2 · `settings_display` 1 · `trades` 50,736 · `users` 1.
+- **Restore on the new VPS:** database `amfxtrading` created (UTF8) and `pg_restore` of the 2.0 MB dump: exit 0, 3 seconds. Row counts identical to the list above for every table; `candles` exists and is empty. `npx prisma migrate status`: "38 migrations found … Database schema is up to date!" (used instead of `prisma migrate diff`, which needs a shadow database).
+- **Timing for the switch:** dump 1 s + transfer + restore 3 s; the database copy is a matter of seconds, not the 15–40 minutes estimated when it included `candles`.
+- **Decision (user):** `candles` is not migrated; the new VPS refills it from its own terminals (full history on EA start) and that is enough. No salvage from the old table.
+- **Est vs Actual:** 1.5 SP vs 1.25 SP.
+
+## Task 6 — MT4 terminals and backend on the new VPS
+
+- **Mechanism:** folder comparison, `/health` on both systems, memory reading, CORS probe.
+- **Outcome:** ✅ pass (2026-11-16)
+- **Evidence:**
+  - Copy: the 13 installation folders (507 MB packed) and the `MetaQuotes` tree (196 MB packed) were archived on the old VPS at low priority (67 s, no read errors), relayed through the developer PC (42 s) and unpacked to the same paths. For each of the 13 brokers of `brokers.json`: same data-folder hash, `origin.txt` pointing at an existing `terminal.exe`, both `HttpBridge*.ex4` present, bridge `config.json` present.
+  - Before starting anything, `command.json`, `pending.json` and `result.json` were searched in every copied bridge folder so that no order captured in the copy could be executed again: none was present.
+  - Start through `AMFX-Startup` in the interactive session (the scripts with the new paths were copied by hand to the working tree; they reach `master` with tasks 9–12): `startup.log` — backend up after `pm2 start`, 13 terminals started 20 s apart, "13/13 running", "run end: OK". The 13 `terminal.exe` run in session 2 (visible over RDP).
+  - `https://api.amfxtrading.com/health`: 11 of 13 brokers `connected` with `tickAgeS: 0`; `solidary isa` and `demo` `listening` — **the same two that are disconnected on the old VPS**. The saved logins of the 11 connected accounts survived the copy; nobody had to log in by RDP.
+  - Old VPS during and after: `https://api-v2.amfxtrading.com/health` keeps its 11 of 13 connected, backend uptime uninterrupted. No broker dropped the old session when the new one logged in.
+  - Backend log: `[FEATURES] Disabled: alerts`; error log empty.
+  - Memory with everything running: 3.6 GB free of 8.2 GB (terminals 0.54 GB, PostgreSQL 0.87 GB, node 0.19 GB), CPU around 37 % while the candle history loads. The old VPS runs the same load with 0.75 GB free of 4 GB.
+  - `candles` refilling from the terminals: 2,257,096 rows a few minutes after the start (the old table has 7.77 million; the final figure is read in task 14).
+  - After `git pull` to `4e8022c` (apex origin), rebuild and `pm2 restart`: a request to `https://api.amfxtrading.com/health` with `Origin: https://amfxtrading.com` answers `access-control-allow-origin: https://amfxtrading.com` and `access-control-allow-credentials: true`.
+  - User check in the browser: `https://amfxtrading.com/journal` opens with the existing session (no new login) and the Accounts tab shows live balance, equity and day P&L for 11 brokers; `demo` appears greyed out and `solidary isa` does not appear, matching the two disconnected accounts. This proves the apex origin end to end (CORS, session cookie and WebSocket).
+- **Est vs Actual:** 2 SP vs 1.5 SP.
+
+## Task 7 — Startup tasks, Autologon and reboot
+
+- **Mechanism:** reboot of the new VPS with nobody logging in; `startup.log`, `/health` and process list read afterwards.
+- **Outcome:** ✅ pass (2026-11-16)
+- **Evidence:**
+  - `AMFX-Startup` and `AMFX-Watchdog` registered with `register-startup-tasks.ps1` (new paths). `PoolWatch` replicated (memory log every 30 s, as `SYSTEM` at boot, writing to `C:\monitoring\pool-monitor.log`). `RAM-Log` does not exist on the old VPS, so there was nothing to replicate.
+  - Autologon enabled by the user over RDP (Sysinternals): `AutoAdminLogon=1`, user `Administrator`, domain `WIN-E5FGF0D8OH7`, no plain-text password in the registry.
+  - Reboot requested at 16:01:16 UTC; boot time 16:01:29 UTC. `query user` afterwards: `administrator` on `console`, logged on at 16:01 with no RDP session opened.
+  - `startup.log`: backend healthy, terminals started 20 s apart, "13/13 running", "run end: OK" at 16:07. 13 `terminal.exe`, no duplicated executable, all in the interactive session.
+  - `https://api.amfxtrading.com/health` 242 s after the backend start: 11 brokers `connected` (the same 11 as before the reboot). Services `postgresql-x64-17`, `nginx`, `Cloudflared` and `sshd` running; `PoolWatch` running and logging; 3.5 GB of RAM free.
+- **Note:** `AMFX-Startup` and `AMFX-Watchdog` overlapped during the boot (one run reports 6 terminals started, the other 13). It did not produce duplicated terminals, and it is how the scripts already behave on the old VPS.
+- **Est vs Actual:** 1.5 SP vs 1 SP.
+
+## Candles on the new system — finding outside this spec (2026-11-16)
+
+- The user reported gaps in October and long false wicks at `https://amfxtrading.com`. Measured in the new database: EURUSD M15 in October has between 1,088 and 2,093 candles per broker where a full month is about 2,112; 216 stored candles have their close outside the high–low range.
+- Cause, read in the code: the EA exports the whole history only when it starts and then only the last 100 bars; `services/candle-close.ts` stores a closed candle with the latest bid when a terminal starts with stale history; `services/candles.ts` inserts missing rows but only overwrites the last two. None of it is caused by the migration: the same code runs on the old VPS, whose table was filled gradually over months.
+- A rescue from the old database was started and **abandoned at the user's request** ("candles must come from MT4, not be replaced by hand"): a raw copy of the old cluster was restored as a scratch instance on the new VPS and its candles loaded into a side table (all but 2 of 173,715 pages were readable). Nothing was merged into `candles`; the side table, the scratch instance and the backup file were deleted.
+- Follow-up: spec 044 (EA + backend) so that MT4 is the complete and only source.

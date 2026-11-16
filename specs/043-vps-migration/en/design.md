@@ -67,6 +67,10 @@ DNS today: `amfxtrading.com`, `www` and `api` already have proxied records in Cl
 
 `pg_dump -Fc` on the old VPS → file relayed through the developer PC → `pg_restore` into an empty database on the new VPS. Done twice: a rehearsal during preparation and the final copy at the switch. The old backend is **not stopped** for the final copy: tables fed by the EA (`candles`, `trades`, `balances`, `balance_operations`) are refilled on the new VPS by its own terminals (full candle and trade history on EA start, the last 100 bars every 60 s); user-created tables are copied as they are at that moment, and the user creates nothing on the old system from then on. Verification: row counts of the user-created tables equal on both sides, `prisma migrate diff` empty. A dump/restore rewrites every page, so no damaged block is carried over; an "invalid page" error during `pg_dump` is retried (known transient behaviour of the old machine).
 
+### db — candles (added during task 5)
+
+The `candles` table of the old VPS (7.77 million rows, 2 GB) holds at least one permanently damaged row: `pg_dump` fails on it every time (`invalid memory alloc request size`), and an aggregate query over the table crashed a PostgreSQL server process in production. It is therefore **not** part of the dump (`--exclude-table-data=public.candles`). Decision of the user: **the candles are not migrated**. The new VPS starts with an empty `candles` table and its terminals fill it (the EA writes every available bar of each symbol and timeframe on start, then the last 100 every 60 s); what the brokers serve through MT4 is enough. Candles older than the history MT4 holds are given up, and the old table is not read again.
+
 ### ea — MT4 terminals
 
 Copy the 13 installation folders and the whole `MetaQuotes\Terminal` tree to the **same paths**. The data-folder hash is derived from the installation path, so the hashes, `origin.txt`, `brokers.json` and each bridge `config.json` remain valid. The 13 terminals run on both machines at once (authorised by the user).
