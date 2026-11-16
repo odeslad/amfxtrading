@@ -8,9 +8,9 @@ Tres correcciones independientes, una por causa, para que la base de datos conve
 |---|---|---|
 | Una vela atrasada se guarda como vela cerrada con el precio de hoy | backend | La vela de cambio de barra solo se genera cuando la barra anterior era de verdad la barra en curso |
 | Una vela guardada mal nunca se corrige | backend | Cada vela cerrada de un fichero del EA sobrescribe la fila guardada cuando sus valores difieren |
-| El histórico descargado después de arrancar el EA no se exporta; MT4 no lo descarga por sí solo | ea | El EA hace que MT4 cargue el histórico y lo vuelve a exportar completo cada vez que crece |
+| El histórico descargado después de arrancar el EA no se exporta; MT4 no lo descarga por sí solo | ea + backend | El EA hace que MT4 cargue el histórico con un gráfico temporal, exporta el tramo sin huecos en un fichero propio, y el backend lo guarda y borra lo que queda detrás de un hueco |
 
-El contrato EA ↔ backend existente no cambia (mismos ficheros de velas, mismo JSON, mismos mensajes del pipe); se **añade** un fichero, `history_status.json`. Un EA antiguo sigue funcionando con el backend nuevo y al revés.
+El contrato EA ↔ backend existente no cambia (mismos ficheros de velas, mismo JSON, mismos mensajes del pipe); se **añade** un fichero, `fullcandles_<SYM>_<TF>.json`. Un EA antiguo sigue funcionando con el backend nuevo y al revés.
 
 ## Backend
 
@@ -51,41 +51,41 @@ ON CONFLICT (broker, symbol, timeframe, time) DO UPDATE
 | Corrige una vela errónea dentro de las últimas 100 | sí | no | no |
 | Caminos de código | uno | dos | dos |
 
-## EA — `ea/HttpBridgeState.mq4`
+## EA — `ea/HttpBridgeState.mq4` (tal como se construyó y midió en `Demo`)
 
-### 3. Volver a exportar completo cuando el histórico crece
+### 3. Hacer que MT4 cargue el histórico: un gráfico temporal llevado a su principio
 
-Por símbolo y temporalidad el EA recuerda el número de barras de su última exportación. En cada ciclo de estado (60 s): si `iBars` ha crecido más que la única barra que puede añadir un ciclo, ese par se encola para una exportación **completa**; si no, las `RECENT_BARS` de siempre. La cola se vacía a un fichero por segundo desde `OnTimer`, de modo que una ráfaga de 75 exportaciones completas nunca bloquea los lotes de ticks de 100 ms (hoy `OnInit` escribe las 75 de golpe antes del primer tick).
+Medido en el terminal `Demo` el 2026-11-16, con el EA real:
 
-### 4. Hacer que MT4 cargue el histórico
+| Mecanismo | Velas EURUSD M15 |
+|---|---|
+| Antes | 2.065 |
+| Peticiones de serie temporal (`iBars` / `iTime`, esperando en el error 4066) | 2.065 — nada |
+| `ChartOpen` + `ChartNavigate(CHART_BEGIN)` | 2.064 — nada |
+| `ChartOpen` + la **tecla Inicio** enviada a la ventana del gráfico | 65.425, hasta abril de 2024 |
 
-MT4 solo conserva en disco el histórico que algo le ha pedido, y una petición de serie temporal desde un EA devuelve lo guardado mientras la descarga ocurre en segundo plano (error `4066`, el histórico se actualizará). Qué descarga MT4 realmente para un símbolo sin gráfico abierto, y hasta dónde, **no está establecido**: en el VPS nuevo FTMO pasó de 201 a 2.093 velas M15 de octubre entre dos arranques del EA, mientras que las cuentas Solidary se quedaron entre 1.088 y 1.720 de 2.112. Por eso la primera tarea del EA es una medición en el terminal `Demo`, y el mecanismo se elige según su resultado:
+Así que el EA carga los 15 símbolos × 5 temporalidades de un par en un par: abre un gráfico temporal, quita el autoscroll y, una vez por segundo, navega al principio y envía `WM_KEYDOWN`/`WM_KEYUP` de `VK_HOME` a la ventana del gráfico (`user32.dll`, que se suma al import de `kernel32.dll` que el EA ya necesita). El gráfico se cierra cuando no llega ninguna vela durante `CANDLES_IDLE_S` (5 s), o, si ya habían empezado a llegar, durante `CANDLES_STABLE_S` (12 s), o pasados `CANDLES_CHART_MAX_S` (120 s). MT4 conserva unas 65.000 velas por gráfico.
 
-| | E1. Peticiones de serie temporal | E2. Gráficos temporales |
-|---|---|---|
-| Cómo | Pedir cada símbolo y temporalidad (`iBars` / `CopyRates`) y reintentar mientras MT4 responda `4066`, hasta que el número de barras sea estable | `ChartOpen` de cada símbolo y temporalidad, `ChartNavigate` al principio para traer bloques más antiguos, `ChartClose` cuando el número sea estable |
-| Pros | Sin efecto visible, sencillo | Es lo que hace aparecer los datos cuando el usuario abre un gráfico a mano |
-| Contras | Puede no rellenar un hueco en mitad del histórico guardado | 75 gráficos abiertos y cerrados al arrancar, pico de memoria, más código |
+Tiempos en `Demo`: primera carga, desde el broker, unos 75 minutos para los 75 pares; con el histórico ya en disco, unos 12 minutos. Los lotes de ticks de 100 ms no se interrumpieron nunca (0 timeouts del pipe en todas las pasadas).
 
-Evidencia obtenida con el usuario el 2026-11-16: en `Demo` la app tenía unas 2.090 velas M5 por símbolo, todas desde el 5 de noviembre. El usuario desplazó el gráfico EURUSD M5 hasta enero en MT4 y recargó el EA: EURUSD M5 pasó a 65.000 velas desde el 2 de enero de 2026, mientras que los otros 14 símbolos y las demás temporalidades de EURUSD no cambiaron. Así que el camino de exportación entrega lo que tenga MT4, y lo que carga el histórico es desplazar el gráfico — lo que hace de E2 el mecanismo probable. La cifra redonda de 65.000 sugiere un límite del terminal ("Max bars in chart"); no verificado.
+### 4. Histórico completo en su propio fichero, exportado al cargarse y al crecer
 
-Se elija el que se elija, se ejecuta escalonado (un símbolo y temporalidad cada vez) y su único resultado es un `iBars` mayor, que el punto 3 exporta después.
+- Las últimas `RECENT_BARS` siguen yendo a `candles_<SYM>_<TF>.json` cada 60 s, como antes.
+- Un histórico **completo** va a `fullcandles_<SYM>_<TF>.json`, escrito con nombre `.tmp` y renombrado. Se encola cuando un par termina de cargar y siempre que su número de velas crezca más de lo que puede añadir un ciclo de estado; la cola se vacía a un fichero por segundo.
+- Hizo falta un fichero aparte: en la primera versión el histórico completo se escribía en el fichero normal y el siguiente ciclo de 60 s lo pisaba antes de que un backend ocupado lo hubiera leído (CADJPY M15 llegó al log del EA con 65.430 velas y a la base de datos con 2.070).
 
-## Cómo se sabe que está completo (AC 9, AC 10)
+### 5. Solo el tramo sin huecos
 
-MQL4 no tiene ninguna llamada que pregunte al broker "cuánto histórico existe". Lo que sí se puede establecer, y basta para detectar todos los problemas vistos hasta ahora, son tres hechos por símbolo y temporalidad:
+MT4 puede conservar una isla antigua de histórico a la que las velas recientes no se conectan (en `Demo`: H4 de EURUSD, GBPUSD y USDJPY desde 2009, y después nada hasta 2022 o 2025). La tecla Inicio salta a la primera vela de la isla y no trae nada de en medio.
 
-| Hecho | Quién lo mide | Cómo |
-|---|---|---|
-| MT4 ha terminado de descargar | EA | Ningún `4066` pendiente y número de velas estable durante ciclos consecutivos |
-| El histórico no tiene huecos | EA | **Cruce con D1**: todo día que tiene vela D1 dentro del rango de esa temporalidad debe tener al menos una vela en ella. D1 es la referencia porque es pequeño y MT4 lo conserva completo (desde 2018–2020 en estas cuentas). Un día presente en D1 y ausente en M15 es un hueco, nunca un fin de semana ni un festivo |
-| La base de datos es igual a MT4 | backend | Velas cerradas guardadas entre la primera y la última hora que da el EA = velas que da el EA menos la que está en curso |
+Por eso la exportación completa contiene solo las velas, contadas desde la más reciente, que forman un histórico sin huecos: en D1, ningún salto de más de cinco días entre velas consecutivas; en las demás temporalidades, todo día que tenga vela D1 debe tener al menos una vela, comprobado desde hoy hacia atrás hasta el primer día que falla. Las velas más antiguas que el histórico D1 también se dejan fuera. Cuando se han dejado velas fuera, el fichero lleva `"cutAtHole": true`.
 
-- El EA escribe un fichero más, `bridge/history_status.json`: por símbolo y temporalidad `bars`, `first`, `last`, `downloading` (bool) y `missingDays` (número, más las primeras fechas). Fichero nuevo, aditivo: un backend que no lo conozca lo ignora.
-- El backend lo lee con el mismo watcher, lo compara con `candles` y guarda el resultado en memoria por broker: `complete`, `downloading` o `incomplete` con la lista de pares símbolo y temporalidad y el motivo (hueco en MT4 / base de datos por detrás). `GET /health` gana un campo `history` por broker; no se persiste nada y el `status` de `/health` no depende de él.
-- El propio EA usa `missingDays`: mientras sea mayor que cero, ese par sigue en la cola de descarga del punto 4.
+## Backend — el fichero de histórico completo
 
-Lo que esto no puede decir: si el broker tiene histórico más antiguo que la primera vela que conserva MT4. Queda fuera de la spec.
+- `bridge/file-watcher.ts` reconoce `fullcandles_<SYM>_<TF>.json`, se lo pasa a `onFullCandles` y **borra el fichero** una vez guardado, de modo que no se vuelve a leer ni en la siguiente vuelta ni tras un reinicio. Un guardado fallido lo deja para la siguiente vuelta; el fichero `.tmp` se ignora.
+- `services/candles.ts` `replaceCandleHistory`: guarda las velas con la sentencia del punto 2 y, solo cuando el fichero dice `cutAtHole` y trae al menos 500 velas cerradas, borra las velas guardadas de ese par anteriores a la primera vela del fichero. Sin `cutAtHole` no se borra nada, así que la tabla acumula más allá de la ventana de 65.000 velas del terminal. El suelo de 500 velas evita que un terminal que no ha cargado su histórico vacíe lo guardado.
+
+Contrato: se añade un fichero (`fullcandles_*`); un backend antiguo lo ignora, un EA antiguo no lo escribe nunca.
 
 ## Flujo de datos
 
@@ -100,8 +100,8 @@ Tras el deploy, las siguientes exportaciones completas de cada terminal sobrescr
 - `backend/src/services/candle-close.ts`, `candle-close.test.ts`
 - `backend/src/services/candles.ts` (+ test)
 - `backend/docs/architecture.md`, `.claude/CLAUDE.md` — "Velas activas y alertas" / autoridad de las velas
-- `ea/HttpBridgeState.mq4` (subida de versión, `history_status.json`), `ea/docs/`
-- `backend/src/bridge/file-watcher.ts`, un `services/history-status.ts` nuevo (+ test), `routes` de `/health`
+- `ea/HttpBridgeState.mq4` (versión 3.16), `ea/docs/`
+- `backend/src/bridge/file-watcher.ts` (+ test), `backend/src/index.ts`
 
 ## Dependencias
 
@@ -113,7 +113,7 @@ Backend primero, después EA, solo en el sistema **nuevo**: el push de esta spec
 
 ## Riesgos
 
-- **Puede que MT4 no descargue un hueco en mitad de su histórico por ningún medio programático.** Entonces el AC 3 no se puede cumplir del todo; la tarea de medición lo dice antes de escribir el EA y el usuario decide.
+- **Un hueco en mitad del histórico de MT4 no se descarga por ningún medio encontrado.** Resuelto exportando solo el tramo sin huecos y borrando lo que queda detrás (decisión del usuario); el coste es profundidad: el H4 de USDJPY en `Demo` empieza en julio de 2025.
 - **Las exportaciones completas son grandes** (hasta ~27.000 velas por fichero, 75 ficheros por terminal, 13 terminales). El escalonado en el EA y el `WHERE` sin efecto en el backend acotan la carga; memoria y CPU se leen en el VPS nuevo durante la validación.
 - **Base de hora del servidor.** La regla del cambio de barra depende de que `time + broker_offset` sea igual al `TimeCurrent` de MT4; se cubre con tests sobre muestras reales de ticks, incluida una secuencia de fin de semana.
 - **Una vela falsa cuya barra MT4 no llegue a obtener nunca** se quedaría guardada. La consulta de validación lo muestra; no se borra a mano sin la decisión del usuario.

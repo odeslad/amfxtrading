@@ -80,3 +80,60 @@ describe('FileWatcher history and account', () => {
     expect(handler.mock.calls.map(c => c[0].balance)).toEqual([100, 120]);
   });
 });
+
+describe('FileWatcher full candle history', () => {
+  const candles = { brokerOffset: 7200, candles: [{ time: 100, open: 1, high: 2, low: 0.5, close: 1.5 }, { time: 200, open: 1, high: 2, low: 0.5, close: 1.5 }] };
+
+  beforeEach(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fw-')); });
+  afterEach(() => { fs.rmSync(dir, { recursive: true, force: true }); });
+
+  it('hands a full history once, with its symbol and timeframe, and removes the file', async () => {
+    const watcher = new FileWatcher('b', dir);
+    const full = vi.fn().mockResolvedValue(undefined);
+    const recent = vi.fn().mockResolvedValue(undefined);
+    watcher.onFullCandles(full);
+    watcher.onCandles(recent);
+    write('fullcandles_EURUSD_M15.json', candles);
+    await poll(watcher);
+    await poll(watcher);
+    expect(full).toHaveBeenCalledTimes(1);
+    expect(full.mock.calls[0][0]).toMatchObject({ symbol: 'EURUSD', timeframe: 'M15', brokerOffset: 7200 });
+    expect(recent).not.toHaveBeenCalled();
+    expect(fs.existsSync(path.join(dir, 'fullcandles_EURUSD_M15.json'))).toBe(false);
+  });
+
+  it('keeps the file when storing it failed and retries on the next poll', async () => {
+    const watcher = new FileWatcher('b', dir);
+    const full = vi.fn().mockRejectedValueOnce(new Error('db down')).mockResolvedValue(undefined);
+    watcher.onFullCandles(full);
+    write('fullcandles_EURUSD_H1.json', candles);
+    await poll(watcher);
+    expect(fs.existsSync(path.join(dir, 'fullcandles_EURUSD_H1.json'))).toBe(true);
+    await poll(watcher);
+    expect(full).toHaveBeenCalledTimes(2);
+    expect(fs.existsSync(path.join(dir, 'fullcandles_EURUSD_H1.json'))).toBe(false);
+  });
+
+  it('ignores the temporary file the EA is still writing', async () => {
+    const watcher = new FileWatcher('b', dir);
+    const full = vi.fn().mockResolvedValue(undefined);
+    watcher.onFullCandles(full);
+    write('fullcandles_EURUSD_H1.json.tmp', candles);
+    await poll(watcher);
+    expect(full).not.toHaveBeenCalled();
+    expect(fs.existsSync(path.join(dir, 'fullcandles_EURUSD_H1.json.tmp'))).toBe(true);
+  });
+
+  it('still hands the recent candle file to its own handler', async () => {
+    const watcher = new FileWatcher('b', dir);
+    const full = vi.fn().mockResolvedValue(undefined);
+    const recent = vi.fn().mockResolvedValue(undefined);
+    watcher.onFullCandles(full);
+    watcher.onCandles(recent);
+    write('candles_EURUSD_M15.json', candles);
+    await poll(watcher);
+    expect(recent).toHaveBeenCalledTimes(1);
+    expect(full).not.toHaveBeenCalled();
+    expect(fs.existsSync(path.join(dir, 'candles_EURUSD_M15.json'))).toBe(true);
+  });
+});

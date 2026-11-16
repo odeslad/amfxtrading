@@ -22,6 +22,7 @@ MT4 EA (one terminal per broker)
     └── <bridgePath>/*.json (written by the EA every 60 s)
             └── bridge/file-watcher.ts — polls every 5 s, skips files whose mtime/size did not change (history/account also by content)
                     ├── candles_<SYM>_<TF>.json → services/candles.ts            → candles (closed bars only)
+                    ├── fullcandles_<SYM>_<TF>.json → services/candles.ts        → candles (whole history; the file is deleted once stored)
                     ├── history.json            → services/trades.ts             → trades
                     │                           → services/balance-operations.ts → balance_operations
                     └── account.json            → services/account.ts            → balances (one row per broker and UTC day)
@@ -220,6 +221,8 @@ Every message is `{ "type", … }` with `broker` at the root (never per item):
 **Tick subscription (spec 041).** A client receives no `ticks` until it sends the only inbound message, `{ "type": "subscribe", "ticks": [ { "broker", "symbol" }, … ] }` (at most 16 pairs, names up to 64 characters, frame up to 4 KiB). Each frame replaces the whole set and an empty list stops the ticks; an invalid frame is ignored and the previous set kept. Every batch is filtered per client and skipped when nothing matches, so a client only pays for the charts it has open (the frontend re-sends its set on every reconnect). Every other message type is delivered regardless of the subscription. `scripts/ws-measure.ts` connects as a client and reports the bytes received per type, with or without a subscription.
 
 A tick carries `symbol`, `bid`, `ask`, `time`, `broker_offset` and the open/high/low/time of the current M5, M15, H1, H4 and D1 candles, so the frontend builds the live candle itself; only closed candles are persisted. When a tick's `<tf>_time` advances, the previous bar (its OHLC from the last tick, close = that tick's bid) is upserted into `candles` without overwriting a row the EA already wrote, and broadcast as `candle` — only when that bar was really in progress at its last tick: server time (`time + broker_offset`) inside the bar or the period after it, and the bid between its low and high. A terminal that starts with stale history reports an old bar next to the live bid and produces no candle (spec 044). The EA's `candles_<SYM>_<TF>.json` has authority over every closed bar: the watcher inserts the missing ones and overwrites a stored bar whose values differ.
+
+The whole history of a symbol and timeframe arrives in `fullcandles_<SYM>_<TF>.json`, which the EA writes once MT4 has loaded it and again whenever it grows (spec 044). The watcher stores it the same way and deletes the file, so it is read once and never again after a restart; a failed write leaves it for the next poll. The file holds only the stretch without holes that reaches the present. When the EA had to leave out older bars that lie behind a hole it says `"cutAtHole": true`, and `replaceCandleHistory` then deletes the stored candles of that pair older than the file's first bar — only if the file brings at least 500 closed bars, so a terminal that has not loaded its history cannot wipe what is stored. Without `cutAtHole` nothing is deleted: the table keeps more history than the terminal's own bar limit (about 65,000 per chart).
 
 ## Libro de esquemas (book)
 

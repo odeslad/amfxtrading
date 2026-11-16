@@ -8,9 +8,9 @@ Three independent corrections, one per cause, so that the database converges to 
 |---|---|---|
 | A stale bar is stored as a closed candle with today's price | backend | A rollover candle is produced only when the previous bar was really the bar in progress |
 | A wrong stored candle is never corrected | backend | Every closed bar of an EA file overwrites the stored row when its values differ |
-| History downloaded after the EA started is never exported; MT4 does not download it by itself | ea | The EA makes MT4 load the history and exports it in full again whenever it grows |
+| History downloaded after the EA started is never exported; MT4 does not download it by itself | ea + backend | The EA makes MT4 load the history through a temporary chart, exports the stretch without holes in a file of its own, and the backend stores it and drops what lies behind a hole |
 
-The existing EA ↔ backend contract does not change (same candle files, same JSON, same pipe messages); one file is **added**, `history_status.json`. An old EA keeps working with the new backend and the other way round.
+The existing EA ↔ backend contract does not change (same candle files, same JSON, same pipe messages); one file is **added**, `fullcandles_<SYM>_<TF>.json`. An old EA keeps working with the new backend and the other way round.
 
 ## Backend
 
@@ -51,41 +51,41 @@ ON CONFLICT (broker, symbol, timeframe, time) DO UPDATE
 | Fixes a wrong candle inside the last 100 bars | yes | no | no |
 | Code paths | one | two | two |
 
-## EA — `ea/HttpBridgeState.mq4`
+## EA — `ea/HttpBridgeState.mq4` (as built and measured on `Demo`)
 
-### 3. Export in full again when the history grows
+### 3. Make MT4 load the history: a temporary chart taken to its beginning
 
-Per symbol and timeframe the EA remembers the bar count of its last export. In each state cycle (60 s): if `iBars` grew by more than the one bar a cycle can add, that pair is queued for a **full** export; otherwise the usual last `RECENT_BARS`. The queue is drained one file per second from `OnTimer`, so a burst of 75 full exports never blocks the 100 ms tick batches (today `OnInit` writes all 75 at once before the first tick).
+Measured on the `Demo` terminal on 2026-11-16, with the real EA:
 
-### 4. Make MT4 load the history
+| Mechanism | EURUSD M15 bars |
+|---|---|
+| Before | 2,065 |
+| Timeseries requests (`iBars` / `iTime`, waiting on error 4066) | 2,065 — nothing |
+| `ChartOpen` + `ChartNavigate(CHART_BEGIN)` | 2,064 — nothing |
+| `ChartOpen` + the **Home key** posted to the chart window | 65,425, back to April 2024 |
 
-MT4 keeps on disk only the history something has asked for, and a timeseries request from an EA returns what is stored while the download happens in the background (error `4066`, history will be updated). What MT4 actually downloads for a symbol with no open chart, and how deep, is **not established**: on the new VPS FTMO went from 201 to 2,093 October M15 candles between two EA starts, while the Solidary accounts stayed between 1,088 and 1,720 of 2,112. So the first EA task is a measurement on the `Demo` terminal, and the mechanism is chosen from its result:
+So the EA loads the 15 symbols × 5 timeframes one pair at a time: it opens a temporary chart, turns autoscroll off and, once per second, navigates to the beginning and posts `WM_KEYDOWN`/`WM_KEYUP` of `VK_HOME` to the chart's window (`user32.dll`, which joins the `kernel32.dll` import the EA already needs). The chart is closed when no bar has arrived for `CANDLES_IDLE_S` (5 s), or, once bars started to arrive, for `CANDLES_STABLE_S` (12 s), or after `CANDLES_CHART_MAX_S` (120 s). MT4 holds about 65,000 bars per chart.
 
-| | E1. Timeseries requests | E2. Temporary charts |
-|---|---|---|
-| How | Request each symbol and timeframe (`iBars` / `CopyRates`) and retry while MT4 answers `4066`, until the bar count is stable | `ChartOpen` each symbol and timeframe, `ChartNavigate` to the beginning to pull older blocks, `ChartClose` when the count is stable |
-| Pros | No visible side effect, simple | It is what makes the data appear when the user opens a chart by hand |
-| Cons | May not fill a hole in the middle of the stored history | 75 charts opened and closed at start, memory peak, more code |
+Timing on `Demo`: first load, from the broker, about 75 minutes for the 75 pairs; with the history already on disk, about 12 minutes. The 100 ms tick batches were never interrupted (0 pipe timeouts in every run).
 
-Evidence gathered with the user on 2026-11-16: on `Demo` the app held about 2,090 M5 candles per symbol, all starting on 5 November. The user scrolled the EURUSD M5 chart back to January in MT4 and reloaded the EA: EURUSD M5 became 65,000 candles from 2 January 2026, while the other 14 symbols and the other EURUSD timeframes did not change. So the export path delivers whatever MT4 holds, and what loads the history is the chart being scrolled — which makes E2 the likely mechanism. The round figure of 65,000 suggests a terminal limit ("Max bars in chart"); not verified.
+### 4. Full history in its own file, exported when it is loaded and when it grows
 
-Whichever is chosen, it runs staggered (one symbol and timeframe at a time) and its only output is a larger `iBars`, which point 3 then exports.
+- The last `RECENT_BARS` keep going to `candles_<SYM>_<TF>.json` every 60 s, as before.
+- A **full** history goes to `fullcandles_<SYM>_<TF>.json`, written under a `.tmp` name and renamed. It is queued when a pair finishes loading and whenever its bar count grows by more than a state cycle can add; the queue is drained one file per second.
+- A separate file was needed: in the first version the full history was written to the regular file and the next 60 s cycle overwrote it before a busy backend had read it (CADJPY M15 reached the EA's log with 65,430 bars and the database with 2,070).
 
-## How completeness is known (AC 9, AC 10)
+### 5. Only the stretch without holes
 
-MQL4 has no call that asks the broker "how much history exists". What can be established, and is enough to detect every problem seen so far, is three facts per symbol and timeframe:
+MT4 can hold an old island of history that the recent bars do not connect to (on `Demo`: H4 of EURUSD, GBPUSD and USDJPY from 2009, then nothing until 2022 or 2025). The Home key jumps to the island's first bar and fetches nothing in between.
 
-| Fact | Who measures it | How |
-|---|---|---|
-| MT4 has finished downloading | EA | No pending `4066` and a stable bar count over consecutive cycles |
-| The history has no hole | EA | **Cross-check against D1**: every day that has a D1 bar inside the range of that timeframe must have at least one bar in it. D1 is the reference because it is small and MT4 holds it complete (since 2018–2020 on these accounts). A day present in D1 and absent in M15 is a hole, never a weekend or a holiday |
-| The database equals MT4 | backend | Stored closed bars between the first and last time reported by the EA = bars reported by the EA minus the one in progress |
+The full export therefore contains only the bars, counted from the newest, that form a history without holes: for D1, no gap longer than five days between consecutive bars; for the other timeframes, every day that has a D1 bar must have at least one bar, checked from today backwards until the first day that fails. Bars older than the D1 history are left out too. When bars were left out the file carries `"cutAtHole": true`.
 
-- The EA writes one extra file, `bridge/history_status.json`: per symbol and timeframe `bars`, `first`, `last`, `downloading` (bool) and `missingDays` (count, plus the first few dates). New file, additive: a backend that does not know it ignores it.
-- The backend reads it with the same watcher, compares with `candles` and keeps the result in memory per broker: `complete`, `downloading` or `incomplete` with the list of symbol and timeframe pairs and the reason (hole in MT4 / database behind). `GET /health` gains a `history` field per broker; nothing is stored and the `status` of `/health` does not depend on it.
-- The EA uses `missingDays` itself: while it is above zero, that pair stays in the download queue of point 4.
+## Backend — the full history file
 
-What this cannot tell: whether the broker has history older than the first bar MT4 holds. That is outside the spec.
+- `bridge/file-watcher.ts` recognises `fullcandles_<SYM>_<TF>.json`, hands it to `onFullCandles` and **deletes the file** once it is stored, so it is neither read again on the next poll nor after a restart. A failed write leaves it for the next poll; the `.tmp` file is ignored.
+- `services/candles.ts` `replaceCandleHistory`: stores the bars with the statement of point 2 and, only when the file says `cutAtHole` and brings at least 500 closed bars, deletes the stored candles of that pair older than the file's first bar. Without `cutAtHole` nothing is deleted, so the table accumulates beyond the terminal's 65,000-bar window. The 500-bar floor keeps a terminal that has not loaded its history from wiping what is stored.
+
+Contract: one file is added (`fullcandles_*`); an old backend ignores it, an old EA never writes it.
 
 ## Data flow
 
@@ -100,8 +100,8 @@ After the deploy, each terminal's next full exports overwrite the false candles 
 - `backend/src/services/candle-close.ts`, `candle-close.test.ts`
 - `backend/src/services/candles.ts` (+ test)
 - `backend/docs/architecture.md`, `.claude/CLAUDE.md` — "Velas activas y alertas" / candle authority
-- `ea/HttpBridgeState.mq4` (version bump, `history_status.json`), `ea/docs/`
-- `backend/src/bridge/file-watcher.ts`, a new `services/history-status.ts` (+ test), `routes` of `/health`
+- `ea/HttpBridgeState.mq4` (version 3.16), `ea/docs/`
+- `backend/src/bridge/file-watcher.ts` (+ test), `backend/src/index.ts`
 
 ## Dependencies
 
@@ -113,7 +113,7 @@ Backend first, then EA, on the **new** system only: this spec's push carries the
 
 ## Risks
 
-- **MT4 may not download a hole in the middle of its history by any programmatic means.** Then AC 3 cannot be met in full; the measurement task reports it before the EA is written and the user decides.
+- **A hole in the middle of MT4's history is not downloaded by any means found.** Resolved by exporting only the stretch without holes and dropping what lies behind it (decision of the user); the cost is depth: USDJPY H4 on `Demo` starts in July 2025.
 - **Full exports are large** (up to ~27,000 bars per file, 75 files per terminal, 13 terminals). Staggering in the EA and the no-op `WHERE` in the backend bound the load; memory and CPU are read on the new VPS during validation.
 - **Server time base.** The rollover rule relies on `time + broker_offset` equalling MT4's `TimeCurrent`; covered by tests with real tick samples, including a weekend sequence.
 - **A false candle whose bar MT4 never obtains** would stay stored. The validation query shows it; it is not deleted by hand without the user's decision.

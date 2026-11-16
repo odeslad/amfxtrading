@@ -28,3 +28,22 @@
   - `npm run build` and `npm run lint` clean. `backend/docs/architecture.md` and `.claude/CLAUDE.md` updated in the same commit.
 - **Finding outside this task:** `npm test` passed 154 of 154 in some runs and failed one test in others, always the same: `src/bridge/pipe-reader.test.ts > PipeReader on a real named pipe > retries a busy pipe with backoff…`. It passes 5 times out of 5 when run alone, its files were not touched by this spec, and it depends on real timing over a named pipe, so it looks sensitive to load when the whole suite runs in parallel. It can make the backend pipeline's check fail at random; not fixed here.
 - **Est vs Actual:** 2 SP vs 1.5 SP.
+
+## Tasks 3 and 4 — Full history from MT4, without holes (backend + EA)
+
+- **Mechanism:** vitest + `npm run build` for the backend; for the EA, compile on the new VPS and four runs on the `Demo` terminal, each started by the user reloading the EA by RDP, measured in the EA log, the backend log and the database.
+- **Outcome:** ✅ pass (2026-11-16)
+- **How MT4 loads history (measured, EURUSD M15 on `Demo`):** timeseries requests 2,065 → 2,065; `ChartOpen` + `ChartNavigate` 2,064 → 2,064; `ChartOpen` + Home key 2,065 → **65,425** (back to 1 April 2024).
+- **Runs on `Demo`:**
+  1. *Request + `ChartNavigate`:* nothing loaded (figures above). Discarded.
+  2. *Home key, full history in the regular file:* 75 pairs in about 75 minutes, `Demo` from 263,588 to 2,273,428 candles, 0 pipe timeouts. Two defects found: full exports overwritten by the 60 s cycle before the backend read them (CADJPY M15: 65,430 bars in the EA log, 2,070 in the database; also GBPAUD H1 and GBPCAD D1), and a hole in H4 for EURUSD, GBPUSD (676 trading days, October 2015 – May 2022) and USDJPY (1,500 days, to July 2025) behind an old island of history from 2009.
+  3. *Own file + stretch without holes + trim:* about 16 s per pair with the history already on disk; files stored and deleted by the backend; EURUSD H4 exported as "6998 without holes of 19075" and 12,077 older candles dropped. Defect found: the trim was unconditional and also cut the oldest edge of pairs with no hole (EURUSD M5 29 candles, M15 432; EURGBP M5 480, M15 432 — **not restored**). Fixed with the `cutAtHole` flag: the backend trims only when the EA cut at a hole.
+  4. *Final build (no request phase, short wait when nothing arrives):* about 7 s per pair, the 75 pairs in about 12 minutes, 0 pipe timeouts.
+- **Database after run 4 (`Demo`, 2,430,054 candles):**
+  - days with a D1 candle and no candle in M5, M15, H1 or H4, inside each timeframe's range: **0** for the 15 symbols; D1 gaps longer than five days: **0**;
+  - candles with open or close outside high–low: **0** (41 before);
+  - depth per symbol: M5 65,004–65,484 (from January 2026); M15 65,000–65,433 (April 2024); H1 21,841 for all (May 2023); H4 6,997 (May 2022) except USDJPY 2,053 (July 2025, its hole reached that far); D1 2,515–2,872 (2015–2017);
+  - the pairs lost in run 2 are present: CADJPY M15 65,000, GBPAUD H1 21,841, GBPCAD D1 2,872.
+- **Backend:** `npx vitest run src/bridge/file-watcher.test.ts src/services/candles.test.ts`: 15 tests pass (4 new for the full history file, 2 for the history start); `npm run build` and `npm run lint` clean. For the `Demo` runs the backend of the new VPS was built from these sources copied by hand; the pipeline deploy is task 5.
+- **Known limits:** a pair is only as deep as its stretch without holes (USDJPY H4); the first load of a terminal takes about an hour and opens and closes charts by itself; with about 2.4 million candles per broker the table is expected to grow from 7.8 to around 29 million rows — chart load time with that volume is measured in task 5.
+- **Est vs Actual:** planned 2 (measurement) + 3 (EA) + 1.5 + 2 (status file and `/health`, dropped) = 8.5 SP; actual about 6 SP for tasks 3 and 4 as redefined.

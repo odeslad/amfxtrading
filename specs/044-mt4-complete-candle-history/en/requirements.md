@@ -27,14 +27,14 @@ The old VPS runs the same code; its table looks complete only because it was fil
 
 - AC 1. WHEN the EA starts on a terminal THEN it asks MT4 for the history of every configured symbol and timeframe and, once MT4 has it, exports it complete — without anyone opening a chart in the terminal.
 - AC 2. WHEN MT4 obtains more history for a symbol and timeframe after the EA started (a late download, a reconnection) THEN the EA exports it without being restarted.
-- AC 3. WHEN the full export of a symbol and timeframe has been stored THEN the database has no gap inside the range MT4 holds: for a past month fully inside that range, accounts that share a broker feed have the same number of candles.
+- AC 3. WHEN the full export of a symbol and timeframe has been stored THEN the database has no hole in it: every day with a D1 candle has candles in every other timeframe, inside that timeframe's own range. Depth may differ between symbols and accounts; holes may not.
 - AC 4. WHEN a terminal starts or reconnects with stale history THEN the backend stores no candle built from a bar that was not really the bar in progress, and no stored candle has its open or close outside its high–low range.
 - AC 5. WHEN the EA's full export contains a candle that is already stored with different values THEN the stored candle takes the EA's values.
 - AC 6. WHEN the system runs in its normal cycle (last bars every 60 s) THEN the candle work per cycle stays of the same order as today: the full history is not rewritten every minute.
 - AC 7. WHEN this spec is deployed on the new system THEN the gaps and the false candles already stored there disappear through the EA's own exports, with no manual SQL on the `candles` table.
 - AC 8. WHEN the candles of a closed bar are stored THEN live behaviour is unchanged: the `candle` WebSocket message at the rollover (spec 025), the active candle built by the frontend from ticks, and the EMA alerts evaluated at candle close.
-- AC 9. WHEN the EA has exported a symbol and timeframe THEN the system can tell, without anyone looking at a chart, whether that history is complete: the EA reports per symbol and timeframe how many bars MT4 holds, their first and last time, whether MT4 is still downloading, and how many trading days inside that range have no bars; the backend compares those figures with what it has stored and exposes the result per broker.
-- AC 10. WHEN a symbol and timeframe is reported as complete THEN three things hold: MT4 is not downloading anything for it, it has no trading day without bars inside its range, and the database holds exactly the closed bars MT4 reports for that range.
+- AC 9. WHEN the EA exports a full history THEN it contains only the stretch without holes that reaches the present (a hole is a day with a D1 candle and no candle in that timeframe; weekends and holidays are not holes), and WHEN that stretch had to be cut at a hole THEN the backend drops the candles it stores from before the stretch, so no stored history lies behind a gap.
+- AC 10. WHEN no hole forced a cut THEN the candles already stored from before the export stay: the database keeps more history than the terminal's own bar limit.
 
 ## Out of scope
 

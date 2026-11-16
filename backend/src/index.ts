@@ -6,7 +6,7 @@ import { db } from './db/client';
 import { PipeReader } from './bridge/pipe-reader';
 import { FileWatcher, type BridgeTrade } from './bridge/file-watcher';
 import { createWss } from './ws/ws';
-import { upsertCandles } from './services/candles';
+import { replaceCandleHistory, upsertCandles } from './services/candles';
 import { createCandleCloseState, persistClosedCandle, trackCandleCloses } from './services/candle-close';
 import { syncTrades } from './services/trades';
 import { syncBalanceOperations, BALANCE_OPERATION_TYPES } from './services/balance-operations';
@@ -72,6 +72,10 @@ function startBroker(brokerName: string, bridgePath: string, wss: Wss) {
 
   // The watcher awaits each handler and logs failures with its own prefix.
   watcher?.onCandles(async ({ symbol, timeframe, ...data }) => { await upsertCandles(brokerName, symbol, timeframe, data); });
+  watcher?.onFullCandles(async ({ symbol, timeframe, ...data }) => {
+    const { written, trimmed } = await replaceCandleHistory(brokerName, symbol, timeframe, data);
+    console.log(`[CANDLES:${brokerName}] ${symbol} ${timeframe} full history | bars: ${data.candles.length} | written: ${written} | trimmed: ${trimmed}`);
+  });
 
   watcher?.onHistory(async (entries: BridgeTrade[]) => {
     const trades = entries.filter(e => e.type === 0 || e.type === 1);
