@@ -7,7 +7,7 @@ function Invoke-Step {
     if ($LASTEXITCODE -ne 0) { throw "$Label failed with exit code $LASTEXITCODE" }
 }
 
-Set-Location C:\amfxtradingv2
+Set-Location C:\amfxtrading
 
 Invoke-Step "git reset" { git reset --hard HEAD }
 Invoke-Step "git clean" { git clean -fd }
@@ -15,7 +15,7 @@ Invoke-Step "git pull" { git pull origin master }
 
 Set-Location frontend
 
-Set-Content ".env.production" "VITE_API_BASE=https://api-v2.amfxtrading.com"
+Set-Content ".env.production" "VITE_API_BASE=https://api.amfxtrading.com"
 
 Invoke-Step "npm ci" { npm ci }
 Invoke-Step "build" { npm run build }
