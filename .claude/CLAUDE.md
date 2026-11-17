@@ -132,6 +132,7 @@ Todos los valores de diseño se definen aquí. No se repiten valores mágicos en
 /* Texto */
 --text:   #e8e8e8   /* texto primario */
 --muted:  #666666   /* texto secundario / deshabilitado */
+--muted-strong: #9a9a9a   /* texto secundario que debe leerse a 9–11 px (spec 045) */
 
 /* Acentos */
 --orange: #f5a623   /* acento principal / brand */

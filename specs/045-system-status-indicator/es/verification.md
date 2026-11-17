@@ -35,3 +35,12 @@
 - **Evidencia:** 3 tests pasan sobre un servidor HTTP real (401 sin cookie; con cookie el objeto trae `level`, `server`, `brokers`, `at`, el broker visible y no el oculto; la ruta sirve la última muestra tomada); lint y `tsc` limpios; suite completa 188 de 189: el único fallo es el ya conocido test inestable `pipe-reader.test.ts` (pipe real con esperas de 80 ms, falla con carga en paralelo, se salta en CI), que pasa solo tres veces seguidas. CPU: backend 72 % en cuatro muestras seguidas, Windows 71 %; memoria libre 32.304 MB frente a los 32.298 MB de Windows.
 - **Desviación:** la tarea pedía ver `/status` en un backend local con los flags apagados. Eso requiere el túnel de la base de datos y todo el stack local, que la tarea 6 arranca de todos modos para comprobar la luz, así que se verifica allí. El test de la ruta monta el router con la comprobación de sesión real en lugar de importar `app.ts`, porque `app.ts` necesita el entorno del servidor que CI no tiene.
 - **Est vs Actual:** 1,25 SP vs 1,25 SP
+
+## Tarea 5 — [frontend] `--muted-strong` y `useSystemStatus`
+
+- **Mecanismo:** `npm run build`
+- **Comandos:** `npm run build` · `npm run lint`
+- **Resultado:** ✅ pasa
+- **Evidencia:** build y lint limpios.
+- **Notas:** ninguna pantalla usa aún el hook (tarea 6). La pérdida de conexión se decide solo por el silencio: ningún mensaje `system` ni respuesta de `/status` en 20 s — un WebSocket cerrado queda cubierto por la misma regla, así que `lib/ws.ts` no se toca.
+- **Est vs Actual:** 0,75 SP vs 0,5 SP

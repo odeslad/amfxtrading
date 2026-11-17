@@ -35,3 +35,12 @@
 - **Evidence:** 3 tests pass over a real HTTP server (401 without cookie; with cookie the object has `level`, `server`, `brokers`, `at`, the visible broker and not the hidden one; the route serves the last sample taken); lint and `tsc` clean; full suite 188 of 189: the one failure is the known flaky `pipe-reader.test.ts` (real named pipe with 80 ms waits, fails under parallel load, skipped in CI), which passes alone three times in a row. CPU: backend 72 % in four consecutive samples, Windows 71 %; free memory 32,304 MB against Windows' 32,298 MB.
 - **Deviation:** the task asked to see `/status` on a local backend with the flags off. That needs the database tunnel and the whole local stack, which task 6 starts anyway to check the light, so it is verified there. The route test mounts the router with the real session check instead of importing `app.ts`, because `app.ts` needs the server environment that CI does not have.
 - **Est vs Actual:** 1.25 SP vs 1.25 SP
+
+## Task 5 — [frontend] `--muted-strong` and `useSystemStatus`
+
+- **Mechanism:** `npm run build`
+- **Commands:** `npm run build` · `npm run lint`
+- **Outcome:** ✅ pass
+- **Evidence:** build and lint clean.
+- **Notes:** the hook is not used by any screen yet (task 6). The loss of connection is decided by silence alone: no `system` message nor `/status` answer for 20 s — a closed WebSocket is covered by the same rule, so `lib/ws.ts` is not touched.
+- **Est vs Actual:** 0.75 SP vs 0.5 SP
