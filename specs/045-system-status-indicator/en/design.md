@@ -63,7 +63,7 @@ The thresholds and the grace period (120 s) live in one exported constant of tha
 
 ### Delivery
 
-- WebSocket message `system` to every client every 5 seconds: `{ type: 'system', level, server: { cpuPct, freeMemMb, totalMemMb }, brokers: [{ name, state, tickDelayS, loadDone?, loadTotal?, disconnectedS? }], at }`. Around 1 KB.
+- WebSocket message `system` to every client every 5 seconds: `{ type: 'system', level, server: { cpuPct, freeMemMb, totalMemMb }, brokers: [{ name, state, level, tickDelayS, loadDone?, loadTotal?, disconnectedS? }], at }`. Around 1 KB.
 - `GET /status` (authenticated) returns the same object, for the first paint before the first WebSocket message.
 - `GET /health` is not changed: the deploy script and the watchdog depend on it.
 

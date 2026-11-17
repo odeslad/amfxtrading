@@ -35,24 +35,24 @@ const settled = (s: StatusSample): Level | undefined => run([s, s]).status?.leve
 describe('brokerStatus', () => {
   it('is connected with its tick delay, or loading with the EA progress', () => {
     expect(brokerStatus('a', broker({ lastTickAt: secondsAgo(3) }), now))
-      .toEqual({ name: 'a', state: 'connected', tickDelayS: 3 });
+      .toEqual({ name: 'a', state: 'connected', level: 'ok', tickDelayS: 3 });
     expect(brokerStatus('a', loading(21), now))
-      .toEqual({ name: 'a', state: 'loading', tickDelayS: 21, loadDone: 12, loadTotal: 75 });
+      .toEqual({ name: 'a', state: 'loading', level: 'warn', tickDelayS: 21, loadDone: 12, loadTotal: 75 });
     expect(brokerStatus('a', broker({ eaStatus: { version: '3.17', loading: false, loadDone: 75, loadTotal: 75 } }), now).state)
       .toBe('connected');
   });
 
   it('is restarting inside the grace period and disconnected after it', () => {
     expect(brokerStatus('a', lost(THRESHOLDS.pipeGraceS - 1), now))
-      .toEqual({ name: 'a', state: 'restarting', tickDelayS: null, disconnectedS: 119 });
+      .toEqual({ name: 'a', state: 'restarting', level: 'warn', tickDelayS: null, disconnectedS: 119 });
     expect(brokerStatus('a', lost(THRESHOLDS.pipeGraceS), now).state).toBe('disconnected');
     expect(brokerStatus('a', broker({ pipe: 'error', pipeLostAt: secondsAgo(240) }), now))
-      .toEqual({ name: 'a', state: 'disconnected', tickDelayS: null, disconnectedS: 240 });
+      .toEqual({ name: 'a', state: 'disconnected', level: 'bad', tickDelayS: null, disconnectedS: 240 });
   });
 
   it('counts a disabled pipe as connected, with no delay to report', () => {
     expect(brokerStatus('a', broker({ pipe: 'disabled', lastTickAt: null }), now))
-      .toEqual({ name: 'a', state: 'connected', tickDelayS: null });
+      .toEqual({ name: 'a', state: 'connected', level: 'ok', tickDelayS: null });
   });
 });
 
@@ -62,7 +62,7 @@ describe('level', () => {
     expect(status).toEqual({
       level: 'ok',
       server: { cpuPct: 20, freeMemMb: 4000, totalMemMb: 8000 },
-      brokers: [{ name: 'darwinex', state: 'connected', tickDelayS: 0 }],
+      brokers: [{ name: 'darwinex', state: 'connected', level: 'ok', tickDelayS: 0 }],
       at: now.toISOString(),
     });
   });

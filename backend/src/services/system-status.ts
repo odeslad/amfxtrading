@@ -7,6 +7,7 @@ export type BrokerState = 'connected' | 'loading' | 'restarting' | 'disconnected
 export interface BrokerStatus {
   name: string;
   state: BrokerState;
+  level: Level;
   tickDelayS: number | null;
   loadDone?: number;
   loadTotal?: number;
@@ -58,7 +59,9 @@ const samplesIn = (windowS: number): number => Math.ceil(windowS / THRESHOLDS.sa
 export const emptyTracker = (): StatusTracker => ({ cpuSamples: [], lastRawLevel: null, status: null });
 
 // A disabled pipe (local development) expects nothing from its EA: it counts as connected.
-export function brokerStatus(name: string, broker: BrokerLiveness, now: Date): BrokerStatus {
+type BrokerFacts = Omit<BrokerStatus, 'level'>;
+
+function brokerFacts(name: string, broker: BrokerLiveness, now: Date): BrokerFacts {
   if (broker.pipe === 'connected' || broker.pipe === 'disabled') {
     const tickDelayS = broker.pipe === 'connected' ? ageS(now, broker.lastTickAt) : null;
     const ea = broker.eaStatus;
@@ -71,12 +74,17 @@ export function brokerStatus(name: string, broker: BrokerLiveness, now: Date): B
   return { name, state, tickDelayS: null, disconnectedS };
 }
 
-function brokerLevel(broker: BrokerStatus): Level {
+function brokerLevel(broker: BrokerFacts): Level {
   if (broker.state === 'disconnected') return 'bad';
   const delay = broker.tickDelayS ?? 0;
   if (delay >= THRESHOLDS.tickDelayS.bad) return 'bad';
   if (broker.state !== 'connected' || delay >= THRESHOLDS.tickDelayS.warn) return 'warn';
   return 'ok';
+}
+
+export function brokerStatus(name: string, broker: BrokerLiveness, now: Date): BrokerStatus {
+  const facts = brokerFacts(name, broker, now);
+  return { ...facts, level: brokerLevel(facts) };
 }
 
 // The average only counts once the whole window has been sampled.
@@ -122,7 +130,7 @@ export function nextStatus(tracker: StatusTracker, sample: StatusSample): Status
     ? tracker.cpuSamples
     : [...tracker.cpuSamples, sample.cpuPct].slice(-samplesIn(THRESHOLDS.cpuWindowS.bad));
 
-  const raw = worst([...brokers.map(brokerLevel), cpuLevel(cpuSamples), memoryLevel(sample.memory)]);
+  const raw = worst([...brokers.map(b => b.level), cpuLevel(cpuSamples), memoryLevel(sample.memory)]);
 
   return {
     cpuSamples,

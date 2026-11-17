@@ -50,7 +50,7 @@ describe('GET /status', () => {
       cpuPct: null, freeMemMb: expect.any(Number), totalMemMb: expect.any(Number),
     });
     const brokers = body.brokers as { name: string }[];
-    expect(brokers.find(b => b.name === 'spec045-live')).toEqual({ name: 'spec045-live', state: 'connected', tickDelayS: null });
+    expect(brokers.find(b => b.name === 'spec045-live')).toEqual({ name: 'spec045-live', state: 'connected', level: 'ok', tickDelayS: null });
     expect(brokers.some(b => b.name === 'spec045-hidden')).toBe(false);
   });
 

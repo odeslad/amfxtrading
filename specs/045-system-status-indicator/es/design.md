@@ -63,7 +63,7 @@ Los umbrales y el periodo de gracia (120 s) viven en una única constante export
 
 ### Entrega
 
-- Mensaje `system` por WebSocket a todos los clientes cada 5 segundos: `{ type: 'system', level, server: { cpuPct, freeMemMb, totalMemMb }, brokers: [{ name, state, tickDelayS, loadDone?, loadTotal?, disconnectedS? }], at }`. Alrededor de 1 KB.
+- Mensaje `system` por WebSocket a todos los clientes cada 5 segundos: `{ type: 'system', level, server: { cpuPct, freeMemMb, totalMemMb }, brokers: [{ name, state, level, tickDelayS, loadDone?, loadTotal?, disconnectedS? }], at }`. Alrededor de 1 KB.
 - `GET /status` (autenticado) devuelve el mismo objeto, para el primer pintado antes del primer mensaje de WebSocket.
 - `GET /health` no cambia: el script de deploy y el watchdog dependen de él.
 
