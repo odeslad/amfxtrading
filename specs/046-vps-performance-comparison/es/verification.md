@@ -24,3 +24,27 @@ Ejecución de prueba (no es una ronda de la prueba: la igualdad de los dos servi
 | Velocidad, cuatro hilos a la vez (tiempo total) | 1857 ms | 1366 ms |
 
 A mirar en la tarea 2: por qué tres brokers del servidor nuevo y uno del viejo no dieron ningún tick durante la ventana.
+
+## Tarea 2 — los dos servidores iguales
+
+- **Mecanismo:** manual — estado de los dos servidores leído en los propios servidores (2026-11-17, 11:35–11:45 UTC); diferencias comunicadas al operador antes de medir.
+- **Resultado:** ✅ correcto con dos diferencias aceptadas por el operador el 2026-11-17 como no relevantes: los dos brokers sin conectar en el servidor nuevo y los ficheros del EA del terminal Demo del viejo. La comparación terminal a terminal usa el resto de brokers.
+- **Est vs Actual:** 1 SP vs 1.5 SP — hubo que encontrar e igualar más diferencias de las previstas.
+
+| | VPS nuevo | VPS viejo | Igual |
+|---|---|---|---|
+| Código de backend y frontend frente a `4e8022c` | sin diferencias | sin diferencias | sí |
+| Código del EA | compilado el 2026-11-17 a partir del código de `4e8022c` | compilado el 2026-10-29 (último cambio del EA antes de `4e8022c`) | sí |
+| Versión del EA en el arranque de cada terminal | State v3.13 · Commands v2.22 | State v3.13 · Commands v2.22 | sí |
+| Compilación de MT4 | 1492 | 1492 | sí |
+| Plan de energía de Windows | Equilibrado | Equilibrado | sí |
+| Símbolos por broker | mismas listas | mismas listas | sí |
+| `solidary isa` | sin EA en sus gráficos | sin EA en sus gráficos | sí (12 brokers activos en cada uno) |
+| Gráficos abiertos por terminal | Demo 9, mick 4, II 4, manu 3, FTMO 3, solidary 3 → **2 en todos tras cerrar el operador los que sobraban** | 2 en todos | sí, desde ~11:40 UTC |
+| Antivirus en tiempo real | activado → **desactivado para la prueba** | desactivado | sí, desde ~11:40 UTC |
+| Alertas (`FEATURE_ALERTS`) | true → **puesto a false para la prueba**, backend reiniciado | false | sí, desde ~11:44 UTC |
+| `solidary jessy`, `solidary aymerich` | sin conectar desde un reinicio a las 11:12 UTC (aymerich: el EA State ya no está en su gráfico) | conectados | no (aceptada) |
+| Ficheros del EA del terminal Demo | desplegados el 2026-11-17 | compilados a mano el 2026-11-16 12:51, distintos de los otros 12 terminales | no se sabe (aceptada) |
+| Histórico en disco del terminal Demo | 139 MB | 15 MB | no (anotado; no se cambia) |
+
+**A restaurar en el servidor nuevo cuando termine la prueba:** antivirus en tiempo real activado (`Set-MpPreference -DisableRealtimeMonitoring $false`) y `FEATURE_ALERTS=true` en `backend/.env` más un reinicio del backend.
