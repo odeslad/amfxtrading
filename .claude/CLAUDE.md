@@ -313,7 +313,7 @@ Express con 18 routers (`/auth`, `/commands`, `/trades`, `/positions`, `/balance
 
 ### Deploy backend
 
-Pipeline: push `master` en `backend/**` → GitHub Actions (checks) → SCP `deploy.ps1` → SSH VPS → PowerShell: `git pull` → `pm2 delete` → liberar el puerto 3000 (mata huérfanos propios; si el puerto lo ocupa un proceso ajeno, falla explícitamente) → `npm install` → `prisma generate` → `prisma migrate deploy` → build en `dist.next` → swap → `pm2 start` → `/health`. Si algo falla tras el build se restaura el `dist` anterior.
+Pipeline: push `master` en `backend/**` → GitHub Actions (checks) → SCP `deploy.ps1` → SSH VPS → PowerShell: `git fetch` + `reset --hard origin/master` (con un bloqueo compartido con el deploy del frontend: si un push toca las dos capas, sus pasos de git van uno detrás del otro) → `pm2 delete` → liberar el puerto 3000 (mata huérfanos propios; si el puerto lo ocupa un proceso ajeno, falla explícitamente) → `npm install` → `prisma generate` → `prisma migrate deploy` → build en `dist.next` → swap → `pm2 start` → `/health`. Si algo falla tras el build se restaura el `dist` anterior.
 
 ---
 
