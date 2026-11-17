@@ -48,9 +48,9 @@
 - **Known limits:** a pair is only as deep as its stretch without holes (USDJPY H4); the first load of a terminal takes about an hour and opens and closes charts by itself; with about 2.4 million candles per broker the table is expected to grow from 7.8 to around 29 million rows — chart load time with that volume is measured in task 5.
 - **Est vs Actual:** planned 2 (measurement) + 3 (EA) + 1.5 + 2 (status file and `/health`, dropped) = 8.5 SP; actual about 6 SP for tasks 3 and 4 as redefined.
 
-## Task 5 — Deploy on the new system (in progress: the user's validation is pending)
+## Task 5 — Deploy on the new system and validation
 
-- **Outcome:** 🕐 pending manual validation by the user at `https://amfxtrading.com` (2026-11-17). Everything measurable from the servers passes.
+- **Outcome:** ✅ pass — validated by the user at `https://amfxtrading.com` on 2026-11-17 ("está ok parece").
 - **Deploys (2026-11-16):**
   - `a86b7fb` pushed with the four pending commits of spec 043. EA pipeline: success (compiled on the new VPS, distributed, 13 terminals reloaded). Frontend pipeline: success. Backend pipeline: the `check` job passed and the `deploy` job failed uploading its script ("connection reset by peer" through the Cloudflare tunnel, with three pipelines entering at once and the VPS at 94 % CPU); the backend was deployed by running `deploy.ps1` over SSH and the user later re-ran the job from GitHub: attempt 2, success.
   - `fad0803` (bar floor 500 → 100) and `d3a6b0a` (orphan rule): backend pipeline success at the first attempt.
@@ -69,3 +69,25 @@
 - **Machine (new VPS):** 13 terminals, 12 brokers connected with `tickAgeS` 0; 3.4 GB of RAM free of 8.2; steady CPU measured over 20 s: terminals 27 %, node 2 %, PostgreSQL 1 %; no full history exported any more; up since the reboot test of 16:01 UTC. During the first load with 12 terminals at once the CPU stayed at 93–97 % for about an hour.
 - **Known limit left:** FTMO has a hole of an hour and a quarter on 20 October 2026 (13:45–15:00), as MT4 has it; the day-based check does not see it.
 - **To validate by the user:** charts of FTMO, a Solidary account and Demo in EURUSD M5, M15 and H1 — no false wicks, no missing days, and they open as fast as before.
+- **Leftovers removed (2026-11-17, authorised by the user: "si son datos viejos se pueden eliminar"):** in the seven Solidary terminals that export only EURUSD and USDCAD, the 455 old `candles_<SYM>_<TF>.json` files of their other 13 symbols were deleted from the bridge folders (newest dated 2026-11-12, most from September), and the 190,667 candles the backend had imported from them were deleted from the table (91 broker and symbol combinations). The files had to go too: the backend reads every candle file again after a restart. The table has 5,169,687 candles afterwards. This is the one manual deletion on `candles` in this spec, on data no terminal produces any more.
+
+## Closure (2026-11-17)
+
+| Task | Est (SP) | Actual (SP) | Note |
+|---|---|---|---|
+| 1. Rollover candle only from a bar in progress | 1.5 | 1 | |
+| 2. EA file authority over every closed bar | 2 | 1.5 | |
+| 3. Full history file in the backend | 2 | 2.5 | Three corrections after real terminals: conditional trim (`cutAtHole`), bar floor 500 → 100, orphan rule |
+| 4. EA 3.16: history load and export without holes | 5 | 4.5 | Four builds on `Demo`; the first mechanism (requests, `ChartNavigate`) loaded nothing |
+| 5. Deploy and validation | 1.5 | 3 | Broker-dependent depth investigated on `darwinex`; one pipeline failure; leftovers |
+| 6. Closure | 0.25 | 0.25 | |
+| **Total** | **12.25** | **12.75** | |
+
+- **Calibration:** the code was estimated well; what was underestimated is that each broker's server and each terminal's old history behave differently — validating on a fresh `Demo` terminal hid the two cases that needed code afterwards (history islands behind a hole, bars MT4 drops).
+- **Final builds:** backend `npm run build` and `npm run lint` clean; EA compiled by the pipeline on the new VPS.
+- **Agreed deviations from the first design:** the completeness report in `/health` (`history_status.json`) was dropped; the full history travels in its own file; the table mirrors MT4 inside a full history and drops what lies behind a hole; depth is whatever each broker serves.
+- **Left pending, outside this spec:**
+  - FTMO keeps a hole of an hour and a quarter on 20 October 2026 (13:45–15:00), as MT4 has it; the hole check works by days.
+  - `src/bridge/pipe-reader.test.ts` fails intermittently when the whole suite runs in parallel.
+  - Everything was deployed on the new system only; the old VPS still runs the previous backend and EA until spec 043 finishes the switch.
+  - `solidary isa` has no EA attached, by the user's decision.

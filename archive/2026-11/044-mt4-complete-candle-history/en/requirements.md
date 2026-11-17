@@ -1,6 +1,6 @@
 # 044 — MT4 as the complete and only source of candles
 
-> Status: **implementing**
+> Status: **closed**
 
 ## Context
 

@@ -48,9 +48,9 @@
 - **Límites conocidos:** un par solo es tan profundo como su tramo sin huecos (H4 de USDJPY); la primera carga de un terminal tarda alrededor de una hora y abre y cierra gráficos sola; con unos 2,4 millones de velas por broker se espera que la tabla crezca de 7,8 a unos 29 millones de filas — el tiempo de carga de un gráfico con ese volumen se mide en la tarea 5.
 - **Est vs Actual:** previsto 2 (medición) + 3 (EA) + 1,5 + 2 (fichero de estado y `/health`, retirados) = 8,5 SP; real unos 6 SP para las tareas 3 y 4 tal como quedaron redefinidas.
 
-## Tarea 5 — Deploy en el sistema nuevo (en curso: falta la validación del usuario)
+## Tarea 5 — Deploy en el sistema nuevo y validación
 
-- **Resultado:** 🕐 pendiente de validación manual del usuario en `https://amfxtrading.com` (2026-11-17). Todo lo medible desde los servidores pasa.
+- **Resultado:** ✅ pasa — validado por el usuario en `https://amfxtrading.com` el 2026-11-17 ("está ok parece").
 - **Deploys (2026-11-16):**
   - `a86b7fb` subido con los cuatro commits pendientes de la spec 043. Pipeline del EA: correcto (compilado en el VPS nuevo, repartido, 13 terminales recargados). Pipeline del frontend: correcto. Pipeline del backend: el job `check` pasó y el job `deploy` falló al subir su script ("connection reset by peer" a través del túnel de Cloudflare, con tres pipelines entrando a la vez y el VPS al 94 % de CPU); el backend se desplegó ejecutando `deploy.ps1` por SSH y el usuario relanzó después el job desde GitHub: intento 2, correcto.
   - `fad0803` (suelo de velas 500 → 100) y `d3a6b0a` (regla de huérfanas): pipeline del backend correcto al primer intento.
@@ -69,3 +69,25 @@
 - **Máquina (VPS nuevo):** 13 terminales, 12 brokers conectados con `tickAgeS` 0; 3,4 GB de RAM libres de 8,2; CPU en régimen medida durante 20 s: terminales 27 %, node 2 %, PostgreSQL 1 %; ya no se exporta ningún histórico completo; encendido desde la prueba de reinicio de las 16:01 UTC. Durante la primera carga con 12 terminales a la vez la CPU estuvo al 93–97 % alrededor de una hora.
 - **Límite conocido que queda:** FTMO tiene un hueco de una hora y cuarto el 20 de octubre de 2026 (13:45–15:00), tal como lo tiene MT4; la comprobación por días no lo ve.
 - **A validar por el usuario:** gráficos de FTMO, una cuenta Solidary y Demo en EURUSD M5, M15 y H1 — sin mechas falsas, sin días que falten, y que abran igual de rápido que antes.
+- **Restos eliminados (2026-11-17, autorizado por el usuario: "si son datos viejos se pueden eliminar"):** en los siete terminales Solidary que solo exportan EURUSD y USDCAD se borraron de las carpetas bridge los 455 ficheros `candles_<SYM>_<TF>.json` antiguos de sus otros 13 símbolos (el más reciente del 2026-11-12, la mayoría de septiembre), y de la tabla las 190.667 velas que el backend había importado de ellos (91 combinaciones de broker y símbolo). Los ficheros también tenían que irse: el backend vuelve a leer todos los ficheros de velas tras un reinicio. La tabla queda con 5.169.687 velas. Es el único borrado manual sobre `candles` de esta spec, sobre datos que ningún terminal produce ya.
+
+## Cierre (2026-11-17)
+
+| Tarea | Est (SP) | Real (SP) | Nota |
+|---|---|---|---|
+| 1. Vela de cambio de barra solo desde una barra en curso | 1,5 | 1 | |
+| 2. Autoridad del fichero del EA sobre todas las velas cerradas | 2 | 1,5 | |
+| 3. Fichero de histórico completo en el backend | 2 | 2,5 | Tres correcciones tras los terminales reales: recorte condicional (`cutAtHole`), suelo de velas 500 → 100, regla de huérfanas |
+| 4. EA 3.16: carga del histórico y exportación sin huecos | 5 | 4,5 | Cuatro versiones en `Demo`; el primer mecanismo (peticiones, `ChartNavigate`) no cargaba nada |
+| 5. Deploy y validación | 1,5 | 3 | Profundidad dependiente del broker investigada en `darwinex`; un fallo de pipeline; restos |
+| 6. Cierre | 0,25 | 0,25 | |
+| **Total** | **12,25** | **12,75** | |
+
+- **Calibración:** el código se estimó bien; lo que se infravaloró es que el servidor de cada broker y el histórico antiguo de cada terminal se comportan distinto — validar en un terminal `Demo` recién instalado ocultó los dos casos que después necesitaron código (islas de histórico detrás de un hueco, velas que MT4 descarta).
+- **Builds finales:** `npm run build` y `npm run lint` del backend limpios; EA compilado por el pipeline en el VPS nuevo.
+- **Desviaciones acordadas respecto al primer diseño:** se retiró el informe de completitud en `/health` (`history_status.json`); el histórico completo viaja en su propio fichero; la tabla es un espejo de MT4 dentro de un histórico completo y borra lo que queda detrás de un hueco; la profundidad es la que sirva cada broker.
+- **Pendiente, fuera de esta spec:**
+  - FTMO conserva un hueco de una hora y cuarto el 20 de octubre de 2026 (13:45–15:00), tal como lo tiene MT4; la comprobación de huecos funciona por días.
+  - `src/bridge/pipe-reader.test.ts` falla de forma intermitente cuando corre toda la batería en paralelo.
+  - Todo se desplegó solo en el sistema nuevo; el VPS antiguo sigue con el backend y el EA anteriores hasta que la spec 043 termine el cambio.
+  - `solidary isa` no tiene EA cargado, por decisión del usuario.
