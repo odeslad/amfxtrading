@@ -46,7 +46,7 @@ let total = 0;
 let tickItems = 0;
 
 const ws = new WebSocket(`ws://localhost:${options.port}/ws`, {
-  headers: { Origin: 'https://app-v2.amfxtrading.com', Cookie: `token=${token}` },
+  headers: { Origin: 'https://amfxtrading.com', Cookie: `token=${token}` },
 });
 
 ws.on('open', () => {

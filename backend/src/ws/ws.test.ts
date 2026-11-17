@@ -14,7 +14,7 @@ const { SECRET } = vi.hoisted(() => {
   return { SECRET: 'test-secret' };
 });
 
-const ORIGIN = 'https://app-v2.amfxtrading.com';
+const ORIGIN = 'https://amfxtrading.com';
 const tokenFor = (userId: number): string => jwt.sign({ sub: userId }, SECRET);
 
 let server: http.Server;

@@ -38,3 +38,10 @@
 - **Steps:** `amfxtradingv2` → `amfxtrading` and `ssh-v2.amfxtrading.com` → `ssh.amfxtrading.com` in the three workflows, `infra/scripts/startup.ps1`, `infra/scripts/register-startup-tasks.ps1` and `infra/README.md`. No YAML parser is installed on the PC, so the workflows were checked another way: undoing the substitution gives back exactly the committed files, so only the names changed. The two PowerShell scripts parse without errors.
 - **Outcome:** ✅ committed, not pushed (it goes out in task 10).
 - **Est vs Actual:** 1 SP · 0.5 SP (tasks 5 to 9 done together).
+
+## Task 6 · [backend] Names in scripts, tests and examples
+
+- **Mechanism:** `npm run lint` + `npm run typecheck` + `npm test` + `npm run build`.
+- **Steps:** folder and database name in `scripts/deploy.ps1`, `ecosystem.config.js` and `.env.example`; host in `scripts/db-tunnel.ps1`; the sample origin of `scripts/ws-measure.ts` and of the two WebSocket tests is now `https://amfxtrading.com`.
+- **Outcome:** ✅ lint clean, typecheck clean, 17 test files / 146 tests passed, build OK. Committed, not pushed.
+- **Est vs Actual:** 0.75 SP · 0.25 SP.

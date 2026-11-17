@@ -6,7 +6,7 @@ import {
 
 describe('isAllowedOrigin', () => {
   it('accepts the production app and the local HTTPS dev host', () => {
-    expect(isAllowedOrigin('https://app-v2.amfxtrading.com')).toBe(true);
+    expect(isAllowedOrigin('https://amfxtrading.com')).toBe(true);
     expect(isAllowedOrigin('https://local.amfxtrading.com:5174')).toBe(true);
   });
 

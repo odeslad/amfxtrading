@@ -38,3 +38,10 @@
 - **Pasos:** `amfxtradingv2` → `amfxtrading` y `ssh-v2.amfxtrading.com` → `ssh.amfxtrading.com` en los tres workflows, `infra/scripts/startup.ps1`, `infra/scripts/register-startup-tasks.ps1` e `infra/README.md`. No hay ningún analizador de YAML instalado en el PC, así que los workflows se comprobaron de otra forma: deshaciendo la sustitución se obtienen exactamente los ficheros del commit anterior, luego solo cambiaron los nombres. Los dos scripts de PowerShell se interpretan sin errores.
 - **Resultado:** ✅ commit hecho, sin subir (sale en la tarea 10).
 - **Est vs Actual:** 1 SP · 0.5 SP (tareas 5 a 9 hechas juntas).
+
+## Tarea 6 · [backend] Nombres en scripts, tests y ejemplos
+
+- **Mecanismo:** `npm run lint` + `npm run typecheck` + `npm test` + `npm run build`.
+- **Pasos:** carpeta y nombre de la base de datos en `scripts/deploy.ps1`, `ecosystem.config.js` y `.env.example`; host en `scripts/db-tunnel.ps1`; el origen de ejemplo de `scripts/ws-measure.ts` y de los dos tests de WebSocket pasa a `https://amfxtrading.com`.
+- **Resultado:** ✅ lint limpio, typecheck limpio, 17 ficheros de test / 146 tests correctos, build correcto. Commit hecho, sin subir.
+- **Est vs Actual:** 0.75 SP · 0.25 SP.
