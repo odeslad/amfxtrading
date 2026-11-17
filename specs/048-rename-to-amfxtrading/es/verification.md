@@ -24,3 +24,10 @@
 - **Pasos:** un segundo bloque `server` en `C:\nginx\conf\nginx.conf` (fuera de git; fichero anterior guardado como `nginx.conf.bak-048`) responde a `v2.amfxtrading.com` con un 301 a la misma ruta en `amfxtrading.com`; `nginx -t` OK, servicio reiniciado. El service worker solo gestiona notificaciones y no guarda páginas, así que las cargas de página siempre llegan a nginx; las suscripciones hechas en `v2` siguen entregando y al pulsarlas abren la dirección nueva.
 - **Resultado:** ✅ `v2.amfxtrading.com/chart?broker=Demo&symbol=EURUSD` → 301 a `amfxtrading.com/chart?broker=Demo&symbol=EURUSD`; `amfxtrading.com`, `api.` y `api-v2.` 200. El operador permitió las notificaciones en `amfxtrading.com` y una alerta de precio llegó al dispositivo (2026-11-17). Se entregó al operador la lista de lo que cada usuario debe volver a hacer.
 - **Est vs Actual:** 1 SP · 0.5 SP.
+
+## Tarea 4 · [infra] Repositorio de GitHub
+
+- **Mecanismo:** manual.
+- **Pasos:** el nombre `odeslad/amfxtrading` solo conservaba la redirección de GitHub a `amfxtrading-v1` (el MVP, renombrado antes ese mismo día); el repositorio se renombró de `odeslad/amfxtradingv2` a `odeslad/amfxtrading` con la API de GitHub; el remoto de la copia local y el de la copia del servidor (`C:\amfxtradingv2`) pasan a `https://github.com/odeslad/amfxtrading.git`.
+- **Resultado:** ✅ `git fetch` funciona en local y en el servidor; los cuatro secretos de los pipelines (`CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, `SSH_PRIVATE_KEY`, `SSH_USER`) siguen listados tras el renombrado; la copia del MVP sigue llegando a `amfxtrading-v1`.
+- **Est vs Actual:** 0.5 SP · 0.25 SP.
