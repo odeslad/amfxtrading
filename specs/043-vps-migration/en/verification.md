@@ -150,3 +150,14 @@
 - Cause, read in the code: the EA exports the whole history only when it starts and then only the last 100 bars; `services/candle-close.ts` stores a closed candle with the latest bid when a terminal starts with stale history; `services/candles.ts` inserts missing rows but only overwrites the last two. None of it is caused by the migration: the same code runs on the old VPS, whose table was filled gradually over months.
 - A rescue from the old database was started and **abandoned at the user's request** ("candles must come from MT4, not be replaced by hand"): a raw copy of the old cluster was restored as a scratch instance on the new VPS and its candles loaded into a side table (all but 2 of 173,715 pages were readable). Nothing was merged into `candles`; the side table, the scratch instance and the backup file were deleted.
 - Follow-up: spec 044 (EA + backend) so that MT4 is the complete and only source.
+
+## Tasks 9, 10 and 12 — Repo pointed at the new server (verified by the push of 2026-11-16)
+
+- **Mechanism:** the three workflows running against the new VPS after the joint push (`a86b7fb`, together with spec 044).
+- **Outcome:** ✅ pass (2026-11-16) for tasks 9, 10 and 12. Task 11 stays open: `db-tunnel.ps1` is changed and pushed, but the local `~/.ssh/config` aliases (`amfx-vps` → new, `amfx-vps-old` → old) have not been changed yet and `db-tunnel.ps1` has not been run against the new host.
+- **Evidence:**
+  - EA workflow: success — compiled on the new VPS from `C:\amfxtrading\ea`, distributed to the 13 terminals and reloaded them through `AMFX-Watchdog` (task 12, and the compile, distribute and reload of AC 6).
+  - Frontend workflow: success — `deploy.ps1` ran in `C:\amfxtrading`; the bundle at `https://amfxtrading.com` was already calling `api.amfxtrading.com` (task 10).
+  - Backend workflow: `check` passed; `deploy` failed at "Upload deploy script" with a connection reset through the tunnel, was run by hand over SSH, and passed when the user re-ran it (attempt 2). The two later backend pushes (`fad0803`, `d3a6b0a`) deployed at the first attempt. The `github-actions` service token works on `ssh.amfxtrading.com` (task 9).
+  - The old VPS was not touched by any of them: its backend kept answering at `api-v2.amfxtrading.com` with 11 of 13 brokers throughout.
+- **Est vs Actual:** tasks 9, 10, 12: 2.5 SP vs about 1 SP.

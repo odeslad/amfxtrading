@@ -85,6 +85,10 @@ The full export therefore contains only the bars, counted from the newest, that 
 - `bridge/file-watcher.ts` recognises `fullcandles_<SYM>_<TF>.json`, hands it to `onFullCandles` and **deletes the file** once it is stored, so it is neither read again on the next poll nor after a restart. A failed write leaves it for the next poll; the `.tmp` file is ignored.
 - `services/candles.ts` `replaceCandleHistory`: stores the bars with the statement of point 2 and, only when the file says `cutAtHole` and brings at least 100 closed bars, deletes the stored candles of that pair older than the file's first bar. Without `cutAtHole` nothing is deleted, so the table accumulates beyond the terminal's 65,000-bar window. The 100-bar floor keeps a terminal that has not loaded its history from wiping what is stored (it was 500 at first: too high, a stretch of a few months of H4 after a recent hole has about 450 bars and was left untrimmed).
 
+- Inside the range of the file the table mirrors MT4: a stored candle whose time the file does not bring is deleted. Added after the deploy on the 13 terminals: FTMO kept 44 false candles (one per symbol and timeframe, the bar of 20 October where its old history ended) that MT4 no longer held and therefore never sent again, so nothing overwrote them.
+
+Known limit: the hole check works by days. A hole of hours inside a trading day is not detected and stays as MT4 has it (FTMO, 20 October 2026, 13:45–15:00). The user chose to mirror MT4 rather than cut the history there.
+
 Contract: one file is added (`fullcandles_*`); an old backend ignores it, an old EA never writes it.
 
 ## Data flow

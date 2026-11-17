@@ -85,6 +85,10 @@ Por eso la exportación completa contiene solo las velas, contadas desde la más
 - `bridge/file-watcher.ts` reconoce `fullcandles_<SYM>_<TF>.json`, se lo pasa a `onFullCandles` y **borra el fichero** una vez guardado, de modo que no se vuelve a leer ni en la siguiente vuelta ni tras un reinicio. Un guardado fallido lo deja para la siguiente vuelta; el fichero `.tmp` se ignora.
 - `services/candles.ts` `replaceCandleHistory`: guarda las velas con la sentencia del punto 2 y, solo cuando el fichero dice `cutAtHole` y trae al menos 100 velas cerradas, borra las velas guardadas de ese par anteriores a la primera vela del fichero. Sin `cutAtHole` no se borra nada, así que la tabla acumula más allá de la ventana de 65.000 velas del terminal. El suelo de 100 velas evita que un terminal que no ha cargado su histórico vacíe lo guardado (al principio era de 500: demasiado alto, un tramo de unos meses de H4 tras un hueco reciente tiene unas 450 velas y se quedaba sin recortar).
 
+- Dentro del rango del fichero la tabla es un espejo de MT4: una vela guardada cuya hora el fichero no trae se borra. Añadido tras el deploy en los 13 terminales: FTMO conservaba 44 velas falsas (una por símbolo y temporalidad, la barra del 20 de octubre donde acababa su histórico antiguo) que MT4 ya no tenía y por tanto no volvía a enviar, así que nada las sobrescribía.
+
+Límite conocido: la comprobación de huecos funciona por días. Un hueco de horas dentro de un día de mercado no se detecta y queda como lo tiene MT4 (FTMO, 20 de octubre de 2026, 13:45–15:00). El usuario eligió reflejar MT4 antes que cortar ahí el histórico.
+
 Contrato: se añade un fichero (`fullcandles_*`); un backend antiguo lo ignora, un EA antiguo no lo escribe nunca.
 
 ## Flujo de datos

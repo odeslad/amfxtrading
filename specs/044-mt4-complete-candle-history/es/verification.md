@@ -47,3 +47,25 @@
 - **Backend:** `npx vitest run src/bridge/file-watcher.test.ts src/services/candles.test.ts`: pasan 15 tests (4 nuevos del fichero de histórico completo, 2 del inicio del histórico); `npm run build` y `npm run lint` limpios. Para las pasadas en `Demo` el backend del VPS nuevo se compiló con estos fuentes copiados a mano; el deploy por pipeline es la tarea 5.
 - **Límites conocidos:** un par solo es tan profundo como su tramo sin huecos (H4 de USDJPY); la primera carga de un terminal tarda alrededor de una hora y abre y cierra gráficos sola; con unos 2,4 millones de velas por broker se espera que la tabla crezca de 7,8 a unos 29 millones de filas — el tiempo de carga de un gráfico con ese volumen se mide en la tarea 5.
 - **Est vs Actual:** previsto 2 (medición) + 3 (EA) + 1,5 + 2 (fichero de estado y `/health`, retirados) = 8,5 SP; real unos 6 SP para las tareas 3 y 4 tal como quedaron redefinidas.
+
+## Tarea 5 — Deploy en el sistema nuevo (en curso: falta la validación del usuario)
+
+- **Resultado:** 🕐 pendiente de validación manual del usuario en `https://amfxtrading.com` (2026-11-17). Todo lo medible desde los servidores pasa.
+- **Deploys (2026-11-16):**
+  - `a86b7fb` subido con los cuatro commits pendientes de la spec 043. Pipeline del EA: correcto (compilado en el VPS nuevo, repartido, 13 terminales recargados). Pipeline del frontend: correcto. Pipeline del backend: el job `check` pasó y el job `deploy` falló al subir su script ("connection reset by peer" a través del túnel de Cloudflare, con tres pipelines entrando a la vez y el VPS al 94 % de CPU); el backend se desplegó ejecutando `deploy.ps1` por SSH y el usuario relanzó después el job desde GitHub: intento 2, correcto.
+  - `fad0803` (suelo de velas 500 → 100) y `d3a6b0a` (regla de huérfanas): pipeline del backend correcto al primer intento.
+- **Lo que mostraron los terminales reales, y lo que cambió por ello:**
+  - *La profundidad depende del broker.* `Demo` (Axi) sirve unas 65.000 velas por gráfico; Darwinex y Solidary sirven por esta vía unas 4.350 velas M5 (dos semanas), 2.175 M15, 2.300–4.600 H1. Comprobado en `darwinex` borrando sus ficheros `.hst` antiguos y con una versión de prueba con esperas de 25 s: EURUSD M5 se quedó en 4.103. El usuario acepta lo que ofrezca MT4 ("un mes o años"); los ficheros de histórico antiguos de los demás terminales no se tocaron.
+  - *Los terminales antiguos arrastran una isla de histórico detrás de un hueco*, así que el tramo sin huecos es el reciente y el backend borró lo que tenía guardado detrás. Solidary y Darwinex acabaron con menos histórico M5 y M15 del que tenían por la mañana (Darwinex EURUSD M5: 27.474 → 4.350).
+  - *Suelo de velas.* `solidary alvaro` y `solidary mick` conservaban la isla de 2009 en EURUSD H4 porque el tramo posterior a su hueco tenía unas 460 velas, por debajo del suelo de 500. Bajado a 100; los dos terminales reiniciados; la isla y el hueco han desaparecido.
+  - *Huérfanas.* FTMO conservaba 44 velas falsas que MT4 ya no enviaba. Con la regla de huérfanas y un reinicio del terminal de FTMO: 44 históricos completos informaron `orphaned` mayor que cero y las velas falsas han desaparecido.
+  - *Siete cuentas Solidary exportan solo EURUSD y USDCAD* (`bridge/config.json`); sus otros 13 símbolos en la tabla son restos de ficheros copiados del VPS antiguo (190.667 velas, 91 combinaciones de broker y símbolo). No se han tocado: el usuario no lo ha decidido.
+- **Incidencias causadas durante esta tarea:** el terminal de la cuenta `solidary` se paró por error durante unos minutos (un nombre de broker con espacio partido por la línea de comandos de SSH); relanzado con el watchdog. El terminal de `darwinex` se reinició tres veces y se borraron sus ficheros `.hst` de M5/M15/H1/H4 para la prueba de arriba.
+- **Estado de la base nueva (2026-11-17 05:55 UTC), símbolos que exporta cada terminal, todos los brokers salvo `solidary isa`:**
+  - días con vela D1 y sin velas en otra temporalidad: **0**;
+  - velas con la apertura o el cierre fuera del máximo–mínimo: **0**;
+  - profundidad por símbolo: `Demo` M5 65.129–65.609, M15 65.041–65.474, H1 21.851; FTMO M5 5.615–5.627, M15 35.311–65.414, H1 21.818, H4 7.403–9.170; Darwinex M5 4.350, M15 2.175, H1 4.608; cuentas Solidary M5 4.351, M15 2.175, H1 1.831–4.608;
+  - 5.359.897 velas; base de datos 914 MB (candles 889 MB).
+- **Máquina (VPS nuevo):** 13 terminales, 12 brokers conectados con `tickAgeS` 0; 3,4 GB de RAM libres de 8,2; CPU en régimen medida durante 20 s: terminales 27 %, node 2 %, PostgreSQL 1 %; ya no se exporta ningún histórico completo; encendido desde la prueba de reinicio de las 16:01 UTC. Durante la primera carga con 12 terminales a la vez la CPU estuvo al 93–97 % alrededor de una hora.
+- **Límite conocido que queda:** FTMO tiene un hueco de una hora y cuarto el 20 de octubre de 2026 (13:45–15:00), tal como lo tiene MT4; la comprobación por días no lo ve.
+- **A validar por el usuario:** gráficos de FTMO, una cuenta Solidary y Demo en EURUSD M5, M15 y H1 — sin mechas falsas, sin días que falten, y que abran igual de rápido que antes.

@@ -47,3 +47,25 @@
 - **Backend:** `npx vitest run src/bridge/file-watcher.test.ts src/services/candles.test.ts`: 15 tests pass (4 new for the full history file, 2 for the history start); `npm run build` and `npm run lint` clean. For the `Demo` runs the backend of the new VPS was built from these sources copied by hand; the pipeline deploy is task 5.
 - **Known limits:** a pair is only as deep as its stretch without holes (USDJPY H4); the first load of a terminal takes about an hour and opens and closes charts by itself; with about 2.4 million candles per broker the table is expected to grow from 7.8 to around 29 million rows — chart load time with that volume is measured in task 5.
 - **Est vs Actual:** planned 2 (measurement) + 3 (EA) + 1.5 + 2 (status file and `/health`, dropped) = 8.5 SP; actual about 6 SP for tasks 3 and 4 as redefined.
+
+## Task 5 — Deploy on the new system (in progress: the user's validation is pending)
+
+- **Outcome:** 🕐 pending manual validation by the user at `https://amfxtrading.com` (2026-11-17). Everything measurable from the servers passes.
+- **Deploys (2026-11-16):**
+  - `a86b7fb` pushed with the four pending commits of spec 043. EA pipeline: success (compiled on the new VPS, distributed, 13 terminals reloaded). Frontend pipeline: success. Backend pipeline: the `check` job passed and the `deploy` job failed uploading its script ("connection reset by peer" through the Cloudflare tunnel, with three pipelines entering at once and the VPS at 94 % CPU); the backend was deployed by running `deploy.ps1` over SSH and the user later re-ran the job from GitHub: attempt 2, success.
+  - `fad0803` (bar floor 500 → 100) and `d3a6b0a` (orphan rule): backend pipeline success at the first attempt.
+- **What the real terminals showed, and what changed because of it:**
+  - *Depth depends on the broker.* `Demo` (Axi) serves about 65,000 bars per chart; Darwinex and Solidary serve about 4,350 M5 bars (two weeks), 2,175 M15, 2,300–4,600 H1 by this route. Verified on `darwinex` by removing its old `.hst` files and by a test build with 25 s waits: EURUSD M5 stayed at 4,103. The user accepts whatever MT4 offers ("a month or years"); the old history files of the other terminals were left alone.
+  - *Old terminals carry an island of history behind a hole*, so the stretch without holes is the recent one and the backend dropped what it had stored behind it. Solidary and Darwinex ended with less M5 and M15 history than they had in the morning (Darwinex EURUSD M5: 27,474 → 4,350).
+  - *Bar floor.* `solidary alvaro` and `solidary mick` kept the 2009 island in EURUSD H4 because the stretch after their hole had about 460 bars, under the 500-bar floor. Lowered to 100; both terminals restarted; the island and the hole are gone.
+  - *Orphans.* FTMO kept 44 false candles that MT4 no longer sent. With the orphan rule and a restart of the FTMO terminal: 44 full histories reported `orphaned` above zero and the false candles are gone.
+  - *Seven Solidary accounts export only EURUSD and USDCAD* (`bridge/config.json`); their other 13 symbols in the table are leftovers from files copied from the old VPS (190,667 candles, 91 broker and symbol combinations). Not touched: the user has not decided.
+- **Incidents caused during this task:** the terminal of the `solidary` account was stopped by mistake for a few minutes (a broker name with a space split by the SSH command line); relaunched through the watchdog. The `darwinex` terminal was restarted three times and its M5/M15/H1/H4 `.hst` files deleted for the test above.
+- **State of the new database (2026-11-17 05:55 UTC), symbols each terminal exports, all brokers except `solidary isa`:**
+  - days with a D1 candle and no candle in another timeframe: **0**;
+  - candles with open or close outside high–low: **0**;
+  - depth per symbol: `Demo` M5 65,129–65,609, M15 65,041–65,474, H1 21,851; FTMO M5 5,615–5,627, M15 35,311–65,414, H1 21,818, H4 7,403–9,170; Darwinex M5 4,350, M15 2,175, H1 4,608; Solidary accounts M5 4,351, M15 2,175, H1 1,831–4,608;
+  - 5,359,897 candles; database 914 MB (candles 889 MB).
+- **Machine (new VPS):** 13 terminals, 12 brokers connected with `tickAgeS` 0; 3.4 GB of RAM free of 8.2; steady CPU measured over 20 s: terminals 27 %, node 2 %, PostgreSQL 1 %; no full history exported any more; up since the reboot test of 16:01 UTC. During the first load with 12 terminals at once the CPU stayed at 93–97 % for about an hour.
+- **Known limit left:** FTMO has a hole of an hour and a quarter on 20 October 2026 (13:45–15:00), as MT4 has it; the day-based check does not see it.
+- **To validate by the user:** charts of FTMO, a Solidary account and Demo in EURUSD M5, M15 and H1 — no false wicks, no missing days, and they open as fast as before.
