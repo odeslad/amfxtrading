@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$Root      = 'C:\amfxtrading'
+$Root      = 'C:\amfxtradingv2'
 $Backend   = Join-Path $Root 'backend'
 $Ecosystem = Join-Path $Backend 'ecosystem.config.js'
 $AppName   = 'amfxtrading-backend'
@@ -56,34 +56,11 @@ function Start-App {
     if ($LASTEXITCODE -ne 0) { throw "pm2 start failed with exit code $LASTEXITCODE" }
 }
 
-# A push that touches several layers starts their deploys at once, all on this one
-# checkout: only one of them works on git at a time. The handle is exclusive and
-# Windows drops it when this process ends, so a deploy that dies never blocks the next.
-function Enter-GitLock {
-    $path = Join-Path $Root '.git\deploy.lock'
-    $deadline = (Get-Date).AddMinutes(10)
-    while ($true) {
-        try { return [System.IO.File]::Open($path, 'OpenOrCreate', 'ReadWrite', 'None') }
-        catch [System.IO.IOException] {
-            if ((Get-Date) -gt $deadline) { throw "another deploy has held the git lock for 10 minutes" }
-            Write-Host "[git lock] another deploy is updating the checkout, waiting"
-            Start-Sleep -Seconds 3
-        }
-    }
-}
-
 Set-Location $Root
 
-$gitLock = Enter-GitLock
-try {
-    # Fetch and reset instead of pull: a merge refuses to run over a file another
-    # deploy uploaded a moment ago, a reset just takes what master has.
-    Invoke-Step "git fetch" { git fetch origin master }
-    Invoke-Step "git reset" { git reset --hard origin/master }
-    Invoke-Step "git clean" { git clean -fd }
-} finally {
-    $gitLock.Dispose()
-}
+Invoke-Step "git reset" { git reset --hard HEAD }
+Invoke-Step "git clean" { git clean -fd }
+Invoke-Step "git pull"  { git pull origin master }
 
 Set-Location $Backend
 
@@ -104,7 +81,7 @@ Invoke-Step "free port 3000" {
         if ($null -eq $proc) { continue }
         # pm2 forks run wrapped in ProcessContainerFork.js, so the backend path
         # never appears in their command line — a pm2 child on OUR port is ours.
-        $isBackend = $proc.CommandLine -like '*amfxtrading\backend*' -or
+        $isBackend = $proc.CommandLine -like '*amfxtradingv2\backend*' -or
             $proc.CommandLine -like '*pm2\lib\ProcessContainerFork.js*'
         if ($isBackend) {
             Write-Host "  killing orphaned backend process $ownerPid"

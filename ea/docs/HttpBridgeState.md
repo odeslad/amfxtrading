@@ -59,32 +59,16 @@ bridge/candles_SYM_TF.json
 1. Parsea el parámetro `SYMBOLS` y construye la lista interna de símbolos
 2. Crea el evento Windows para I/O asíncrono (`CreateEventW`)
 3. Registra un timer de **100ms** (`EventSetMillisecondTimer`)
-4. Deja en cola la carga del histórico de velas: **N símbolos × 5 timeframes**, que se hace después desde el timer (ver "Histórico de velas")
+4. Escribe las velas históricas iniciales: **N símbolos × 5 timeframes × hasta 5000 barras**
 
 ### 2. Cada 100ms (`OnTimer`)
 1. Construye un array JSON con la cotización completa de todos los símbolos
 2. Envía el array por pipe al backend
 3. Si han pasado `STATE_EVERY_S` segundos → actualiza posiciones, cuenta, historial y velas recientes
-4. Una vez por segundo → un paso de la carga del histórico de velas y, si hay alguno en cola, un histórico completo exportado
 
 ### 3. Parada (`OnDeinit`)
 - Cancela el timer
-- Cierra el gráfico temporal de la carga de histórico, si hay uno abierto
 - Cierra el pipe y el event handle de Windows
-
-### 4. Histórico de velas (v3.16, spec 044)
-
-MT4 solo conserva en disco el histórico que algo le ha pedido, y pedir una serie temporal desde un EA no hace que descargue más. Lo que sí lo consigue es llevar un gráfico a su principio con la tecla Inicio. Por eso, tras arrancar, el EA recorre cada símbolo y temporalidad **de uno en uno**:
-
-1. Abre un gráfico temporal de ese par, le quita el autoscroll y, una vez por segundo, lo lleva al principio y envía la tecla Inicio a su ventana (`user32.dll`).
-2. Lo cierra cuando no llega ninguna vela durante `CANDLES_IDLE_S`; si ya habían empezado a llegar, cuando pasan `CANDLES_STABLE_S` sin velas nuevas; o al cumplirse `CANDLES_CHART_MAX_S`.
-3. Encola la exportación completa del par.
-
-La exportación completa va a `bridge/fullcandles_<SYM>_<TF>.json` (escrito como `.tmp` y renombrado), a un fichero por segundo. El backend lo guarda y lo borra. Contiene **solo el tramo sin huecos** que llega hasta hoy: en D1, ningún salto de más de cinco días entre velas; en el resto, todo día con vela D1 debe tener velas. Si MT4 conserva velas más antiguas detrás de un hueco, se dejan fuera y el fichero lleva `"cutAtHole": true`, con lo que el backend borra lo que tenga guardado de antes.
-
-Después de la carga, cada ciclo de estado sigue escribiendo las últimas `RECENT_BARS` en `candles_<SYM>_<TF>.json`. Si el número de velas de un par crece más de lo que puede añadir un ciclo (MT4 ha recibido histórico), ese par se vuelve a exportar completo.
-
-La primera carga de un terminal, descargando del broker, tarda alrededor de una hora; con el histórico ya en disco, unos 12 minutos. Durante la carga se ven gráficos abrirse y cerrarse solos; los ticks no se interrumpen.
 
 ---
 
@@ -96,10 +80,6 @@ La primera carga de un terminal, descargando del broker, tarda alrededor de una 
 | `SYMBOLS` | `"EURUSD"` | Lista de símbolos separados por coma |
 | `RECENT_BARS` | `100` | Barras a reescribir en cada actualización periódica de velas |
 | `STATE_EVERY_S` | `60` | Segundos entre cada actualización de estado (posiciones, cuenta, historial, velas) |
-| `CANDLES_LOAD` | `true` | Cargar el histórico de velas de cada símbolo y temporalidad tras arrancar; con `false` se exporta lo que MT4 tenga, sin abrir gráficos |
-| `CANDLES_IDLE_S` | `5` | Segundos que un gráfico temporal espera las primeras velas nuevas antes de darse por cargado |
-| `CANDLES_STABLE_S` | `12` | Segundos sin velas nuevas que terminan una carga cuando ya habían empezado a llegar |
-| `CANDLES_CHART_MAX_S` | `120` | Máximo de segundos que un gráfico temporal permanece abierto por símbolo y temporalidad |
 
 **Ejemplo con múltiples símbolos:**
 ```

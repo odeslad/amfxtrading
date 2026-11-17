@@ -3,7 +3,7 @@ module.exports = {
   apps: [
     {
       name: 'amfxtrading-backend',
-      script: 'C:/amfxtrading/backend/dist/index.js',
+      script: 'C:/amfxtradingv2/backend/dist/index.js',
       node_args: '--expose-gc --max-old-space-size=1024',
       max_memory_restart: '1200M',
     },

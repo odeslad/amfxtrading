@@ -1,8 +1,8 @@
 # Compiles the EA sources with MetaEditor and fails (exit 1) when any of them
 # does not produce a fresh .ex4, so the deploy workflow stops before distributing.
-# Optional: -SourceDir <folder> (default C:\amfxtrading\ea), -Files <names>.
+# Optional: -SourceDir <folder> (default C:\amfxtradingv2\ea), -Files <names>.
 param(
-    [string]   $SourceDir = 'C:\amfxtrading\ea',
+    [string]   $SourceDir = 'C:\amfxtradingv2\ea',
     [string[]] $Files     = @('HttpBridgeCommands.mq4', 'HttpBridgeState.mq4')
 )
 

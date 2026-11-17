@@ -7,7 +7,7 @@
 # Both run interactively (not in session 0) so MT4 windows stay visible over RDP.
 # Combine with Windows autologon so the logon happens after every reboot.
 
-$Script  = 'C:\amfxtrading\infra\scripts\startup.ps1'
+$Script  = 'C:\amfxtradingv2\infra\scripts\startup.ps1'
 $User    = "$env:COMPUTERNAME\Administrator"
 $Action  = New-ScheduledTaskAction -Execute 'powershell.exe' `
     -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$Script`""

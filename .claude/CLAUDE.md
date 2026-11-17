@@ -132,7 +132,6 @@ Todos los valores de diseño se definen aquí. No se repiten valores mágicos en
 /* Texto */
 --text:   #e8e8e8   /* texto primario */
 --muted:  #666666   /* texto secundario / deshabilitado */
---muted-strong: #9a9a9a   /* texto secundario que debe leerse a 9–11 px (spec 045) */
 
 /* Acentos */
 --orange: #f5a623   /* acento principal / brand */
@@ -282,7 +281,7 @@ Un `PipeReader` + un `FileWatcher` **por broker**, configurados en `brokers.json
 | Canal | Uso | Formato |
 |-------|-----|---------|
 | Named Pipe `\.\pipe\mt4tick_<broker>` | Ticks (100 ms), posiciones abiertas (1 s), cuenta (1 s) | Una línea JSON por mensaje: array `[...]` = batch de ticks · `{"type":"positions",...}` · `{"type":"account",...}` |
-| Archivos `bridge/*.json` (el EA los escribe cada 60 s) | Persistencia; el watcher los lee cada 5 s y salta los que no cambian de `mtime`/tamaño (`history.json` y `account.json` también por contenido, spec 030) | `candles_<SYM>_<TF>.json` → `candles` (solo velas cerradas) · `fullcandles_<SYM>_<TF>.json` → `candles` (histórico completo sin huecos, spec 044: el EA lo escribe al terminar de cargarlo y cuando crece; el backend lo guarda, lo borra, elimina las velas guardadas dentro de su rango que MT4 ya no trae y, si viene con `cutAtHole`, también lo guardado anterior a su primera vela) · `history.json` → `trades` + `balance_operations` · `account.json` → `balances` (un upsert por broker y día UTC) |
+| Archivos `bridge/*.json` (el EA los escribe cada 60 s) | Persistencia; el watcher los lee cada 5 s y salta los que no cambian de `mtime`/tamaño (`history.json` y `account.json` también por contenido, spec 030) | `candles_<SYM>_<TF>.json` → `candles` (solo velas cerradas) · `history.json` → `trades` + `balance_operations` · `account.json` → `balances` (un upsert por broker y día UTC) |
 | Archivo `bridge/command.json` | Órdenes backend → EA | `action`, `symbol`, `lots`, `sl`, `tp`, `price`, `magic`, `id` |
 
 **El backend es SERVER del pipe**; el EA es CLIENT y se conecta al iniciar. Si el `listen` falla se reintenta con backoff (1 s → 30 s). `positions.json` lo escribe el EA pero nadie lo lee: las posiciones solo viven en memoria (`store/positions`) y se emiten por WS, no se persisten.
@@ -293,15 +292,15 @@ Un `PipeReader` + un `FileWatcher` **por broker**, configurados en `brokers.json
 
 ### WebSocket `/ws`
 
-Upgrade solo con `Origin` permitido y cookie JWT válida; ping cada 30 s; backpressure por `bufferedAmount`. Los `ticks` solo llegan a quien se suscribe (spec 041): el cliente envía `{ type: "subscribe", ticks: [{ broker, symbol }, …] }` (máx. 16 pares; cada frame sustituye el conjunto; lista vacía = sin ticks; frame inválido = se ignora) y recibe solo los ticks de esos pares; el resto de mensajes llegan a todos. Mensajes `{ type, broker, ... }` con el `broker` en la **raíz**, no por item (el front lo inyecta antes de ordenar): `ticks` · `positions` (con bid/ask actual y color) · `account` · `candle` (vela cerrada detectada en el tick por el cambio de `<tf>_time`, solo si la barra anterior estaba en curso, guardada al momento sin pisar la del EA, specs 025 y 044) · `trades_updated` (el watcher guardó un `history.json` con cambios; Historial y Stats recargan, spec 030) · `command_result` · `alert` · `ema_alert` (los dos últimos solo a su dueño) · `system` (estado de todo el sistema cada 5 s, sin `broker` en la raíz, spec 045: `level` `ok`/`warn`/`bad`, CPU y memoria libre del servidor y, por broker no oculto, estado `connected`/`loading`/`restarting`/`disconnected`, retraso de ticks y progreso de la carga de histórico; umbrales en `services/system-status.ts`; `GET /status` devuelve lo mismo para el primer pintado).
+Upgrade solo con `Origin` permitido y cookie JWT válida; ping cada 30 s; backpressure por `bufferedAmount`. Los `ticks` solo llegan a quien se suscribe (spec 041): el cliente envía `{ type: "subscribe", ticks: [{ broker, symbol }, …] }` (máx. 16 pares; cada frame sustituye el conjunto; lista vacía = sin ticks; frame inválido = se ignora) y recibe solo los ticks de esos pares; el resto de mensajes llegan a todos. Mensajes `{ type, broker, ... }` con el `broker` en la **raíz**, no por item (el front lo inyecta antes de ordenar): `ticks` · `positions` (con bid/ask actual y color) · `account` · `candle` (vela cerrada detectada en el tick por el cambio de `<tf>_time`, guardada al momento sin pisar la del EA, spec 025) · `trades_updated` (el watcher guardó un `history.json` con cambios; Historial y Stats recargan, spec 030) · `command_result` · `alert` · `ema_alert` (los dos últimos solo a su dueño).
 
 ### Velas activas y alertas
 
-Las velas activas **no se persisten**: cada tick trae OHLC de todos los TF (`m5_open/high/low`, `h1_time`, …) y el frontend construye la vela en curso; a `candles` solo van las cerradas (`slice(0, -1)`). Al cambiar `<tf>_time` en el tick, el backend guarda la vela que acaba de cerrar desde el último tick (cierre = bid) y la emite como `candle`, pero solo si esa barra estaba de verdad en curso (hora de servidor dentro de la barra o de la siguiente, y bid entre su mínimo y su máximo): un terminal que arranca con el histórico atrasado no genera velas (spec 044). El fichero del EA tiene la autoridad sobre **todas** las velas cerradas: el watcher inserta las que faltan y sobrescribe las guardadas cuyos valores difieren, sin reescribir las que ya coinciden (spec 044). El histórico lo carga el propio EA al arrancar (un gráfico temporal por símbolo y temporalidad, llevado a su principio con la tecla Inicio) y llega en `fullcandles_*`; **las velas vienen solo de MT4, nunca de inserciones a mano**. Las alertas de precio se evalúan en cada tick (cruce del bid con el nivel); las de EMA, al cierre de vela (cambio de `<tf>_time`) cuando las EMAs convergen dentro del umbral. Al dispararse: BD + WS + Web Push.
+Las velas activas **no se persisten**: cada tick trae OHLC de todos los TF (`m5_open/high/low`, `h1_time`, …) y el frontend construye la vela en curso; a `candles` solo van las cerradas (`slice(0, -1)`). Al cambiar `<tf>_time` en el tick, el backend guarda la vela que acaba de cerrar desde el último tick (cierre = bid) y la emite como `candle`; el fichero del EA conserva la autoridad porque el watcher hace upsert de sus dos últimas velas cerradas. Las alertas de precio se evalúan en cada tick (cruce del bid con el nivel); las de EMA, al cierre de vela (cambio de `<tf>_time`) cuando las EMAs convergen dentro del umbral. Al dispararse: BD + WS + Web Push.
 
 ### HTTP y auth
 
-Express con 18 routers (`/auth`, `/commands`, `/trades`, `/positions`, `/balances`, `/settings`, `/symbols`, `/candles`, `/chart-indicators`, `/drawings`, `/alerts`, `/ema-alerts`, `/ema-notifications`, `/setup-levels`, `/push`, `/stats`, `/book`, `/status`) más `GET /health` (sin auth, vitalidad por broker). JWT en cookie HttpOnly `token`; `requireAuth` en todo salvo `/auth` y `/health`. Parámetros validados (400), errores no controlados al handler final (500) sin tumbar el proceso.
+Express con 17 routers (`/auth`, `/commands`, `/trades`, `/positions`, `/balances`, `/settings`, `/symbols`, `/candles`, `/chart-indicators`, `/drawings`, `/alerts`, `/ema-alerts`, `/ema-notifications`, `/setup-levels`, `/push`, `/stats`, `/book`) más `GET /health` (sin auth, vitalidad por broker). JWT en cookie HttpOnly `token`; `requireAuth` en todo salvo `/auth` y `/health`. Parámetros validados (400), errores no controlados al handler final (500) sin tumbar el proceso.
 
 ### Modelos BD
 
@@ -313,7 +312,7 @@ Express con 18 routers (`/auth`, `/commands`, `/trades`, `/positions`, `/balance
 
 ### Deploy backend
 
-Pipeline: push `master` en `backend/**` → GitHub Actions (checks) → SCP `deploy.ps1` → SSH VPS → PowerShell: `git fetch` + `reset --hard origin/master` (con un bloqueo compartido con el deploy del frontend: si un push toca las dos capas, sus pasos de git van uno detrás del otro) → `pm2 delete` → liberar el puerto 3000 (mata huérfanos propios; si el puerto lo ocupa un proceso ajeno, falla explícitamente) → `npm install` → `prisma generate` → `prisma migrate deploy` → build en `dist.next` → swap → `pm2 start` → `/health`. Si algo falla tras el build se restaura el `dist` anterior.
+Pipeline: push `master` en `backend/**` → GitHub Actions (checks) → SCP `deploy.ps1` → SSH VPS → PowerShell: `git pull` → `pm2 delete` → liberar el puerto 3000 (mata huérfanos propios; si el puerto lo ocupa un proceso ajeno, falla explícitamente) → `npm install` → `prisma generate` → `prisma migrate deploy` → build en `dist.next` → swap → `pm2 start` → `/health`. Si algo falla tras el build se restaura el `dist` anterior.
 
 ---
 

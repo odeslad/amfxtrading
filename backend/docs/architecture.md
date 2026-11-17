@@ -22,7 +22,6 @@ MT4 EA (one terminal per broker)
     └── <bridgePath>/*.json (written by the EA every 60 s)
             └── bridge/file-watcher.ts — polls every 5 s, skips files whose mtime/size did not change (history/account also by content)
                     ├── candles_<SYM>_<TF>.json → services/candles.ts            → candles (closed bars only)
-                    ├── fullcandles_<SYM>_<TF>.json → services/candles.ts        → candles (whole history; the file is deleted once stored)
                     ├── history.json            → services/trades.ts             → trades
                     │                           → services/balance-operations.ts → balance_operations
                     └── account.json            → services/account.ts            → balances (one row per broker and UTC day)
@@ -96,8 +95,7 @@ backend/
 │   │   ├── ticks.ts              # last bid/ask per symbol
 │   │   ├── positions.ts          # open positions from the pipe
 │   │   ├── accounts.ts           # balance/currency from the pipe
-│   │   ├── liveness.ts           # pipe state, last tick, last sync, EA status → /health, /status
-│   │   ├── system-status.ts      # last system sample, hidden brokers (spec 045)
+│   │   ├── liveness.ts           # pipe state, last tick, last sync → /health
 │   │   └── positionColors.ts     # user colours per ticket (DB-backed cache)
 │   └── ws/
 │       ├── ws.ts                 # WebSocket server on /ws
@@ -146,7 +144,6 @@ Every router except `/auth` and `/health` sits behind `requireAuth`: the JWT tra
 | `/setup-levels` | `GET` | Levels of the last EMA cross setup of a symbol |
 | `/push` | `GET /vapid`, `GET /`, `POST /subscribe`, `POST /unsubscribe`, `DELETE /:id` | Web Push subscriptions; `GET /` lists the user's devices (label from the user agent, endpoint hash, since, last push) |
 | `/stats` | `GET` | Account statistics per broker and period |
-| `/status` | `GET` | State of the whole system (spec 045): the same object the WebSocket pushes as `system`, for the first paint |
 | `/book` | `GET /schemes?year&page&pageSize`, `POST /schemes`, `GET /schemes/:id`, `PUT /schemes/:id`, `DELETE /schemes/:id`, `POST /trades`, `PUT /trades/:id`, `DELETE /trades/:id`, `POST /preview` | Libro de esquemas: the operator's book of EURUSD schemes and operations (see below) |
 
 ### `GET /health`
@@ -219,15 +216,10 @@ Every message is `{ "type", … }` with `broker` at the root (never per item):
 | `alert` | `{ broker, symbol, price, direction }` | price alert, only to its owner |
 | `ema_alert` | `{ broker, symbol, timeframe, direction }` | EMA alert, only to its owner |
 | `ema_notification` | `{ notificationId, broker, symbol, timeframe, kind, direction, gapPips, emaFast, emaSlow, note }` | A standing EMA notification rule fired (spec 023), only to its owner |
-| `system` | `{ level, server: { cpuPct, freeMemMb, totalMemMb }, brokers: [ { name, state, level, tickDelayS, loadDone?, loadTotal?, disconnectedS? } ], at }` | every 5 s, to everyone (spec 045, below); the only message without a `broker` at the root |
-
-**System status (spec 045).** Every 5 s the backend takes one sample — CPU from two `os.cpus()` readings, free memory, and per broker the pipe state, the time since its last pipe message and what its EA last said in a `{"type":"status"}` pipe message (history load progress) — and reduces it to one `level` (`ok` / `warn` / `bad`) in `services/system-status.ts`. Broker `state` is `connected`, `loading` (the EA is loading history), `restarting` (pipe lost for less than 120 s) or `disconnected`. The level is the worst of: a broker `loading` or `restarting` (warn) or `disconnected` (bad); a tick delay of 5 s (warn) or 60 s (bad); CPU averaging 85 % over 15 s (warn) or 95 % over 60 s (bad); free memory under 10 % (warn) or 5 % (bad). It only moves when two consecutive samples agree, so a spike does not change it; every figure lives in the `THRESHOLDS` constant. Brokers in `hiddenBrokers` are left out of the level and of the list (read at start, refreshed on `PUT /settings`). `GET /health` is unrelated and unchanged.
 
 **Tick subscription (spec 041).** A client receives no `ticks` until it sends the only inbound message, `{ "type": "subscribe", "ticks": [ { "broker", "symbol" }, … ] }` (at most 16 pairs, names up to 64 characters, frame up to 4 KiB). Each frame replaces the whole set and an empty list stops the ticks; an invalid frame is ignored and the previous set kept. Every batch is filtered per client and skipped when nothing matches, so a client only pays for the charts it has open (the frontend re-sends its set on every reconnect). Every other message type is delivered regardless of the subscription. `scripts/ws-measure.ts` connects as a client and reports the bytes received per type, with or without a subscription.
 
-A tick carries `symbol`, `bid`, `ask`, `time`, `broker_offset` and the open/high/low/time of the current M5, M15, H1, H4 and D1 candles, so the frontend builds the live candle itself; only closed candles are persisted. When a tick's `<tf>_time` advances, the previous bar (its OHLC from the last tick, close = that tick's bid) is upserted into `candles` without overwriting a row the EA already wrote, and broadcast as `candle` — only when that bar was really in progress at its last tick: server time (`time + broker_offset`) inside the bar or the period after it, and the bid between its low and high. A terminal that starts with stale history reports an old bar next to the live bid and produces no candle (spec 044). The EA's `candles_<SYM>_<TF>.json` has authority over every closed bar: the watcher inserts the missing ones and overwrites a stored bar whose values differ.
-
-The whole history of a symbol and timeframe arrives in `fullcandles_<SYM>_<TF>.json`, which the EA writes once MT4 has loaded it and again whenever it grows (spec 044). The watcher stores it the same way and deletes the file, so it is read once and never again after a restart; a failed write leaves it for the next poll. The file holds only the stretch without holes that reaches the present. Inside the range of that file the table mirrors MT4: a stored candle whose time the file does not bring is deleted (a bar the tick rollover stored for a terminal that later replaced that stretch with the broker's history). When the EA had to leave out older bars that lie behind a hole it says `"cutAtHole": true`, and `replaceCandleHistory` then deletes the stored candles of that pair older than the file's first bar — both deletions apply only if the file brings at least 100 closed bars, so a terminal that has not loaded its history cannot wipe what is stored. Without `cutAtHole` nothing is deleted: the table keeps more history than the terminal's own bar limit (about 65,000 per chart).
+A tick carries `symbol`, `bid`, `ask`, `time`, `broker_offset` and the open/high/low/time of the current M5, M15, H1, H4 and D1 candles, so the frontend builds the live candle itself; only closed candles are persisted. When a tick's `<tf>_time` advances, the previous bar (its OHLC from the last tick, close = that tick's bid) is upserted into `candles` without overwriting a row the EA already wrote, and broadcast as `candle`; the EA's `candles_<SYM>_<TF>.json` keeps authority because the watcher upserts the file's last two closed bars with their values.
 
 ## Libro de esquemas (book)
 
@@ -239,7 +231,7 @@ Managed with **Prisma**; see `prisma/schema.prisma`. Migrations are hand-written
 
 | Table | Written by | Pattern |
 |-------|------------|---------|
-| `candles` | file watcher | one `INSERT … ON CONFLICT DO UPDATE … WHERE … IS DISTINCT FROM` per 5,000 closed bars: missing bars inserted, differing ones overwritten, matching ones untouched; PK `(broker, symbol, timeframe, time)`; `time` is the bar open in broker time stored as UTC |
+| `candles` | file watcher | `createMany({ skipDuplicates })` of closed bars; PK `(broker, symbol, timeframe, time)`; `time` is the bar open in broker time stored as UTC |
 | `trades` | file watcher | `createMany({ skipDuplicates })` by ticket, never updated; indexes `(broker, closeTime)`, `(closeTime)`, `(broker, symbol)` |
 | `balance_operations` | file watcher | deposits/withdrawals from `history.json`, `createMany({ skipDuplicates })` by ticket |
 | `balances` | file watcher | one `upsert` per broker and UTC `day`, `timestamp` refreshed on every poll |
@@ -275,4 +267,4 @@ Checks: `npm run lint`, `npm run typecheck`, `npm test` (Vitest, pure modules), 
 
 ## Deploy
 
-Push to `master` touching `backend/**` → GitHub Actions (`.github/workflows/deploy-backend.yml`) runs the checks, then copies `scripts/deploy.ps1` to the VPS over the Cloudflare tunnel and runs it: `git fetch` + `reset --hard origin/master` + `clean` (under a lock shared with the frontend deploy, so a push that touches both layers runs their git steps one after the other) → `pm2 delete` → free port 3000 → `npm install` → `prisma generate` → `prisma migrate deploy` → `tsc` into `dist.next` → swap `dist` → `pm2 start` → `GET /health` → `pm2 save`. If any step after the build fails, the previous `dist` is restored and pm2 restarted on it; a failed migration stops the deploy before `dist` is touched.
+Push to `master` touching `backend/**` → GitHub Actions (`.github/workflows/deploy-backend.yml`) runs the checks, then copies `scripts/deploy.ps1` to the VPS over the Cloudflare tunnel and runs it: `git reset/clean/pull` → `pm2 delete` → free port 3000 → `npm install` → `prisma generate` → `prisma migrate deploy` → `tsc` into `dist.next` → swap `dist` → `pm2 start` → `GET /health` → `pm2 save`. If any step after the build fails, the previous `dist` is restored and pm2 restarted on it; a failed migration stops the deploy before `dist` is touched.
