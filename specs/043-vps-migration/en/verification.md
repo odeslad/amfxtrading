@@ -189,3 +189,11 @@
 
 - Task 13: port 22 is still open on both servers (needed until the Cloudflare login works again or a service token is set up for the developer PC).
 - Task 16: 14 days of observation, then the user cancels the old VPS and the old tunnel's DNS records are removed.
+
+## Task 16 — Validation on production (first part, 2026-11-17)
+
+- **Outcome:** 🕐 the user's validation of the app is done; the 14 days of observation run until 2026-12-01.
+- **Validated by the user at `https://amfxtrading.com`:** the session carried over from `v2`; accounts with live figures; app reinstalled on the iPhone and notifications enabled there and in Chrome on Windows; a price alert created from the chart panel fired and its push arrived; a trade opened on the `Demo` account ("abierto y funcionando").
+- **Not reported yet:** modifying and closing that trade, and saving a change in Settings.
+- **Found during validation:** in Chrome on Windows "Enable this device" failed ("Could not enable notifications on this device") until the service worker registered for `amfxtrading.com` was unregistered in DevTools: the browser kept a registration from the website that used to be served at that address. `lib/usePush.ts` swallows the error and does not drop an existing subscription before creating a new one — a small frontend improvement, outside this spec.
+- **Old subscriptions:** the two copied from `v2` (Safari · Mac and Chrome · Windows, since 23/10) stay in the list until the user removes them; while they exist, alerts also reach the old installed app.
