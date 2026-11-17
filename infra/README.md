@@ -5,7 +5,7 @@ Scripts de operación del servidor que no pertenecen a ninguna capa (EA, backend
 ## Qué hace
 
 Tras un reinicio del VPS, Windows entra solo con `Administrator` y dos tareas programadas
-levantan el backend (pm2) y los 10 terminales MT4 de `backend/brokers.json`, sin intervención manual.
+levantan el backend (pm2) y los terminales MT4 de `backend/brokers.json` (13 a noviembre de 2026), sin intervención manual.
 
 ```
 reinicio → autologon Administrator
@@ -32,7 +32,7 @@ Un terminal que se cierre a mitad del día lo relanza el watchdog en menos de 5 
 Registra (o reemplaza) las dos tareas. Ejecutar una vez en el VPS:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File C:\amfxtradingv2\infra\scripts\register-startup-tasks.ps1
+powershell -ExecutionPolicy Bypass -File C:\amfxtrading\infra\scripts\register-startup-tasks.ps1
 ```
 
 Las tareas corren como `Administrator` en modo **interactivo** (no en sesión 0), para que las
@@ -47,7 +47,7 @@ que guarda la contraseña cifrada como secreto LSA (no en texto plano en el regi
 
 ```powershell
 Invoke-WebRequest https://live.sysinternals.com/Autologon64.exe -OutFile C:\deploy\Autologon64.exe
-C:\deploy\Autologon64.exe /accepteula Administrator WIN-16ESVKMCVCR <contraseña>
+C:\deploy\Autologon64.exe /accepteula Administrator $env:COMPUTERNAME 'contraseña'
 ```
 
 Si se cambia la contraseña de `Administrator`, hay que volver a ejecutarlo.
