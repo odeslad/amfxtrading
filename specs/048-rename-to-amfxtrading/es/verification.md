@@ -45,3 +45,10 @@
 - **Pasos:** carpeta y nombre de la base de datos en `scripts/deploy.ps1`, `ecosystem.config.js` y `.env.example`; host en `scripts/db-tunnel.ps1`; el origen de ejemplo de `scripts/ws-measure.ts` y de los dos tests de WebSocket pasa a `https://amfxtrading.com`.
 - **Resultado:** ✅ lint limpio, typecheck limpio, 17 ficheros de test / 146 tests correctos, build correcto. Commit hecho, sin subir.
 - **Est vs Actual:** 0.75 SP · 0.25 SP.
+
+## Tarea 7 · [frontend] Nombre de la carpeta en el script de despliegue
+
+- **Mecanismo:** `npm run build`.
+- **Pasos:** `Set-Location C:\amfxtrading` en `frontend/scripts/deploy.ps1`.
+- **Resultado:** ✅ build correcto, el script se interpreta sin errores. Commit hecho, sin subir.
+- **Est vs Actual:** 0.25 SP · 0.1 SP.

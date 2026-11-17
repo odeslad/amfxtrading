@@ -7,7 +7,7 @@ function Invoke-Step {
     if ($LASTEXITCODE -ne 0) { throw "$Label failed with exit code $LASTEXITCODE" }
 }
 
-Set-Location C:\amfxtradingv2
+Set-Location C:\amfxtrading
 
 Invoke-Step "git reset" { git reset --hard HEAD }
 Invoke-Step "git clean" { git clean -fd }

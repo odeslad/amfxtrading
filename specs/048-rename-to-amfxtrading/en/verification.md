@@ -45,3 +45,10 @@
 - **Steps:** folder and database name in `scripts/deploy.ps1`, `ecosystem.config.js` and `.env.example`; host in `scripts/db-tunnel.ps1`; the sample origin of `scripts/ws-measure.ts` and of the two WebSocket tests is now `https://amfxtrading.com`.
 - **Outcome:** ✅ lint clean, typecheck clean, 17 test files / 146 tests passed, build OK. Committed, not pushed.
 - **Est vs Actual:** 0.75 SP · 0.25 SP.
+
+## Task 7 · [frontend] Folder name in the deploy script
+
+- **Mechanism:** `npm run build`.
+- **Steps:** `Set-Location C:\amfxtrading` in `frontend/scripts/deploy.ps1`.
+- **Outcome:** ✅ build OK, the script parses without errors. Committed, not pushed.
+- **Est vs Actual:** 0.25 SP · 0.1 SP.
