@@ -17,3 +17,12 @@
 - **Evidencia:** 5 tests pasan (porcentaje con dos lecturas fabricadas, límites 0–100 con contadores incoherentes, sin cifra cuando no ha pasado tiempo, lecturas reales de esta máquina coherentes); `tsc` limpio.
 - **Notas:** la comparación con el Administrador de tareas forma parte de la tarea 4, cuando la cifra se expone por primera vez.
 - **Est vs Actual:** 0,75 SP vs 0,5 SP
+
+## Tarea 3 — [backend] Reducción a un nivel
+
+- **Mecanismo:** vitest + `npm run build`
+- **Comandos:** `npx vitest run src/services/system-status.test.ts` · `npm run build`
+- **Resultado:** ✅ pasa
+- **Evidencia:** 16 tests pasan: los cuatro estados de broker, un caso por fila de la tabla de niveles (estado del broker, retraso de ticks 5 s / 60 s, CPU 85 % en 15 s / 95 % en 60 s, memoria libre 10 % / 5 %), gana la peor regla, un pico suelto no cambia el nivel en ningún sentido, el nivel cambia tras dos muestras, un broker oculto queda fuera del nivel y de la lista; `tsc` limpio.
+- **Notas:** todos los umbrales están en la constante `THRESHOLDS`. La regla de las dos muestras se aplica al nivel; la lista de brokers muestra siempre el estado actual. Una media de CPU solo cuenta cuando se ha muestreado su ventana entera.
+- **Est vs Actual:** 1,5 SP vs 1 SP

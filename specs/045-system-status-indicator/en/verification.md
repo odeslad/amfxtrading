@@ -17,3 +17,12 @@
 - **Evidence:** 5 tests pass (percentage from two fabricated readings, 0–100 bounds with inconsistent counters, no figure when no time elapsed, real readings of this machine coherent); `tsc` clean.
 - **Notes:** the comparison with Task Manager is part of task 4, when the figure is first exposed.
 - **Est vs Actual:** 0.75 SP vs 0.5 SP
+
+## Task 3 — [backend] Reduction to one level
+
+- **Mechanism:** vitest + `npm run build`
+- **Commands:** `npx vitest run src/services/system-status.test.ts` · `npm run build`
+- **Outcome:** ✅ pass
+- **Evidence:** 16 tests pass: the four broker states, one case per row of the level table (broker state, tick delay 5 s / 60 s, CPU 85 % over 15 s / 95 % over 60 s, free memory 10 % / 5 %), the worst rule wins, a single spike does not change the level in either direction, the level changes after two samples, a hidden broker is left out of the level and of the list; `tsc` clean.
+- **Notes:** all thresholds are in the `THRESHOLDS` constant. The two-sample rule applies to the level; the broker list always shows the current state. A CPU average only counts once its whole window has been sampled.
+- **Est vs Actual:** 1.5 SP vs 1 SP
