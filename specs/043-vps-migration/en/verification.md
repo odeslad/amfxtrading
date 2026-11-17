@@ -161,3 +161,31 @@
   - Backend workflow: `check` passed; `deploy` failed at "Upload deploy script" with a connection reset through the tunnel, was run by hand over SSH, and passed when the user re-ran it (attempt 2). The two later backend pushes (`fad0803`, `d3a6b0a`) deployed at the first attempt. The `github-actions` service token works on `ssh.amfxtrading.com` (task 9).
   - The old VPS was not touched by any of them: its backend kept answering at `api-v2.amfxtrading.com` with 11 of 13 brokers throughout.
 - **Est vs Actual:** tasks 9, 10, 12: 2.5 SP vs about 1 SP.
+
+## Task 11 — Local access pointed at the new server (2026-11-17)
+
+- **Outcome:** ✅ pass for the aliases and the tunnel script; the Cloudflare login used by both is failing for the whole account (see below).
+- **Evidence:** `~/.ssh/config` on the developer PC: `amfx-vps` → `ssh.amfxtrading.com`, new `amfx-vps-old` → `ssh-v2.amfxtrading.com`. `backend/scripts/db-tunnel.ps1` uses `ssh.amfxtrading.com` (pushed with task 11's commit).
+- **Not verified end to end:** `ssh amfx-vps`, `ssh amfx-vps-old` and `db-tunnel.ps1` could not be exercised on 2026-11-17 because `cloudflared access login` fails for every hostname of the Cloudflare team, including `ssh.rubenlucas.es` of another project: with cloudflared 2026.5.2 "Empty app domain"; after upgrading the developer PC to 2026.11.0 "metadata JWT verification failed … JWK with matching kid not found in JWK Set". The login redirect carries a metadata token signed with key `5a40ea5d…`, and the team's `/cdn-cgi/access/certs` publishes only `9081125…` and `db6d164…`. The pipelines are not affected (service token). Cause not established; it does not come from the changes of this spec.
+- **Access used meanwhile:** SSH by IP with the deploy key. New VPS: port 22 open since the bootstrap. Old VPS: the user added an IONOS rule and a Windows firewall rule (`AMFX-SSH-Migration`) for port 22 restricted to the developer's public IP.
+
+## Task 14 — Switch (2026-11-17, about 06:35–06:45 UTC)
+
+- **Mechanism:** row counts on both sides, backend logs, public probes.
+- **Outcome:** ✅ pass on the servers; the user's own steps (using `amfxtrading.com`, reinstalling the app on the phone, re-enabling push) are theirs to do.
+- **Evidence:**
+  - User-created tables dumped on the old VPS (`pg_dump -Fc -a`, 13 tables, 69 KB), relayed, and restored on the new one after a backup of its own copy (`C:\deploy\userdata-new-before-20261117-063710.dump`), a `TRUNCATE` of those tables and `pg_restore -a --single-transaction`: exit 0. Counts identical on both sides: users 1, settings_display 1, position_colors 0, price_alerts 7, ema_cross_alerts 0, ema_notifications 1, ema_notification_events 25, push_subscriptions 2, drawings 46, chart_indicators 1, mirror_presets 7, book_schemes 459, book_trades 888.
+  - `trades`, `balances`, `balance_operations` and `candles` were not copied again: they come from the terminals (the first three were copied on 2026-11-16).
+  - Alerts: old backend restarted with `FEATURE_ALERTS=false` — log "[FEATURES] Disabled: alerts", 11 of 13 brokers; new backend started with `FEATURE_ALERTS=true` — log "[FEATURES] Disabled: none", 12 of 13 brokers, ticks at 0 s. `pm2 save` on the new VPS.
+  - Public probes: `https://amfxtrading.com/` 200, `https://api.amfxtrading.com/health` 200 and it answers `access-control-allow-origin: https://amfxtrading.com`; `v2` and `api-v2` still 200.
+- **Deviation:** the runbook of task 13 was not written as a separate document before the switch; the user asked to finish the same day and approved the steps listed in the conversation. The rollback is the one in the design: set `FEATURE_ALERTS` back on both backends and return to `v2.amfxtrading.com`; data created on the new system after 06:37 UTC would have to be carried back.
+- **Est vs Actual:** 2 SP vs 1 SP — without `candles` the copy takes seconds.
+
+## Task 15 — Documentation
+
+- **Outcome:** ✅ pass (2026-11-17). `infra/README.md` (folder, number of terminals, Autologon command without a fixed host name) and `ea/docs/deploy.md` (folder, SSH host name) updated; `backend/docs/architecture.md` and `.claude/CLAUDE.md` were updated with specs 043 and 044. The remaining `app-v2` strings are test origins and the repo tree name, left as they are.
+
+## Still open
+
+- Task 13: port 22 is still open on both servers (needed until the Cloudflare login works again or a service token is set up for the developer PC).
+- Task 16: 14 days of observation, then the user cancels the old VPS and the old tunnel's DNS records are removed.

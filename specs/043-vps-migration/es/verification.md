@@ -161,3 +161,31 @@
   - Workflow del backend: `check` pasó; `deploy` falló en "Upload deploy script" por un corte de conexión a través del túnel, se ejecutó a mano por SSH, y pasó cuando el usuario lo relanzó (intento 2). Los dos pushes de backend posteriores (`fad0803`, `d3a6b0a`) desplegaron al primer intento. El service token `github-actions` funciona en `ssh.amfxtrading.com` (tarea 9).
   - Ninguno tocó el VPS antiguo: su backend siguió respondiendo en `api-v2.amfxtrading.com` con 11 de 13 brokers todo el tiempo.
 - **Est vs Actual:** tareas 9, 10, 12: 2,5 SP vs alrededor de 1 SP.
+
+## Tarea 11 — Acceso local apuntando al servidor nuevo (2026-11-17)
+
+- **Resultado:** ✅ pasa para los alias y el script del túnel; el inicio de sesión de Cloudflare que usan los dos está fallando para toda la cuenta (ver abajo).
+- **Evidencia:** `~/.ssh/config` en el PC del desarrollador: `amfx-vps` → `ssh.amfxtrading.com`, nuevo `amfx-vps-old` → `ssh-v2.amfxtrading.com`. `backend/scripts/db-tunnel.ps1` usa `ssh.amfxtrading.com` (subido con el commit de la tarea 11).
+- **Sin verificar de extremo a extremo:** `ssh amfx-vps`, `ssh amfx-vps-old` y `db-tunnel.ps1` no se pudieron ejercitar el 2026-11-17 porque `cloudflared access login` falla en todos los hostnames del team de Cloudflare, incluido `ssh.rubenlucas.es` de otro proyecto: con cloudflared 2026.5.2 "Empty app domain"; tras actualizar el PC del desarrollador a 2026.11.0 "metadata JWT verification failed … JWK with matching kid not found in JWK Set". La redirección de login lleva un token de metadatos firmado con la clave `5a40ea5d…`, y el `/cdn-cgi/access/certs` del team solo publica `9081125…` y `db6d164…`. Los pipelines no están afectados (service token). Causa sin establecer; no viene de los cambios de esta spec.
+- **Acceso usado mientras tanto:** SSH por IP con la clave de deploy. VPS nuevo: puerto 22 abierto desde el arranque inicial. VPS antiguo: el usuario añadió una regla en IONOS y otra en el firewall de Windows (`AMFX-SSH-Migration`) para el puerto 22, restringidas a la IP pública del desarrollador.
+
+## Tarea 14 — Cambio (2026-11-17, hacia las 06:35–06:45 UTC)
+
+- **Mecanismo:** recuento de filas en ambos lados, logs del backend, comprobaciones públicas.
+- **Resultado:** ✅ pasa en los servidores; los pasos propios del usuario (usar `amfxtrading.com`, reinstalar la app en el móvil, reactivar las push) le corresponden a él.
+- **Evidencia:**
+  - Tablas creadas por el usuario volcadas en el VPS antiguo (`pg_dump -Fc -a`, 13 tablas, 69 KB), transferidas y restauradas en el nuevo tras una copia de seguridad de su propia versión (`C:\deploy\userdata-new-before-20261117-063710.dump`), un `TRUNCATE` de esas tablas y `pg_restore -a --single-transaction`: salida 0. Recuentos idénticos en ambos lados: users 1, settings_display 1, position_colors 0, price_alerts 7, ema_cross_alerts 0, ema_notifications 1, ema_notification_events 25, push_subscriptions 2, drawings 46, chart_indicators 1, mirror_presets 7, book_schemes 459, book_trades 888.
+  - `trades`, `balances`, `balance_operations` y `candles` no se volvieron a copiar: vienen de los terminales (las tres primeras se copiaron el 2026-11-16).
+  - Alertas: backend antiguo reiniciado con `FEATURE_ALERTS=false` — log "[FEATURES] Disabled: alerts", 11 de 13 brokers; backend nuevo arrancado con `FEATURE_ALERTS=true` — log "[FEATURES] Disabled: none", 12 de 13 brokers, ticks a 0 s. `pm2 save` en el VPS nuevo.
+  - Comprobaciones públicas: `https://amfxtrading.com/` 200, `https://api.amfxtrading.com/health` 200 y responde `access-control-allow-origin: https://amfxtrading.com`; `v2` y `api-v2` siguen en 200.
+- **Desviación:** el runbook de la tarea 13 no se escribió como documento aparte antes del cambio; el usuario pidió terminar el mismo día y aprobó los pasos listados en la conversación. La vuelta atrás es la del diseño: devolver `FEATURE_ALERTS` a su valor en los dos backends y volver a `v2.amfxtrading.com`; los datos creados en el sistema nuevo después de las 06:37 UTC habría que llevarlos de vuelta.
+- **Est vs Actual:** 2 SP vs 1 SP — sin `candles` la copia tarda segundos.
+
+## Tarea 15 — Documentación
+
+- **Resultado:** ✅ pasa (2026-11-17). Actualizados `infra/README.md` (carpeta, número de terminales, comando de Autologon sin nombre de host fijo) y `ea/docs/deploy.md` (carpeta, hostname SSH); `backend/docs/architecture.md` y `.claude/CLAUDE.md` se actualizaron con las specs 043 y 044. Las cadenas `app-v2` que quedan son orígenes de test y el nombre del árbol del repo; se dejan como están.
+
+## Sigue abierto
+
+- Tarea 13: el puerto 22 sigue abierto en los dos servidores (hace falta hasta que el login de Cloudflare vuelva a funcionar o se configure un service token para el PC del desarrollador).
+- Tarea 16: 14 días de observación; después el usuario da de baja el VPS antiguo y se eliminan los registros DNS del túnel antiguo.
