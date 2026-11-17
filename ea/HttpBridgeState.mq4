@@ -1,5 +1,5 @@
 #property copyright "HttpBridge"
-#property version   "3.16"
+#property version   "3.15"
 #property strict
 
 #import "kernel32.dll"
@@ -12,10 +12,6 @@
    bool ResetEvent(int handle);
 #import
 
-#import "user32.dll"
-   int  PostMessageW(int hWnd, int msg, int wParam, int lParam);
-#import
-
 input string BROKER_NAME   = "ftmo";
 input string SYMBOLS       = "EURUSD,EURGBP,EURJPY,EURCAD,EURAUD,GBPUSD,GBPJPY,GBPCAD,GBPAUD,USDJPY,USDCAD,AUDUSD,AUDJPY,AUDCAD,CADJPY";
 input int    RECENT_BARS   = 100;
@@ -25,37 +21,8 @@ input int    ACCOUNT_EVERY_S = 1;        // seconds between live account pushes 
 input int    HISTORY_MAX    = 50;        // closed trades per history.json write (0 = no limit).
 input bool   HISTORY_FULL_ON_START = true; // first history.json write after start exports every closed trade.
 input int    HISTORY_MIN_GAP_S = 3;      // min seconds between history.json writes triggered by a history change.
-input bool   CANDLES_LOAD   = true;      // make MT4 load the candle history of every symbol and timeframe after start.
-input int    CANDLES_IDLE_S = 5;         // seconds a temporary chart waits for the first new bars before giving up.
-input int    CANDLES_CHART_MAX_S = 120;  // max seconds a temporary chart stays open for one symbol and timeframe.
-input int    CANDLES_STABLE_S = 12;      // seconds without new bars that end a load once bars started to arrive.
 
 bool g_historyFullPending = HISTORY_FULL_ON_START;
-
-// ── Candle history: load and full exports ────────────────────────────────────
-// A pair is one symbol and one timeframe: index = symbol index * TF_COUNT + timeframe index.
-#define TF_COUNT               5
-#define ERR_HISTORY_UPDATING   4066
-#define CANDLES_GROWTH_BARS    2         // more bars than one state cycle can add: MT4 obtained history.
-#define DAY_S                  86400
-#define D1_MAX_GAP_S           432000    // five days: longer than any weekend plus holiday.
-#define WM_KEYDOWN             0x0100
-#define WM_KEYUP               0x0101
-#define VK_HOME                0x24
-
-int    g_periods[TF_COUNT] = {PERIOD_M5, PERIOD_M15, PERIOD_H1, PERIOD_H4, PERIOD_D1};
-int    g_pairCount       = 0;
-int    g_seenBars[];                     // bars MT4 held at the last look, per pair.
-bool   g_fullPending[];                  // full export queued, per pair.
-int    g_loadPair        = -1;           // pair being loaded; g_pairCount once every pair is loaded.
-int    g_loadPhase       = 0;            // 0 = not started, 1 = temporary chart open.
-long   g_loadChart       = 0;
-int    g_loadBarsStart   = 0;
-int    g_loadLastBars    = 0;
-bool   g_loadGrew        = false;        // bars arrived while the temporary chart was open.
-ulong  g_loadStarted     = 0;
-ulong  g_loadStableSince = 0;
-ulong  lastCandleStep    = 0;
 
 // ── Runtime config (config.json overrides inputs) ────────────────────────────
 string g_brokerName  = "";
@@ -253,34 +220,29 @@ int OnInit() {
    g_event = CreateEventW(0, 1, 0, 0);
    EventSetMillisecondTimer(100);
 
-   Print("[STATE] HttpBridgeState v3.16 | broker: ", g_brokerName,
+   Print("[STATE] HttpBridgeState v3.13 | broker: ", g_brokerName,
          " | symbols: ", g_symbolsRaw,
          " | symbol count: ", g_symbolCount,
          " | state every: ", STATE_EVERY_S, "s",
          " | history max: ", HISTORY_MAX,
-         " | full history on start: ", HISTORY_FULL_ON_START,
-         " | load candle history: ", CANDLES_LOAD);
+         " | full history on start: ", HISTORY_FULL_ON_START);
 
-   // The candle history is exported in full from the timer, one pair per second, once MT4
-   // has loaded it; with the load switched off every pair is queued as it stands.
-   g_pairCount = g_symbolCount * TF_COUNT;
-   ArrayResize(g_seenBars, g_pairCount);
-   ArrayResize(g_fullPending, g_pairCount);
-   for (int p = 0; p < g_pairCount; p++) {
-      g_seenBars[p]    = 0;
-      g_fullPending[p] = !CANDLES_LOAD;
+   Print("[STATE] Writing historical candles (", g_symbolCount, " symbols × 5 timeframes × all available bars)...");
+   for (int i = 0; i < g_symbolCount; i++) {
+      WriteHistoricalCandles(g_symbols[i], PERIOD_M5,  999999);
+      WriteHistoricalCandles(g_symbols[i], PERIOD_M15, 999999);
+      WriteHistoricalCandles(g_symbols[i], PERIOD_H1,  999999);
+      WriteHistoricalCandles(g_symbols[i], PERIOD_H4,  999999);
+      WriteHistoricalCandles(g_symbols[i], PERIOD_D1,  999999);
    }
-   g_loadPair  = CANDLES_LOAD ? 0 : g_pairCount;
-   g_loadPhase = 0;
-   g_loadChart = 0;
 
+   lastStateSend = (ulong)GetTickCount();
    Print("[STATE] Init complete | ready to stream ticks");
    return INIT_SUCCEEDED;
 }
 
 void OnDeinit(const int reason) {
    EventKillTimer();
-   if (g_loadChart > 0) { ChartClose(g_loadChart); g_loadChart = 0; }
    PipeClose();
    if (g_event != INVALID_HANDLE) { CloseHandle(g_event); g_event = INVALID_HANDLE; }
    Print("[STATE] Stopped | reason: ", reason);
@@ -365,123 +327,14 @@ void OnTimer() {
       }
 
       WriteHistory();
-      WriteRecentCandles();
+      for (int i = 0; i < g_symbolCount; i++) {
+         WriteHistoricalCandles(g_symbols[i], PERIOD_M5,  RECENT_BARS);
+         WriteHistoricalCandles(g_symbols[i], PERIOD_M15, RECENT_BARS);
+         WriteHistoricalCandles(g_symbols[i], PERIOD_H1,  RECENT_BARS);
+         WriteHistoricalCandles(g_symbols[i], PERIOD_H4,  RECENT_BARS);
+         WriteHistoricalCandles(g_symbols[i], PERIOD_D1,  RECENT_BARS);
+      }
    }
-
-   // ── Candle history: one full export and one load step per second ─────────
-   if (now - lastCandleStep >= 1000) {
-      lastCandleStep = now;
-      ExportNextPendingPair();
-      LoadCandleHistoryStep();
-   }
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// Candle history
-// ────────────────────────────────────────────────────────────────────────────
-
-string PairSymbol(int pair) { return g_symbols[pair / TF_COUNT]; }
-int    PairPeriod(int pair) { return g_periods[pair % TF_COUNT]; }
-
-// The last RECENT_BARS of every pair. A pair whose bar count grew by more than a cycle
-// can add has received history from the broker: it is queued for a full export instead.
-void WriteRecentCandles() {
-   for (int p = 0; p < g_pairCount; p++) {
-      string sym    = PairSymbol(p);
-      int    period = PairPeriod(p);
-      int    bars   = iBars(sym, period);
-      bool   loaded = p < g_loadPair;
-
-      if (loaded && g_seenBars[p] > 0 && bars > g_seenBars[p] + CANDLES_GROWTH_BARS) g_fullPending[p] = true;
-      else WriteHistoricalCandles(sym, period, RECENT_BARS);
-      g_seenBars[p] = bars;
-   }
-}
-
-void ExportNextPendingPair() {
-   for (int p = 0; p < g_pairCount; p++) {
-      if (!g_fullPending[p]) continue;
-      string sym    = PairSymbol(p);
-      int    period = PairPeriod(p);
-      int  continuous = ContinuousBars(sym, period);
-      bool written    = WriteFullCandles(sym, period);
-      g_fullPending[p] = false;
-      g_seenBars[p]    = iBars(sym, period);
-      Print("[CANDLES] Full export | ", sym, " ", PeriodToLabel(period),
-            " | bars: ", continuous, " without holes of ", g_seenBars[p],
-            written ? "" : " | NOT WRITTEN");
-      return;
-   }
-}
-
-// The terminal fetches an older block from the broker when the Home key takes a chart
-// to its first bar; ChartNavigate alone moves the view without asking the server.
-void ScrollChartToBeginning(long chart) {
-   ChartNavigate(chart, CHART_BEGIN, 0);
-   int window = (int)ChartGetInteger(chart, CHART_WINDOW_HANDLE);
-   if (window == 0) return;
-   PostMessageW(window, WM_KEYDOWN, VK_HOME, 0);
-   PostMessageW(window, WM_KEYUP, VK_HOME, 0);
-}
-
-// MT4 keeps on disk only the history something asked for, and asking for a timeseries
-// from an EA does not make it fetch more. Each pair is shown on a temporary chart taken
-// to its beginning, one pair at a time, until no more bars arrive.
-void LoadCandleHistoryStep() {
-   if (g_loadPair < 0 || g_loadPair >= g_pairCount) return;
-
-   string sym    = PairSymbol(g_loadPair);
-   int    period = PairPeriod(g_loadPair);
-   ulong  now    = GetTickCount();
-
-   if (g_loadPhase == 0) {
-      g_loadBarsStart   = iBars(sym, period);
-      g_loadLastBars    = g_loadBarsStart;
-      g_loadGrew        = false;
-      g_loadStarted     = now;
-      g_loadStableSince = now;
-      g_loadChart       = ChartOpen(sym, period);
-      if (g_loadChart <= 0) { FinishCandleLoad(g_loadBarsStart); return; }
-      ChartSetInteger(g_loadChart, CHART_AUTOSCROLL, false);
-      g_loadPhase = 1;
-      return;
-   }
-
-   ResetLastError();
-   ScrollChartToBeginning(g_loadChart);
-   int bars = iBars(sym, period);
-   iTime(sym, period, 0);
-   bool updating = GetLastError() == ERR_HISTORY_UPDATING;
-
-   if (bars != g_loadLastBars) {
-      g_loadLastBars    = bars;
-      g_loadGrew        = true;
-      g_loadStableSince = now;
-   }
-
-   // A pair MT4 already holds brings nothing: it is left after a short wait. Once the
-   // broker starts sending blocks the wait is longer, a block can take a few seconds.
-   int   quietS  = g_loadGrew ? CANDLES_STABLE_S : CANDLES_IDLE_S;
-   bool  stable  = !updating && now - g_loadStableSince >= (ulong)(quietS * 1000);
-   bool  expired = now - g_loadStarted >= (ulong)(CANDLES_CHART_MAX_S * 1000);
-   if (stable || expired) FinishCandleLoad(bars);
-}
-
-void FinishCandleLoad(int bars) {
-   string sym    = PairSymbol(g_loadPair);
-   int    period = PairPeriod(g_loadPair);
-   if (g_loadChart > 0) { ChartClose(g_loadChart); g_loadChart = 0; }
-
-   datetime first = 0;
-   if (bars > 0) first = iTime(sym, period, bars - 1);
-   Print("[CANDLES] Loaded ", g_loadPair + 1, "/", g_pairCount, " | ", sym, " ", PeriodToLabel(period),
-         " | bars: ", g_loadBarsStart, " -> ", bars,
-         " | first: ", TimeToString(first));
-
-   g_fullPending[g_loadPair] = true;
-   g_loadPair++;
-   g_loadPhase = 0;
-   if (g_loadPair >= g_pairCount) Print("[CANDLES] History load finished | broker: ", g_brokerName);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -587,71 +440,19 @@ string PeriodToLabel(int period) {
 }
 
 void WriteHistoricalCandles(string sym, int period, int maxBars) {
-   int limit = MathMin(iBars(sym, period) - 1, maxBars);
-   WriteCandlesFile(sym, period, limit, "bridge\\candles_" + sym + "_" + PeriodToLabel(period) + ".json");
-}
-
-// The whole history without holes, in a file of its own: the backend stores it, drops
-// what it holds from before its first bar and deletes the file. Written under a
-// temporary name so a half-written file is never read.
-bool WriteFullCandles(string sym, int period) {
-   string name = "bridge\\fullcandles_" + sym + "_" + PeriodToLabel(period) + ".json";
-   string temp = name + ".tmp";
-   int    bars = ContinuousBars(sym, period);
-   if (bars < 2) return false;
-   bool   cutAtHole = bars < iBars(sym, period);
-   if (!WriteCandlesFile(sym, period, bars - 1, temp, cutAtHole)) return false;
-   return FileMove(temp, 0, name, FILE_REWRITE);
-}
-
-// D1 bars, counted from the newest, with no gap longer than a long weekend between them.
-int ContinuousD1Bars(string sym) {
-   int total = iBars(sym, PERIOD_D1);
-   for (int i = 0; i < total - 1; i++) {
-      if (iTime(sym, PERIOD_D1, i) - iTime(sym, PERIOD_D1, i + 1) > D1_MAX_GAP_S) return i + 1;
-   }
-   return total;
-}
-
-// Bars, counted from the newest, that form a history without holes. A hole is a day
-// that has a D1 bar and no bar in this timeframe: never a weekend or a holiday. MT4 can
-// hold an old island of history the broker no longer connects to the recent bars.
-int ContinuousBars(string sym, int period) {
-   int d1Bars = ContinuousD1Bars(sym);
-   if (period == PERIOD_D1) return d1Bars;
-
-   int total = iBars(sym, period);
-   if (total <= 0 || d1Bars <= 0) return 0;
-   datetime oldest = iTime(sym, period, total - 1);
-
-   for (int j = 0; j < d1Bars; j++) {
-      datetime day = iTime(sym, PERIOD_D1, j);
-      if (day + DAY_S <= oldest) return total;
-      int shift = iBarShift(sym, period, day + DAY_S - 1, false);
-      if (shift < 0 || iTime(sym, period, shift) < day) return MathMax(shift, 0);
-   }
-
-   // Bars older than the D1 history cannot be checked: they are left out.
-   datetime d1Start = iTime(sym, PERIOD_D1, d1Bars - 1);
-   if (oldest >= d1Start) return total;
-   int before = iBarShift(sym, period, d1Start - 1, false);
-   if (before >= 0 && iTime(sym, period, before) < d1Start) return before;
-   return total;
-}
-
-// cutAtHole tells the backend that older bars exist behind a hole and were left out,
-// so what it stores from before this file's first bar must go.
-bool WriteCandlesFile(string sym, int period, int limit, string filename, bool cutAtHole = false) {
-   int brokerOffset = (int)(TimeCurrent() - TimeGMT());
+   int    total        = iBars(sym, period);
+   int    limit        = MathMin(total - 1, maxBars);
+   int    brokerOffset = (int)(TimeCurrent() - TimeGMT());
+   string label        = PeriodToLabel(period);
+   string filename     = "bridge\\candles_" + sym + "_" + label + ".json";
 
    int handle = FileOpen(filename, FILE_WRITE | FILE_TXT | FILE_ANSI);
    if (handle == INVALID_HANDLE) {
       Print("[STATE] ERROR: could not write candles file: ", filename);
-      return false;
+      return;
    }
 
-   FileWriteString(handle, "{\"brokerOffset\":" + IntegerToString(brokerOffset) +
-                           (cutAtHole ? ",\"cutAtHole\":true" : "") + ",\"candles\":[");
+   FileWriteString(handle, "{\"brokerOffset\":" + IntegerToString(brokerOffset) + ",\"candles\":[");
 
    for (int i = limit; i >= 0; i--) {
       string entry = "{\"time\":"  + IntegerToString(iTime(sym, period, i))  +
@@ -665,7 +466,6 @@ bool WriteCandlesFile(string sym, int period, int limit, string filename, bool c
 
    FileWriteString(handle, "]}");
    FileClose(handle);
-   return true;
 }
 
 void WriteFile(string filename, string content) {
