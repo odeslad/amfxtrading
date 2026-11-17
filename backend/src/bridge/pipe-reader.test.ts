@@ -65,6 +65,14 @@ describe.skipIf(process.platform !== 'win32')('PipeReader on a real named pipe',
     expect(await ticks).toEqual([{ symbol: 'EURUSD', bid: 1.1, ask: 1.1002 }]);
     expect(snapshot().get(broker)?.lastTickAt).toBeInstanceOf(Date);
 
+    // The EA status is stored; a message of an unknown type is ignored without a warning.
+    const warnings = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    cleanup.push(() => warnings.mockRestore());
+    client.write('{"type":"future","anything":1}\n{"type":"status","version":"3.17","loading":true,"loadDone":12,"loadTotal":75}\n');
+    await settle();
+    expect(snapshot().get(broker)?.eaStatus).toEqual({ version: '3.17', loading: true, loadDone: 12, loadTotal: 75 });
+    expect(warnings).not.toHaveBeenCalled();
+
     // A second EA socket (re-attach, two charts): closing one keeps the pipe connected.
     const second = net.connect(pipePath);
     cleanup.push(() => second.destroy());
@@ -77,5 +85,7 @@ describe.skipIf(process.platform !== 'win32')('PipeReader on a real named pipe',
     client.end();
     await settle();
     expect(pipeState(broker)).toBe('listening');
+    expect(snapshot().get(broker)?.pipeLostAt).toBeInstanceOf(Date);
+    expect(snapshot().get(broker)?.eaStatus).toBeNull();
   });
 });
