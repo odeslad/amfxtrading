@@ -7,6 +7,7 @@ import { subscribe } from '../../lib/ws';
 import { addToast } from '../../lib/toast';
 import { useBuildInfo } from '../../lib/useBuildInfo';
 import { loadVisibility } from '../../lib/visibility';
+import { SystemStatus } from './SystemStatus';
 import styles from './AppLayout.module.css';
 
 const NAV = [
@@ -81,8 +82,11 @@ export function AppLayout() {
       </div>
 
       <footer className={styles.footer}>
-        AMFX Trading Terminal v2.0 &nbsp;·&nbsp; © {new Date().getFullYear()} &nbsp;·&nbsp;
-        <span className={styles.build}>build: {build.frontend}.{build.backend ?? '?'}.{build.ea ?? '?'}</span>
+        <span>
+          AMFX Trading Terminal v2.0 &nbsp;·&nbsp; © {new Date().getFullYear()} &nbsp;·&nbsp;
+          <span className={styles.build}>build: {build.frontend}.{build.backend ?? '?'}.{build.ea ?? '?'}</span>
+        </span>
+        <SystemStatus />
       </footer>
 
       <Toaster />

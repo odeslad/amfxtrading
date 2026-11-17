@@ -44,3 +44,15 @@
 - **Evidencia:** build y lint limpios.
 - **Notas:** ninguna pantalla usa aún el hook (tarea 6). La pérdida de conexión se decide solo por el silencio: ningún mensaje `system` ni respuesta de `/status` en 20 s — un WebSocket cerrado queda cubierto por la misma regla, así que `lib/ws.ts` no se toca.
 - **Est vs Actual:** 0,75 SP vs 0,5 SP
+
+## Tarea 6 — [frontend] Luz y tooltip en el footer
+
+- **Mecanismo:** `npm run build` + manual
+- **Comandos:** `npm run build` · `npm run lint` (frontend) · `npx vitest run src/services/system-status.test.ts src/routes/status.test.ts` · `npx tsc --noEmit` · `npm run lint` (backend) · stack local: túnel de base de datos en 5434, backend en 3001 con `FEATURE_PIPE=true` y cinco brokers de prueba, Vite en 5175, cuatro terminales simulados escribiendo en los pipes
+- **Resultado:** ✅ build, lint y tests de backend · ✅ `/status` en el backend local en marcha (pendiente de la tarea 4) · 🕐 el aspecto de la luz y del tooltip, pendiente de la revisión del usuario en la app local
+- **Evidencia:** build y lint del frontend limpios; backend 19 tests pasan, `tsc` y lint limpios. Backend local: `GET /status` responde 401 sin cookie y, con sesión, `warn` con `local-darwinex` y `local-axi` conectados, `local-demo` cargando "2 of 75", `local-ftmo` reiniciando (70 s sin pipe) y `local-solidary` conectado con 11 s de retraso de ticks; el mismo objeto se sirve a través del proxy de Vite.
+- **Desviaciones del diseño, acordadas aquí:**
+  - Backend: cada broker lleva ahora su propio `level` (`ok` / `warn` / `bad`), para que el frontend sepa qué brokers requieren atención sin repetir los umbrales. Commit de backend aparte; diseño y documento de arquitectura actualizados.
+  - La cifra de CPU no se tiñe (en la pantalla naranja de la maqueta sí): teñirla exigiría tener los umbrales de CPU en el frontend.
+  - Un broker sin pipe muestra "—" como retraso de ticks, y el tiempo que lleva caído va en su etiqueta de estado ("Restarting · 38 s").
+- **Est vs Actual:** 2 SP vs 2 SP (por ahora)

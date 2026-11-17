@@ -8,6 +8,7 @@ export type BrokerState = 'connected' | 'loading' | 'restarting' | 'disconnected
 export interface BrokerStatus {
   name: string;
   state: BrokerState;
+  level: SystemLevel;
   tickDelayS: number | null;
   loadDone?: number;
   loadTotal?: number;

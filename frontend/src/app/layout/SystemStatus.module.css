@@ -1,0 +1,224 @@
+/* The level sets one colour for the dot/border and one for small text. */
+.ok {
+  --status: var(--green);
+  --status-text: var(--green);
+}
+
+.warn {
+  --status: var(--orange);
+  --status-text: var(--orange);
+}
+
+.bad {
+  --status: var(--red);
+  --status-text: color-mix(in srgb, var(--red) 80%, white);
+}
+
+/* ── Light ──────────────────────────────────────── */
+
+.anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.light {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 4px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--status-text, var(--muted-strong));
+  transition: color 0.12s ease;
+}
+
+.light:focus-visible {
+  outline: 1px solid var(--orange);
+  outline-offset: -1px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status, var(--muted));
+  flex-shrink: 0;
+}
+
+/* Red also differs by shape. */
+.dot.bad {
+  border-radius: 0;
+}
+
+.dotSmall {
+  width: 6px;
+  height: 6px;
+}
+
+/* ── Tooltip ────────────────────────────────────── */
+
+.tooltip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: var(--surface2);
+  border: 1px solid var(--border-bright);
+  border-top: 3px solid var(--status, var(--border-bright));
+  z-index: 10;
+  text-align: left;
+  cursor: default;
+}
+
+/* The colour of the level stops at the frame: inside, only what needs attention is tinted. */
+.tooltip > * {
+  --status: initial;
+  --status-text: initial;
+}
+
+/* ── Panel content (tooltip and mobile sheet) ───── */
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.titleText {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--status-text, var(--muted-strong));
+}
+
+.headline {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: 1.55;
+  letter-spacing: normal;
+  color: var(--text);
+}
+
+.label {
+  font-family: var(--font-sans);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--status-text, var(--muted-strong));
+}
+
+.metrics {
+  display: flex;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.metric .label {
+  color: var(--muted-strong);
+}
+
+.metricValue {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  letter-spacing: normal;
+  color: var(--status-text, var(--text));
+}
+
+.brokers {
+  display: flex;
+  flex-direction: column;
+}
+
+.brokersHead {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 8px;
+}
+
+.brokersHead .label {
+  color: var(--muted-strong);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rowName {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  letter-spacing: normal;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.rowState {
+  padding-left: 16px;
+}
+
+.rowDelay {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  letter-spacing: normal;
+  color: var(--status-text, var(--text));
+}
+
+.rest {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  letter-spacing: normal;
+  color: var(--muted-strong);
+}
+
+.closing {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  letter-spacing: normal;
+  color: var(--muted-strong);
+}
