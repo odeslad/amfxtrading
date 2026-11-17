@@ -1,11 +1,11 @@
-# CLAUDE.md — AMFX Trading v2 · Directrices del proyecto
+# CLAUDE.md — AMFX Trading · Directrices del proyecto
 
 ## Estructura del proyecto
 
 Este proyecto es un **monorrepo** dividido en tres capas bien diferenciadas:
 
 ```
-amfxtradingv2/
+amfxtrading/
 ├── ea/          # Expert Advisor (lógica de trading automatizado)
 ├── backend/     # API, lógica de negocio, conexión a BD (incluye prisma/ = capa db)
 ├── frontend/    # Interfaz de usuario (React + TypeScript)

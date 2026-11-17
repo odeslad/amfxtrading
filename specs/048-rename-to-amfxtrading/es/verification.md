@@ -59,3 +59,10 @@
 - **Pasos:** carpeta en `ea/scripts/compile-ea.ps1` y `ea/scripts/distribute-ea.ps1`; carpeta y host en `ea/docs/deploy.md`, donde el túnel se nombra ahora por su ID (su nombre en el panel de Cloudflare puede cambiar en la tarea 11).
 - **Resultado:** ✅ no queda ningún nombre antiguo; los dos scripts se interpretan sin errores. Commit hecho, sin subir.
 - **Est vs Actual:** 0.5 SP · 0.1 SP.
+
+## Tarea 9 · [docs] Directrices del proyecto
+
+- **Mecanismo:** manual.
+- **Pasos:** título "AMFX Trading" y árbol de carpetas `amfxtrading/` en `.claude/CLAUDE.md`.
+- **Resultado:** ✅ `git grep` de `amfxtradingv2`, `amfxtrading-v2`, `api-v2`, `ssh-v2`, `v2.amfxtrading`, `app-v2` y "Trading v2" no encuentra nada fuera de `archive/` y `specs/` (AC 7). Commit hecho, sin subir.
+- **Est vs Actual:** 0.25 SP · 0.05 SP.

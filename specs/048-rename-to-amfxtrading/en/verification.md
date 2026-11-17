@@ -59,3 +59,10 @@
 - **Steps:** folder in `ea/scripts/compile-ea.ps1` and `ea/scripts/distribute-ea.ps1`; folder and host in `ea/docs/deploy.md`, where the tunnel is now named by its ID (its name in the Cloudflare panel may change in task 11).
 - **Outcome:** ✅ no old name left; both scripts parse without errors. Committed, not pushed.
 - **Est vs Actual:** 0.5 SP · 0.1 SP.
+
+## Task 9 · [docs] Project guidelines
+
+- **Mechanism:** manual.
+- **Steps:** title "AMFX Trading" and folder tree `amfxtrading/` in `.claude/CLAUDE.md`.
+- **Outcome:** ✅ `git grep` for `amfxtradingv2`, `amfxtrading-v2`, `api-v2`, `ssh-v2`, `v2.amfxtrading`, `app-v2` and "Trading v2" finds nothing outside `archive/` and `specs/` (AC 7). Committed, not pushed.
+- **Est vs Actual:** 0.25 SP · 0.05 SP.
