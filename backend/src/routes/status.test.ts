@@ -4,15 +4,15 @@ import type { AddressInfo } from 'net';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
+import { requireAuth } from '../middleware/requireAuth';
+import statusRouter from './status';
 import { register, setPipeState } from '../store/liveness';
 import { resetSystemStatus, sampleSystemStatus, setHiddenBrokers } from '../store/system-status';
 
-// The real config needs the server environment (database, brokers file); the route only needs the secret.
+// The real config needs the server environment (database, brokers file); the route only needs the
+// secret. vi.mock is hoisted above the imports, so the session check already gets this one.
 const JWT_SECRET = 'spec045-test-secret';
 vi.mock('../config', () => ({ config: { jwtSecret: 'spec045-test-secret' } }));
-
-const { requireAuth } = await import('../middleware/requireAuth');
-const { default: statusRouter } = await import('./status');
 
 // Mounted as in app.ts: cookies parsed, then the session check, then the router.
 const server = http.createServer(express().use(cookieParser()).use('/status', requireAuth, statusRouter));
