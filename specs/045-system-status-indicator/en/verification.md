@@ -49,10 +49,12 @@
 
 - **Mechanism:** `npm run build` + manual
 - **Commands:** `npm run build` · `npm run lint` (frontend) · `npx vitest run src/services/system-status.test.ts src/routes/status.test.ts` · `npx tsc --noEmit` · `npm run lint` (backend) · local stack: database tunnel on 5434, backend on 3001 with `FEATURE_PIPE=true` and five test brokers, Vite on 5175, four fake terminals writing to the pipes
-- **Outcome:** ✅ build, lint and backend tests · ✅ `/status` on the running local backend (pending from task 4) · 🕐 the look of the light and tooltip, pending the user's review on the local app
+- **Outcome:** ✅ build, lint and backend tests · ✅ `/status` on the running local backend (pending from task 4) · ✅ the look of the light and tooltip, reviewed by the user on the local app (red state: square dot, disconnected broker first, "Loading history · 38 of 75", tick delays)
 - **Evidence:** frontend build and lint clean; backend 19 tests pass, `tsc` and lint clean. Local backend: `GET /status` answers 401 without cookie and, with a session, `warn` with `local-darwinex` and `local-axi` connected, `local-demo` loading "2 of 75", `local-ftmo` restarting (70 s without pipe) and `local-solidary` connected with an 11 s tick delay; the same object is served through the Vite proxy.
 - **Deviations from the design, agreed here:**
   - Backend: each broker now carries its own `level` (`ok` / `warn` / `bad`), so the frontend knows which brokers need attention without repeating the thresholds. Separate backend commit; design and architecture docs updated.
   - The CPU figure is not tinted (in the orange artboard it was): tinting it would need the CPU thresholds in the frontend.
   - A broker without pipe shows "—" as tick delay, and the time it has been down goes in its state label ("Restarting · 38 s").
-- **Est vs Actual:** 2 SP vs 2 SP (so far)
+  - A connected broker with late ticks reads "Connected · ticks delayed", added after the user's review.
+- **Notes:** on the local app the production session cookie (`Domain=.amfxtrading.com`) is also sent to `local.amfxtrading.com` and the local backend rejects it: log in from a private window.
+- **Est vs Actual:** 2 SP vs 2.25 SP
