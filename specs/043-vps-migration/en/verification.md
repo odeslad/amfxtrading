@@ -198,3 +198,12 @@
 - **Not tested:** pending orders (place, move, cancel), closing that position, and saving a change in Settings.
 - **Found during validation:** in Chrome on Windows "Enable this device" failed ("Could not enable notifications on this device") until the service worker registered for `amfxtrading.com` was unregistered in DevTools: the browser kept a registration from the website that used to be served at that address. `lib/usePush.ts` swallows the error and does not drop an existing subscription before creating a new one — a small frontend improvement, outside this spec.
 - **Old subscriptions:** the two copied from `v2` (Safari · Mac and Chrome · Windows, since 23/10) stay in the list until the user removes them; while they exist, alerts also reach the old installed app.
+
+## Tasks 11 and 13 — Access through Cloudflare restored and port 22 closed (2026-11-17)
+
+- **Outcome:** ✅ pass.
+- **Access:** the browser login of Cloudflare Access kept failing for the whole account, so the developer PC now uses a service token (`pc-local`, created by the user and added to the Service Auth policy of the "VPS SSH" application next to `github-actions`). `~/.ssh/config` passes it to `cloudflared access ssh` in the `amfx-vps` and `amfx-vps-old` hosts. `ssh amfx-vps hostname` → `WIN-E5FGF0D8OH7`; `ssh amfx-vps-old hostname` → `WIN-16ESVKMCVCR`.
+- **Database tunnel:** `backend/scripts/db-tunnel.ps1` now opens the tunnel through the `amfx-vps` host instead of repeating the proxy command; a query through it answered from database `amfxtrading`. The local `backend/.env` (not in git) points at that database name.
+- **Port 22:** Windows firewall rules `AMFX-SSH-Bootstrap` (new VPS) and `AMFX-SSH-Migration` (old VPS) removed; the user removed the IONOS rules. From outside, port 22 is closed on both IPs, and both hosts are still reachable through the tunnel.
+- **Runbook:** not written as a separate document; the switch followed the steps agreed in the conversation and is recorded under task 14.
+- **Est vs Actual:** tasks 11 and 13: 1.25 SP vs about 2.5 SP — the Cloudflare login failure and the detour through direct SSH.

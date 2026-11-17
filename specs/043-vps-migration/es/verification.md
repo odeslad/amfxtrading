@@ -198,3 +198,12 @@
 - **Sin probar:** órdenes pendientes (colocar, mover, cancelar), cerrar esa posición, y guardar un cambio en Settings.
 - **Encontrado durante la validación:** en Chrome de Windows "Enable this device" falló ("Could not enable notifications on this device") hasta que se quitó en DevTools el service worker registrado para `amfxtrading.com`: el navegador conservaba un registro de la web que se servía antes en esa dirección. `lib/usePush.ts` se traga el error y no deshace una suscripción existente antes de crear una nueva — una mejora pequeña de frontend, fuera de esta spec.
 - **Suscripciones antiguas:** las dos copiadas de `v2` (Safari · Mac y Chrome · Windows, desde el 23/10) siguen en la lista hasta que el usuario las borre; mientras existan, las alertas llegan también a la app antigua instalada.
+
+## Tareas 11 y 13 — Acceso por Cloudflare recuperado y puerto 22 cerrado (2026-11-17)
+
+- **Resultado:** ✅ pasa.
+- **Acceso:** el inicio de sesión por navegador de Cloudflare Access siguió fallando en toda la cuenta, así que el PC del desarrollador usa ahora un service token (`pc-local`, creado por el usuario y añadido a la política Service Auth de la aplicación "VPS SSH" junto a `github-actions`). `~/.ssh/config` se lo pasa a `cloudflared access ssh` en los hosts `amfx-vps` y `amfx-vps-old`. `ssh amfx-vps hostname` → `WIN-E5FGF0D8OH7`; `ssh amfx-vps-old hostname` → `WIN-16ESVKMCVCR`.
+- **Túnel de base de datos:** `backend/scripts/db-tunnel.ps1` abre ahora el túnel a través del host `amfx-vps` en lugar de repetir el comando del proxy; una consulta a través de él respondió desde la base `amfxtrading`. El `backend/.env` local (fuera de git) apunta a ese nombre de base.
+- **Puerto 22:** eliminadas las reglas del firewall de Windows `AMFX-SSH-Bootstrap` (VPS nuevo) y `AMFX-SSH-Migration` (VPS antiguo); el usuario quitó las reglas de IONOS. Desde fuera, el puerto 22 está cerrado en las dos IPs, y los dos hosts siguen siendo accesibles por el túnel.
+- **Runbook:** no se escribió como documento aparte; el cambio siguió los pasos acordados en la conversación y está registrado en la tarea 14.
+- **Est vs Actual:** tareas 11 y 13: 1,25 SP vs alrededor de 2,5 SP — el fallo del login de Cloudflare y el rodeo por SSH directo.
