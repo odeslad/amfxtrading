@@ -8,3 +8,12 @@
 - **Evidencia:** 13 tests pasan en los dos ficheros (estado del EA guardado y validado, mensaje del pipe de tipo desconocido ignorado sin aviso, hora de pérdida del pipe puesta en la primera pérdida, mantenida entre `listening` → `error` y borrada al reconectar, estado del EA olvidado junto con el pipe); `tsc` limpio; suite completa 165 tests en 18 ficheros.
 - **Notas:** un broker con el pipe activado cuenta como perdido desde el arranque del backend hasta que su EA conecta. `GET /health` devuelve los mismos campos que antes.
 - **Est vs Actual:** 1 SP vs 0,75 SP
+
+## Tarea 2 — [backend] Lecturas de carga del servidor
+
+- **Mecanismo:** vitest + `npm run build`
+- **Comandos:** `npx vitest run src/services/server-load.test.ts` · `npm run build`
+- **Resultado:** ✅ pasa
+- **Evidencia:** 5 tests pasan (porcentaje con dos lecturas fabricadas, límites 0–100 con contadores incoherentes, sin cifra cuando no ha pasado tiempo, lecturas reales de esta máquina coherentes); `tsc` limpio.
+- **Notas:** la comparación con el Administrador de tareas forma parte de la tarea 4, cuando la cifra se expone por primera vez.
+- **Est vs Actual:** 0,75 SP vs 0,5 SP
