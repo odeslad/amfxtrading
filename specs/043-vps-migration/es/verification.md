@@ -194,7 +194,7 @@
 
 - **Resultado:** 🕐 la validación de la app por el usuario está hecha; los 14 días de observación corren hasta el 2026-12-01.
 - **Validado por el usuario en `https://amfxtrading.com`:** la sesión heredada de `v2`; cuentas con cifras en vivo; app reinstalada en el iPhone y notificaciones activadas allí y en Chrome de Windows; una alerta de precio creada desde el panel del gráfico saltó y su push llegó; una operación abierta en la cuenta `Demo` ("abierto y funcionando").
-- **Confirmado también:** la orden se ejecutó desde el gráfico ("Order executed") y se le modificó el SL ("sl tmb").
-- **Sin confirmar todavía:** cerrar esa operación, y guardar un cambio en Settings.
+- **Confirmado también:** se abrió una posición a mercado desde el gráfico (el aviso de la app dice "Order executed") y se le modificó el SL ("sl tmb").
+- **Sin probar:** órdenes pendientes (colocar, mover, cancelar), cerrar esa posición, y guardar un cambio en Settings.
 - **Encontrado durante la validación:** en Chrome de Windows "Enable this device" falló ("Could not enable notifications on this device") hasta que se quitó en DevTools el service worker registrado para `amfxtrading.com`: el navegador conservaba un registro de la web que se servía antes en esa dirección. `lib/usePush.ts` se traga el error y no deshace una suscripción existente antes de crear una nueva — una mejora pequeña de frontend, fuera de esta spec.
 - **Suscripciones antiguas:** las dos copiadas de `v2` (Safari · Mac y Chrome · Windows, desde el 23/10) siguen en la lista hasta que el usuario las borre; mientras existan, las alertas llegan también a la app antigua instalada.
