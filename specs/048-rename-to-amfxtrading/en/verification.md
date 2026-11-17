@@ -52,3 +52,10 @@
 - **Steps:** `Set-Location C:\amfxtrading` in `frontend/scripts/deploy.ps1`.
 - **Outcome:** ✅ build OK, the script parses without errors. Committed, not pushed.
 - **Est vs Actual:** 0.25 SP · 0.1 SP.
+
+## Task 8 · [ea] Names in the EA scripts and deploy document
+
+- **Mechanism:** manual.
+- **Steps:** folder in `ea/scripts/compile-ea.ps1` and `ea/scripts/distribute-ea.ps1`; folder and host in `ea/docs/deploy.md`, where the tunnel is now named by its ID (its name in the Cloudflare panel may change in task 11).
+- **Outcome:** ✅ no old name left; both scripts parse without errors. Committed, not pushed.
+- **Est vs Actual:** 0.5 SP · 0.1 SP.

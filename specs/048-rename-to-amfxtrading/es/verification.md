@@ -52,3 +52,10 @@
 - **Pasos:** `Set-Location C:\amfxtrading` en `frontend/scripts/deploy.ps1`.
 - **Resultado:** ✅ build correcto, el script se interpreta sin errores. Commit hecho, sin subir.
 - **Est vs Actual:** 0.25 SP · 0.1 SP.
+
+## Tarea 8 · [ea] Nombres en los scripts del EA y en el documento de despliegue
+
+- **Mecanismo:** manual.
+- **Pasos:** carpeta en `ea/scripts/compile-ea.ps1` y `ea/scripts/distribute-ea.ps1`; carpeta y host en `ea/docs/deploy.md`, donde el túnel se nombra ahora por su ID (su nombre en el panel de Cloudflare puede cambiar en la tarea 11).
+- **Resultado:** ✅ no queda ningún nombre antiguo; los dos scripts se interpretan sin errores. Commit hecho, sin subir.
+- **Est vs Actual:** 0.5 SP · 0.1 SP.
