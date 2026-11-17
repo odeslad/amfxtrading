@@ -22,14 +22,10 @@ export interface BridgeTrade extends BridgePosition {
 
 export interface BridgeCandles {
   brokerOffset: number;
-  // Only in a full history: MT4 holds older bars the EA left out because a hole separates them.
-  cutAtHole?: boolean;
   candles: { time: number; open: number; high: number; low: number; close: number }[];
 }
 
 const TIMEFRAME_RE = /^candles_(.+)_(M5|M15|H1|H4|D1)\.json$/;
-// The whole history of a pair, written by the EA once MT4 has loaded it (spec 044).
-const FULL_HISTORY_RE = /^fullcandles_(.+)_(M5|M15|H1|H4|D1)\.json$/;
 const LIST_ERROR_EVERY_MS = 60_000;
 
 export type AccountHandler = (account: BridgeAccount) => Promise<void>;
@@ -60,7 +56,6 @@ export class FileWatcher {
   private accountHandler: AccountHandler | null = null;
   private historyHandler: HistoryHandler | null = null;
   private candlesHandler: CandlesHandler | null = null;
-  private fullCandlesHandler: CandlesHandler | null = null;
   private polling = false;
   // Candle files already persisted, by name: skipped while mtime and size hold.
   private readonly seen = new Map<string, FileStamp>();
@@ -78,7 +73,6 @@ export class FileWatcher {
   onAccount(handler: AccountHandler) { this.accountHandler = handler; }
   onHistory(handler: HistoryHandler) { this.historyHandler = handler; }
   onCandles(handler: CandlesHandler) { this.candlesHandler = handler; }
-  onFullCandles(handler: CandlesHandler) { this.fullCandlesHandler = handler; }
 
   start() {
     console.log(`[FILE-WATCHER: ${this.brokerName}] started | polls account, history, candles every ${this.intervalMs / 1000}s`);
@@ -170,7 +164,7 @@ export class FileWatcher {
   }
 
   private async readCandles() {
-    if (!this.candlesHandler && !this.fullCandlesHandler) return;
+    if (!this.candlesHandler) return;
     let files: string[];
     try {
       files = fs.readdirSync(this.bridgePath);
@@ -187,13 +181,8 @@ export class FileWatcher {
     // One file at a time: parse, persist, release before touching the next,
     // so memory holds a single candles file instead of all of them at once.
     for (const file of files) {
-      const full = FULL_HISTORY_RE.exec(file);
-      if (full) {
-        await this.consumeFullCandles(file, full[1], full[2]);
-        continue;
-      }
       const match = TIMEFRAME_RE.exec(file);
-      if (!match || !this.candlesHandler) continue;
+      if (!match) continue;
       const [, symbol, timeframe] = match;
 
       const stamp = this.stat(file);
@@ -209,19 +198,6 @@ export class FileWatcher {
         this.seen.set(file, stamp);
       });
     }
-  }
-
-  // A full history is handled once and its file removed, so it is neither read again
-  // on the next poll nor after a restart. A failed write leaves it for the next poll.
-  private async consumeFullCandles(file: string, symbol: string, timeframe: string) {
-    const handler = this.fullCandlesHandler;
-    if (!handler) return;
-    const data = this.readJson<BridgeCandles>(file);
-    if (!data) return;
-    await this.runStep(file, async () => {
-      await handler({ symbol, timeframe, ...data });
-      fs.unlinkSync(path.join(this.bridgePath, file));
-    });
   }
 
   private stat(filename: string): FileStamp | null {

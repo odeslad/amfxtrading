@@ -1,6 +1,6 @@
 import net from 'net';
 import { EventEmitter } from 'events';
-import { parseEaStatus, setEaStatus, setPipeState, touchTick } from '../store/liveness';
+import { setPipeState, touchTick } from '../store/liveness';
 
 export type TickBatch = TickData[];
 
@@ -94,9 +94,6 @@ export class PipeReader extends EventEmitter {
           } else if (parsed?.type === 'account') {
             const { type: _, ...account } = parsed;
             this.emit('account', account);
-          } else if (parsed?.type === 'status') {
-            const status = parseEaStatus(parsed);
-            if (status) setEaStatus(this.brokerName, status);
           }
         } catch {
           console.warn(`[PIPE-READER:${this.brokerName}] Failed to parse pipe message`);

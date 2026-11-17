@@ -1,16 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import {
-  healthReport, register, setPipeState, setEaStatus, parseEaStatus, touchTick, touchSync, snapshot, pipeStateOf, isPipeLive,
-  type BrokerLiveness,
-} from './liveness';
+import { healthReport, register, setPipeState, touchTick, touchSync, snapshot, pipeStateOf, isPipeLive, type BrokerLiveness } from './liveness';
 
 const now = new Date('2026-10-02T10:00:00Z');
 const startedAt = new Date('2026-10-02T08:33:20Z');
 const secondsAgo = (s: number): Date => new Date(now.getTime() - s * 1000);
 
 const broker = (over: Partial<BrokerLiveness> = {}): BrokerLiveness => ({
-  pipe: 'connected', pipeLostAt: null, eaStatus: null,
-  lastTickAt: secondsAgo(2), lastSyncAt: secondsAgo(14), watcher: true, ...over,
+  pipe: 'connected', lastTickAt: secondsAgo(2), lastSyncAt: secondsAgo(14), watcher: true, ...over,
 });
 
 const report = (entries: Record<string, BrokerLiveness>) =>
@@ -54,36 +50,15 @@ describe('healthReport', () => {
 
 describe('store', () => {
   it('registers brokers by feature flags and records state and timestamps', () => {
-    register('x', { pipe: true, watcher: true }, startedAt);
-    register('y', { pipe: false, watcher: false }, startedAt);
-    expect(snapshot().get('x')).toEqual({
-      pipe: 'listening', pipeLostAt: startedAt, eaStatus: null, lastTickAt: null, lastSyncAt: null, watcher: true,
-    });
-    expect(snapshot().get('y')).toMatchObject({ pipe: 'disabled', pipeLostAt: null });
+    register('x', { pipe: true, watcher: true });
+    register('y', { pipe: false, watcher: false });
+    expect(snapshot().get('x')).toEqual({ pipe: 'listening', lastTickAt: null, lastSyncAt: null, watcher: true });
+    expect(snapshot().get('y')?.pipe).toBe('disabled');
 
     setPipeState('x', 'connected');
     touchTick('x', now);
     touchSync('x', now);
-    expect(snapshot().get('x')).toEqual({
-      pipe: 'connected', pipeLostAt: null, eaStatus: null, lastTickAt: now, lastSyncAt: now, watcher: true,
-    });
-  });
-
-  it('times the loss of a pipe from its first moment and forgets the EA status with it', () => {
-    const status = { version: '3.17', loading: true, loadDone: 12, loadTotal: 75 };
-    register('z', { pipe: true, watcher: false }, startedAt);
-    setPipeState('z', 'connected', now);
-    setEaStatus('z', status);
-    expect(snapshot().get('z')).toMatchObject({ pipeLostAt: null, eaStatus: status });
-
-    setPipeState('z', 'listening', secondsAgo(-10));
-    setPipeState('z', 'error', secondsAgo(-40));
-    expect(snapshot().get('z')).toMatchObject({ pipe: 'error', pipeLostAt: secondsAgo(-10), eaStatus: null });
-
-    setPipeState('z', 'connected', secondsAgo(-60));
-    expect(snapshot().get('z')?.pipeLostAt).toBeNull();
-    setEaStatus('nobody', status);
-    expect(snapshot().has('nobody')).toBe(false);
+    expect(snapshot().get('x')).toEqual({ pipe: 'connected', lastTickAt: now, lastSyncAt: now, watcher: true });
   });
 
   it('tells live pipes apart: connected or disabled, never listening or error', () => {
@@ -102,24 +77,5 @@ describe('store', () => {
     const copy = snapshot().get('x')!;
     copy.pipe = 'error';
     expect(snapshot().get('x')?.pipe).toBe('connected');
-  });
-});
-
-describe('parseEaStatus', () => {
-  it('keeps the four fields of a well-formed status and drops the rest', () => {
-    expect(parseEaStatus({ type: 'status', version: '3.17', loading: true, loadDone: 12, loadTotal: 75 }))
-      .toEqual({ version: '3.17', loading: true, loadDone: 12, loadTotal: 75 });
-  });
-
-  it('rejects a status with missing, mistyped or impossible fields', () => {
-    const ok = { version: '3.17', loading: false, loadDone: 75, loadTotal: 75 };
-    expect(parseEaStatus(null)).toBeNull();
-    expect(parseEaStatus('status')).toBeNull();
-    expect(parseEaStatus({ ...ok, version: 3.17 })).toBeNull();
-    expect(parseEaStatus({ ...ok, loading: 'true' })).toBeNull();
-    expect(parseEaStatus({ ...ok, loadDone: -1 })).toBeNull();
-    expect(parseEaStatus({ ...ok, loadDone: 1.5 })).toBeNull();
-    expect(parseEaStatus({ ...ok, loadDone: 76 })).toBeNull();
-    expect(parseEaStatus({ version: '3.17', loading: false })).toBeNull();
   });
 });

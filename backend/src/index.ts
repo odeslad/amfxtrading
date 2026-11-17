@@ -6,7 +6,7 @@ import { db } from './db/client';
 import { PipeReader } from './bridge/pipe-reader';
 import { FileWatcher, type BridgeTrade } from './bridge/file-watcher';
 import { createWss } from './ws/ws';
-import { replaceCandleHistory, upsertCandles } from './services/candles';
+import { upsertCandles } from './services/candles';
 import { createCandleCloseState, persistClosedCandle, trackCandleCloses } from './services/candle-close';
 import { syncTrades } from './services/trades';
 import { syncBalanceOperations, BALANCE_OPERATION_TYPES } from './services/balance-operations';
@@ -16,8 +16,6 @@ import { setTick } from './store/ticks';
 import { setAccount } from './store/accounts';
 import { syncColors } from './store/positionColors';
 import { register } from './store/liveness';
-import { sampleSystemStatus, setHiddenBrokers } from './store/system-status';
-import { THRESHOLDS } from './services/system-status';
 import { setBroadcaster } from './routes/commands';
 import { evaluateAlerts, setAlertBroadcaster } from './alerts/alert-evaluator';
 import { refreshAlerts } from './alerts/alert-store';
@@ -73,11 +71,7 @@ function startBroker(brokerName: string, bridgePath: string, wss: Wss) {
   });
 
   // The watcher awaits each handler and logs failures with its own prefix.
-  watcher?.onCandles(async ({ symbol, timeframe, ...data }) => { await upsertCandles(brokerName, symbol, timeframe, data); });
-  watcher?.onFullCandles(async ({ symbol, timeframe, ...data }) => {
-    const { written, orphaned, trimmed } = await replaceCandleHistory(brokerName, symbol, timeframe, data);
-    console.log(`[CANDLES:${brokerName}] ${symbol} ${timeframe} full history | bars: ${data.candles.length} | written: ${written} | orphaned: ${orphaned} | trimmed: ${trimmed}`);
-  });
+  watcher?.onCandles(({ symbol, timeframe, ...data }) => upsertCandles(brokerName, symbol, timeframe, data));
 
   watcher?.onHistory(async (entries: BridgeTrade[]) => {
     const trades = entries.filter(e => e.type === 0 || e.type === 1);
@@ -115,9 +109,6 @@ async function main() {
   startEmaNotificationRefresh();
   console.log('[ALERT] Armed alerts loaded');
 
-  const display = await db.settingsDisplay.findFirst({ where: { key: 'global' }, select: { hiddenBrokers: true } });
-  setHiddenBrokers(display?.hiddenBrokers ?? []);
-
   const server = http.createServer(app);
   const wss = createWss(server);
   setBroadcaster((id, status, ticket, error, late) => wss.broadcastCommandResult(id, status, ticket, error, late));
@@ -129,18 +120,12 @@ async function main() {
     startBroker(name, bridgePath, wss),
   );
 
-  const systemTimer = setInterval(() => {
-    const status = sampleSystemStatus();
-    if (config.features.wsBroadcast) wss.broadcastSystem(status);
-  }, THRESHOLDS.sampleS * 1000);
-
   server.listen(config.port, () => {
     console.log(`[HTTP] Listening on port ${config.port}`);
     console.log(`[BROKER] Active brokers: ${config.brokers.map((b) => b.name).join(', ')}`);
   });
 
   process.on('SIGTERM', async () => {
-    clearInterval(systemTimer);
     wss.close();
     watchers.forEach(({ pipe, watcher }) => { pipe?.stop(); watcher?.stop(); });
     server.close();
