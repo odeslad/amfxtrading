@@ -31,3 +31,10 @@
 - **Steps:** the name `odeslad/amfxtrading` only held GitHub's redirect to `amfxtrading-v1` (the MVP, renamed earlier the same day); the repository was renamed from `odeslad/amfxtradingv2` to `odeslad/amfxtrading` through the GitHub API; the remote of the local copy and of the server copy (`C:\amfxtradingv2`) set to `https://github.com/odeslad/amfxtrading.git`.
 - **Outcome:** ✅ `git fetch` works locally and on the server; the four secrets of the pipelines (`CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, `SSH_PRIVATE_KEY`, `SSH_USER`) are still listed after the rename; the MVP's copy still reaches `amfxtrading-v1`.
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Task 5 · [infra] Names in workflows and startup scripts
+
+- **Mechanism:** manual.
+- **Steps:** `amfxtradingv2` → `amfxtrading` and `ssh-v2.amfxtrading.com` → `ssh.amfxtrading.com` in the three workflows, `infra/scripts/startup.ps1`, `infra/scripts/register-startup-tasks.ps1` and `infra/README.md`. No YAML parser is installed on the PC, so the workflows were checked another way: undoing the substitution gives back exactly the committed files, so only the names changed. The two PowerShell scripts parse without errors.
+- **Outcome:** ✅ committed, not pushed (it goes out in task 10).
+- **Est vs Actual:** 1 SP · 0.5 SP (tasks 5 to 9 done together).

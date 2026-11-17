@@ -3,8 +3,8 @@
 
 $ErrorActionPreference = 'Continue'
 
-$BrokersFile   = 'C:\amfxtradingv2\backend\brokers.json'
-$BackendEcosystem = 'C:\amfxtradingv2\backend\ecosystem.config.js'
+$BrokersFile   = 'C:\amfxtrading\backend\brokers.json'
+$BackendEcosystem = 'C:\amfxtrading\backend\ecosystem.config.js'
 $BackendName   = 'amfxtrading-backend'
 $HealthUrl     = 'http://localhost:3000/health'
 $LogDir        = 'C:\monitoring'

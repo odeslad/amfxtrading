@@ -31,3 +31,10 @@
 - **Pasos:** el nombre `odeslad/amfxtrading` solo conservaba la redirección de GitHub a `amfxtrading-v1` (el MVP, renombrado antes ese mismo día); el repositorio se renombró de `odeslad/amfxtradingv2` a `odeslad/amfxtrading` con la API de GitHub; el remoto de la copia local y el de la copia del servidor (`C:\amfxtradingv2`) pasan a `https://github.com/odeslad/amfxtrading.git`.
 - **Resultado:** ✅ `git fetch` funciona en local y en el servidor; los cuatro secretos de los pipelines (`CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, `SSH_PRIVATE_KEY`, `SSH_USER`) siguen listados tras el renombrado; la copia del MVP sigue llegando a `amfxtrading-v1`.
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Tarea 5 · [infra] Nombres en workflows y scripts de arranque
+
+- **Mecanismo:** manual.
+- **Pasos:** `amfxtradingv2` → `amfxtrading` y `ssh-v2.amfxtrading.com` → `ssh.amfxtrading.com` en los tres workflows, `infra/scripts/startup.ps1`, `infra/scripts/register-startup-tasks.ps1` e `infra/README.md`. No hay ningún analizador de YAML instalado en el PC, así que los workflows se comprobaron de otra forma: deshaciendo la sustitución se obtienen exactamente los ficheros del commit anterior, luego solo cambiaron los nombres. Los dos scripts de PowerShell se interpretan sin errores.
+- **Resultado:** ✅ commit hecho, sin subir (sale en la tarea 10).
+- **Est vs Actual:** 1 SP · 0.5 SP (tareas 5 a 9 hechas juntas).

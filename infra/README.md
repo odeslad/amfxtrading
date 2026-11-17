@@ -32,7 +32,7 @@ Un terminal que se cierre a mitad del día lo relanza el watchdog en menos de 5 
 Registra (o reemplaza) las dos tareas. Ejecutar una vez en el VPS:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File C:\amfxtradingv2\infra\scripts\register-startup-tasks.ps1
+powershell -ExecutionPolicy Bypass -File C:\amfxtrading\infra\scripts\register-startup-tasks.ps1
 ```
 
 Las tareas corren como `Administrator` en modo **interactivo** (no en sesión 0), para que las
