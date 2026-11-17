@@ -148,6 +148,10 @@ export function createWss(server: Server) {
     broadcastEmaNotification(userId: number, payload: Record<string, unknown>) {
       sendToUser(userId, 'ema_notification', payload);
     },
+    // The state of the whole system, every few seconds, to everyone (spec 045).
+    broadcastSystem(status: object) {
+      broadcast('system', status);
+    },
     clientCount: () => clients.size,
     close() {
       clearInterval(heartbeat);

@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { db } from '../db/client';
 import { asyncRoute } from '../middleware/asyncRoute';
 import { BadRequest } from '../middleware/errors';
+import { setHiddenBrokers } from '../store/system-status';
 import {
   bodyRecord, nonEmptyString, finiteNumber, integer, oneOf, optionalOneOf, optionalString, optionalInteger, optionalBoolean,
 } from '../middleware/parse';
@@ -345,6 +346,7 @@ router.put('/', asyncRoute(async (req, res) => {
   }
 
   await Promise.all(ops);
+  if (visibility !== undefined) setHiddenBrokers(visibility.hiddenBrokers);
 
   const [updatedPresets, updatedDisplay] = await loadSettings();
   res.json(toResponse(updatedPresets, updatedDisplay));

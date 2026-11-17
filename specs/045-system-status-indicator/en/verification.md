@@ -26,3 +26,12 @@
 - **Evidence:** 16 tests pass: the four broker states, one case per row of the level table (broker state, tick delay 5 s / 60 s, CPU 85 % over 15 s / 95 % over 60 s, free memory 10 % / 5 %), the worst rule wins, a single spike does not change the level in either direction, the level changes after two samples, a hidden broker is left out of the level and of the list; `tsc` clean.
 - **Notes:** all thresholds are in the `THRESHOLDS` constant. The two-sample rule applies to the level; the broker list always shows the current state. A CPU average only counts once its whole window has been sampled.
 - **Est vs Actual:** 1.5 SP vs 1 SP
+
+## Task 4 — [backend] Delivery of the system status
+
+- **Mechanism:** vitest + `npm run build` + manual
+- **Commands:** `npx vitest run src/routes/status.test.ts` (also with `DATABASE_URL`, `JWT_SECRET` and `BROKERS_FILE` unset, as in CI) · `npm run lint` · `npx tsc --noEmit` · `npx vitest run` · a 20 s script printing `cpuPercent` every 5 s next to Windows' own counter (`Win32_PerfFormattedData_PerfOS_Processor`, `_Total`)
+- **Outcome:** ✅ pass (automatic part and CPU comparison) · 🕐 the running local backend is checked in task 6
+- **Evidence:** 3 tests pass over a real HTTP server (401 without cookie; with cookie the object has `level`, `server`, `brokers`, `at`, the visible broker and not the hidden one; the route serves the last sample taken); lint and `tsc` clean; full suite 188 of 189: the one failure is the known flaky `pipe-reader.test.ts` (real named pipe with 80 ms waits, fails under parallel load, skipped in CI), which passes alone three times in a row. CPU: backend 72 % in four consecutive samples, Windows 71 %; free memory 32,304 MB against Windows' 32,298 MB.
+- **Deviation:** the task asked to see `/status` on a local backend with the flags off. That needs the database tunnel and the whole local stack, which task 6 starts anyway to check the light, so it is verified there. The route test mounts the router with the real session check instead of importing `app.ts`, because `app.ts` needs the server environment that CI does not have.
+- **Est vs Actual:** 1.25 SP vs 1.25 SP

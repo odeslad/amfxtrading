@@ -96,7 +96,8 @@ backend/
 │   │   ├── ticks.ts              # last bid/ask per symbol
 │   │   ├── positions.ts          # open positions from the pipe
 │   │   ├── accounts.ts           # balance/currency from the pipe
-│   │   ├── liveness.ts           # pipe state, last tick, last sync → /health
+│   │   ├── liveness.ts           # pipe state, last tick, last sync, EA status → /health, /status
+│   │   ├── system-status.ts      # last system sample, hidden brokers (spec 045)
 │   │   └── positionColors.ts     # user colours per ticket (DB-backed cache)
 │   └── ws/
 │       ├── ws.ts                 # WebSocket server on /ws
@@ -145,6 +146,7 @@ Every router except `/auth` and `/health` sits behind `requireAuth`: the JWT tra
 | `/setup-levels` | `GET` | Levels of the last EMA cross setup of a symbol |
 | `/push` | `GET /vapid`, `GET /`, `POST /subscribe`, `POST /unsubscribe`, `DELETE /:id` | Web Push subscriptions; `GET /` lists the user's devices (label from the user agent, endpoint hash, since, last push) |
 | `/stats` | `GET` | Account statistics per broker and period |
+| `/status` | `GET` | State of the whole system (spec 045): the same object the WebSocket pushes as `system`, for the first paint |
 | `/book` | `GET /schemes?year&page&pageSize`, `POST /schemes`, `GET /schemes/:id`, `PUT /schemes/:id`, `DELETE /schemes/:id`, `POST /trades`, `PUT /trades/:id`, `DELETE /trades/:id`, `POST /preview` | Libro de esquemas: the operator's book of EURUSD schemes and operations (see below) |
 
 ### `GET /health`
@@ -217,6 +219,9 @@ Every message is `{ "type", … }` with `broker` at the root (never per item):
 | `alert` | `{ broker, symbol, price, direction }` | price alert, only to its owner |
 | `ema_alert` | `{ broker, symbol, timeframe, direction }` | EMA alert, only to its owner |
 | `ema_notification` | `{ notificationId, broker, symbol, timeframe, kind, direction, gapPips, emaFast, emaSlow, note }` | A standing EMA notification rule fired (spec 023), only to its owner |
+| `system` | `{ level, server: { cpuPct, freeMemMb, totalMemMb }, brokers: [ { name, state, tickDelayS, loadDone?, loadTotal?, disconnectedS? } ], at }` | every 5 s, to everyone (spec 045, below); the only message without a `broker` at the root |
+
+**System status (spec 045).** Every 5 s the backend takes one sample — CPU from two `os.cpus()` readings, free memory, and per broker the pipe state, the time since its last pipe message and what its EA last said in a `{"type":"status"}` pipe message (history load progress) — and reduces it to one `level` (`ok` / `warn` / `bad`) in `services/system-status.ts`. Broker `state` is `connected`, `loading` (the EA is loading history), `restarting` (pipe lost for less than 120 s) or `disconnected`. The level is the worst of: a broker `loading` or `restarting` (warn) or `disconnected` (bad); a tick delay of 5 s (warn) or 60 s (bad); CPU averaging 85 % over 15 s (warn) or 95 % over 60 s (bad); free memory under 10 % (warn) or 5 % (bad). It only moves when two consecutive samples agree, so a spike does not change it; every figure lives in the `THRESHOLDS` constant. Brokers in `hiddenBrokers` are left out of the level and of the list (read at start, refreshed on `PUT /settings`). `GET /health` is unrelated and unchanged.
 
 **Tick subscription (spec 041).** A client receives no `ticks` until it sends the only inbound message, `{ "type": "subscribe", "ticks": [ { "broker", "symbol" }, … ] }` (at most 16 pairs, names up to 64 characters, frame up to 4 KiB). Each frame replaces the whole set and an empty list stops the ticks; an invalid frame is ignored and the previous set kept. Every batch is filtered per client and skipped when nothing matches, so a client only pays for the charts it has open (the frontend re-sends its set on every reconnect). Every other message type is delivered regardless of the subscription. `scripts/ws-measure.ts` connects as a client and reports the bytes received per type, with or without a subscription.
 

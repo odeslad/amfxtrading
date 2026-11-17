@@ -26,3 +26,12 @@
 - **Evidencia:** 16 tests pasan: los cuatro estados de broker, un caso por fila de la tabla de niveles (estado del broker, retraso de ticks 5 s / 60 s, CPU 85 % en 15 s / 95 % en 60 s, memoria libre 10 % / 5 %), gana la peor regla, un pico suelto no cambia el nivel en ningún sentido, el nivel cambia tras dos muestras, un broker oculto queda fuera del nivel y de la lista; `tsc` limpio.
 - **Notas:** todos los umbrales están en la constante `THRESHOLDS`. La regla de las dos muestras se aplica al nivel; la lista de brokers muestra siempre el estado actual. Una media de CPU solo cuenta cuando se ha muestreado su ventana entera.
 - **Est vs Actual:** 1,5 SP vs 1 SP
+
+## Tarea 4 — [backend] Entrega del estado del sistema
+
+- **Mecanismo:** vitest + `npm run build` + manual
+- **Comandos:** `npx vitest run src/routes/status.test.ts` (también sin `DATABASE_URL`, `JWT_SECRET` ni `BROKERS_FILE`, como en CI) · `npm run lint` · `npx tsc --noEmit` · `npx vitest run` · un script de 20 s que imprime `cpuPercent` cada 5 s junto al contador del propio Windows (`Win32_PerfFormattedData_PerfOS_Processor`, `_Total`)
+- **Resultado:** ✅ pasa (parte automática y comparación de CPU) · 🕐 el backend local en marcha se comprueba en la tarea 6
+- **Evidencia:** 3 tests pasan sobre un servidor HTTP real (401 sin cookie; con cookie el objeto trae `level`, `server`, `brokers`, `at`, el broker visible y no el oculto; la ruta sirve la última muestra tomada); lint y `tsc` limpios; suite completa 188 de 189: el único fallo es el ya conocido test inestable `pipe-reader.test.ts` (pipe real con esperas de 80 ms, falla con carga en paralelo, se salta en CI), que pasa solo tres veces seguidas. CPU: backend 72 % en cuatro muestras seguidas, Windows 71 %; memoria libre 32.304 MB frente a los 32.298 MB de Windows.
+- **Desviación:** la tarea pedía ver `/status` en un backend local con los flags apagados. Eso requiere el túnel de la base de datos y todo el stack local, que la tarea 6 arranca de todos modos para comprobar la luz, así que se verifica allí. El test de la ruta monta el router con la comprobación de sesión real en lugar de importar `app.ts`, porque `app.ts` necesita el entorno del servidor que CI no tiene.
+- **Est vs Actual:** 1,25 SP vs 1,25 SP

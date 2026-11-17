@@ -292,7 +292,7 @@ Un `PipeReader` + un `FileWatcher` **por broker**, configurados en `brokers.json
 
 ### WebSocket `/ws`
 
-Upgrade solo con `Origin` permitido y cookie JWT válida; ping cada 30 s; backpressure por `bufferedAmount`. Los `ticks` solo llegan a quien se suscribe (spec 041): el cliente envía `{ type: "subscribe", ticks: [{ broker, symbol }, …] }` (máx. 16 pares; cada frame sustituye el conjunto; lista vacía = sin ticks; frame inválido = se ignora) y recibe solo los ticks de esos pares; el resto de mensajes llegan a todos. Mensajes `{ type, broker, ... }` con el `broker` en la **raíz**, no por item (el front lo inyecta antes de ordenar): `ticks` · `positions` (con bid/ask actual y color) · `account` · `candle` (vela cerrada detectada en el tick por el cambio de `<tf>_time`, solo si la barra anterior estaba en curso, guardada al momento sin pisar la del EA, specs 025 y 044) · `trades_updated` (el watcher guardó un `history.json` con cambios; Historial y Stats recargan, spec 030) · `command_result` · `alert` · `ema_alert` (los dos últimos solo a su dueño).
+Upgrade solo con `Origin` permitido y cookie JWT válida; ping cada 30 s; backpressure por `bufferedAmount`. Los `ticks` solo llegan a quien se suscribe (spec 041): el cliente envía `{ type: "subscribe", ticks: [{ broker, symbol }, …] }` (máx. 16 pares; cada frame sustituye el conjunto; lista vacía = sin ticks; frame inválido = se ignora) y recibe solo los ticks de esos pares; el resto de mensajes llegan a todos. Mensajes `{ type, broker, ... }` con el `broker` en la **raíz**, no por item (el front lo inyecta antes de ordenar): `ticks` · `positions` (con bid/ask actual y color) · `account` · `candle` (vela cerrada detectada en el tick por el cambio de `<tf>_time`, solo si la barra anterior estaba en curso, guardada al momento sin pisar la del EA, specs 025 y 044) · `trades_updated` (el watcher guardó un `history.json` con cambios; Historial y Stats recargan, spec 030) · `command_result` · `alert` · `ema_alert` (los dos últimos solo a su dueño) · `system` (estado de todo el sistema cada 5 s, sin `broker` en la raíz, spec 045: `level` `ok`/`warn`/`bad`, CPU y memoria libre del servidor y, por broker no oculto, estado `connected`/`loading`/`restarting`/`disconnected`, retraso de ticks y progreso de la carga de histórico; umbrales en `services/system-status.ts`; `GET /status` devuelve lo mismo para el primer pintado).
 
 ### Velas activas y alertas
 
@@ -300,7 +300,7 @@ Las velas activas **no se persisten**: cada tick trae OHLC de todos los TF (`m5_
 
 ### HTTP y auth
 
-Express con 17 routers (`/auth`, `/commands`, `/trades`, `/positions`, `/balances`, `/settings`, `/symbols`, `/candles`, `/chart-indicators`, `/drawings`, `/alerts`, `/ema-alerts`, `/ema-notifications`, `/setup-levels`, `/push`, `/stats`, `/book`) más `GET /health` (sin auth, vitalidad por broker). JWT en cookie HttpOnly `token`; `requireAuth` en todo salvo `/auth` y `/health`. Parámetros validados (400), errores no controlados al handler final (500) sin tumbar el proceso.
+Express con 18 routers (`/auth`, `/commands`, `/trades`, `/positions`, `/balances`, `/settings`, `/symbols`, `/candles`, `/chart-indicators`, `/drawings`, `/alerts`, `/ema-alerts`, `/ema-notifications`, `/setup-levels`, `/push`, `/stats`, `/book`, `/status`) más `GET /health` (sin auth, vitalidad por broker). JWT en cookie HttpOnly `token`; `requireAuth` en todo salvo `/auth` y `/health`. Parámetros validados (400), errores no controlados al handler final (500) sin tumbar el proceso.
 
 ### Modelos BD
 
