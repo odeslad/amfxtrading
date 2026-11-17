@@ -1,13 +1,16 @@
 import { useId, useState } from 'react';
 import type { KeyboardEvent } from 'react';
-import { useSystemStatus } from '../../lib/useSystemStatus';
+import type { SystemStatusView } from '../../lib/useSystemStatus';
 import { SystemStatusPanel } from './SystemStatusPanel';
 import { LEVEL_CLASS } from './systemStatusLevel';
 import { LEVEL_LABEL } from './systemStatusText';
 import styles from './SystemStatus.module.css';
 
-export function SystemStatus() {
-  const view = useSystemStatus();
+interface SystemStatusProps {
+  view: SystemStatusView;
+}
+
+export function SystemStatus({ view }: SystemStatusProps) {
   const [open, setOpen] = useState(false);
   const tooltipId = useId();
   const tone = view.level ? LEVEL_CLASS[view.level] : '';

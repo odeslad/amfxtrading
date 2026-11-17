@@ -58,3 +58,12 @@
   - Un broker conectado con ticks atrasados pone "Connected · ticks delayed", añadido tras la revisión del usuario.
 - **Notas:** en la app local la cookie de sesión de producción (`Domain=.amfxtrading.com`) también se envía a `local.amfxtrading.com` y el backend local la rechaza: iniciar sesión desde una ventana privada.
 - **Est vs Actual:** 2 SP vs 2,25 SP
+
+## Tarea 7 — [frontend] Móvil: luz en la cabecera y panel inferior
+
+- **Mecanismo:** `npm run build` + manual a 390 px de ancho
+- **Comandos:** `npm run build` · `npm run lint`
+- **Resultado:** ✅ build y lint · ✅ el aspecto en móvil, aceptado por el usuario en la app local
+- **Evidencia:** build y lint limpios.
+- **Notas:** el estado se lee una sola vez en `AppLayout` y se pasa a la luz del footer y a la de la cabecera, así que ambas muestran lo mismo y solo se hace una petición. El panel se cierra con ✕, tocando fuera de él y con Escape.
+- **Est vs Actual:** 1 SP vs 0,75 SP

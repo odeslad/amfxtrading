@@ -222,3 +222,71 @@
   letter-spacing: normal;
   color: var(--muted-strong);
 }
+
+/* ── Mobile: light in the header, bottom sheet ──── */
+
+.mobileOnly {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobileOnly {
+    display: flex;
+    align-items: center;
+  }
+
+  .lightMobile {
+    justify-content: flex-end;
+    min-width: 44px;
+    height: 40px;
+  }
+
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+  }
+
+  .sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(56px + env(safe-area-inset-bottom));
+    max-height: calc(100% - 96px - env(safe-area-inset-bottom));
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px 20px 24px;
+    background: var(--surface2);
+    border-top: 3px solid var(--status, var(--border-bright));
+    z-index: 50;
+    text-align: left;
+  }
+
+  .sheet > * {
+    --status: initial;
+    --status-text: initial;
+  }
+
+  .close {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font-size: var(--text-xl);
+    color: var(--muted-strong);
+  }
+
+  .sheet .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}

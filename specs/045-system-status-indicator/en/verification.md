@@ -58,3 +58,12 @@
   - A connected broker with late ticks reads "Connected · ticks delayed", added after the user's review.
 - **Notes:** on the local app the production session cookie (`Domain=.amfxtrading.com`) is also sent to `local.amfxtrading.com` and the local backend rejects it: log in from a private window.
 - **Est vs Actual:** 2 SP vs 2.25 SP
+
+## Task 7 — [frontend] Mobile: light in the header and bottom sheet
+
+- **Mechanism:** `npm run build` + manual at 390 px width
+- **Commands:** `npm run build` · `npm run lint`
+- **Outcome:** ✅ build and lint · ✅ the look on mobile, accepted by the user on the local app
+- **Evidence:** build and lint clean.
+- **Notes:** the status is read once in `AppLayout` and handed to the footer light and to the header light, so both show the same and only one request is made. The sheet closes with ✕, with a tap outside it and with Escape.
+- **Est vs Actual:** 1 SP vs 0.75 SP

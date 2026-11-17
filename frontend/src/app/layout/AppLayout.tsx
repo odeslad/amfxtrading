@@ -7,7 +7,9 @@ import { subscribe } from '../../lib/ws';
 import { addToast } from '../../lib/toast';
 import { useBuildInfo } from '../../lib/useBuildInfo';
 import { loadVisibility } from '../../lib/visibility';
+import { useSystemStatus } from '../../lib/useSystemStatus';
 import { SystemStatus } from './SystemStatus';
+import { SystemStatusMobile } from './SystemStatusMobile';
 import styles from './AppLayout.module.css';
 
 const NAV = [
@@ -21,6 +23,7 @@ const NAV = [
 export function AppLayout() {
   const { user, logout } = useAuth();
   const build = useBuildInfo();
+  const systemStatus = useSystemStatus();
 
   useEffect(() => {
     const ac = new AbortController();
@@ -54,6 +57,7 @@ export function AppLayout() {
       <header className={styles.topbar}>
         <span className={styles.brand}>AMFX</span>
         <div className={styles.userBar}>
+          <SystemStatusMobile view={systemStatus} />
           <span className={styles.email}>{user?.email}</span>
           <button className={styles.logoutBtn} onClick={logout} title="Sign out"><IconSignOut size={13} /></button>
         </div>
@@ -86,7 +90,7 @@ export function AppLayout() {
           AMFX Trading Terminal v2.0 &nbsp;·&nbsp; © {new Date().getFullYear()} &nbsp;·&nbsp;
           <span className={styles.build}>build: {build.frontend}.{build.backend ?? '?'}.{build.ea ?? '?'}</span>
         </span>
-        <SystemStatus />
+        <SystemStatus view={systemStatus} />
       </footer>
 
       <Toaster />
