@@ -132,6 +132,9 @@ export function createWss(server: Server) {
       broadcast('candle', { broker, ...candle });
     },
     // Closed trades or balance operations of the broker reached the DB (spec 030).
+    broadcastCandleSync(broker: string, update: Record<string, unknown>) {
+      broadcast('candle_sync', { broker, ...update });
+    },
     broadcastTradesUpdated(broker: string) {
       broadcast('trades_updated', { broker });
     },

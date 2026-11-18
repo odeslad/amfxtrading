@@ -8,6 +8,7 @@ import { FileWatcher, type BridgeTrade } from './bridge/file-watcher';
 import { createWss } from './ws/ws';
 import { upsertCandles } from './services/candles';
 import { loadMigratedPairs } from './services/candle-store';
+import { SyncWatcher } from './bridge/sync-watcher';
 import { createCandleCloseState, persistClosedCandle, trackCandleCloses } from './services/candle-close';
 import { syncTrades } from './services/trades';
 import { syncBalanceOperations, BALANCE_OPERATION_TYPES } from './services/balance-operations';
@@ -91,6 +92,12 @@ function startBroker(brokerName: string, bridgePath: string, wss: Wss) {
 
   pipe?.start();
   watcher?.start();
+  // Spec 049: progress of a manual candle sync, written by the EA next to its other files.
+  if (features.watcher) {
+    new SyncWatcher(brokerName, bridgePath, (broker, update) => {
+      if (features.wsBroadcast) wss.broadcastCandleSync(broker, { ...update });
+    }).start();
+  }
 
   console.log(`[BROKER] Started: ${brokerName} | bridge: ${bridgePath}`);
 
