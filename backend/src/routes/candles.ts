@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { candleTable } from '../services/candle-store';
+import { db } from '../db/client';
 import { asyncRoute } from '../middleware/asyncRoute';
 import { singleQuery, intParam, epochParam } from '../middleware/parse';
 
@@ -23,7 +23,7 @@ router.get('/', asyncRoute(async (req, res) => {
   // `after` loads forward (oldest→newest); `before` (default) loads backward.
   // If both are given, `before` wins.
   if (afterDate && !beforeDate) {
-    const candles = await candleTable(broker, tf).findMany({
+    const candles = await db.candle.findMany({
       where: { broker, symbol, timeframe: tf, time: { gt: afterDate } },
       orderBy: { time: 'asc' },
       take,
@@ -33,7 +33,7 @@ router.get('/', asyncRoute(async (req, res) => {
     return;
   }
 
-  const candles = await candleTable(broker, tf).findMany({
+  const candles = await db.candle.findMany({
     where: {
       broker,
       symbol,

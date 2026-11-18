@@ -1,4 +1,4 @@
-import { candleTable } from './candle-store';
+import { db } from '../db/client';
 import type { TickBatch, TickData } from '../bridge/pipe-reader';
 
 // A closed candle rebuilt from the last tick of the previous bar (spec 025): the EA's
@@ -55,7 +55,7 @@ export function trackCandleCloses(state: CandleCloseState, broker: string, batch
 // Stores the candle unless the EA already wrote that row (the file keeps authority).
 export async function persistClosedCandle(broker: string, c: ClosedCandle): Promise<void> {
   const time = new Date(c.time);
-  await candleTable(broker, c.timeframe).upsert({
+  await db.candle.upsert({
     where: { broker_symbol_timeframe_time: { broker, symbol: c.symbol, timeframe: c.timeframe, time } },
     update: {},
     create: { broker, symbol: c.symbol, timeframe: c.timeframe, time, open: c.open, high: c.high, low: c.low, close: c.close },

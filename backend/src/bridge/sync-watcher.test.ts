@@ -3,16 +3,15 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const { db, store } = vi.hoisted(() => {
+const { db } = vi.hoisted(() => {
   const db = {
     candleSync: { findMany: vi.fn(), update: vi.fn() },
     candle: { deleteMany: vi.fn(), createMany: vi.fn() },
     $transaction: vi.fn(),
   };
-  return { db, store: { markMigrated: vi.fn() } };
+  return { db };
 });
 vi.mock('../db/client', () => ({ db }));
-vi.mock('../services/candle-store', () => store);
 
 import { SyncWatcher, parseStatus, STALL_MS } from './sync-watcher';
 
@@ -66,7 +65,7 @@ describe('SyncWatcher', () => {
     expect(broadcast).toHaveBeenCalledWith('demo', expect.objectContaining({ timeframe: 'M5', state: 'running', done: 7, total: 15 }));
   });
 
-  it('replaces the pair in one transaction when a timeframe is complete, and marks it migrated', async () => {
+  it('replaces the pair in one transaction when a timeframe is complete', async () => {
     db.candleSync.findMany.mockResolvedValueOnce([row('M5', 'running')]);
     writeCandles('EURUSD', 'M5', 10000);
     writeCandles('GBPUSD', 'M5', 6212);
@@ -82,7 +81,6 @@ describe('SyncWatcher', () => {
       where: { broker_timeframe: { broker: 'demo', timeframe: 'M5' } },
       data: { state: 'done', detail: '2 symbols · 16212 candles', candleCount: 6212, lastSyncAt: new Date(NOW) },
     });
-    expect(store.markMigrated).toHaveBeenCalledWith('demo', 'M5');
     expect(fs.readdirSync(path.join(bridge, 'sync'))).toEqual(['EURUSD_D1.json']);
   });
 
@@ -93,7 +91,6 @@ describe('SyncWatcher', () => {
     writeStatus({ id: 'req-1', state: 'complete', timeframe: 'M5' });
     await watcher().poll();
 
-    expect(store.markMigrated).not.toHaveBeenCalled();
     expect(db.candleSync.update).toHaveBeenCalledWith({
       where: { broker_timeframe: { broker: 'demo', timeframe: 'M5' } },
       data: { state: 'error', detail: 'disk full' },

@@ -7,7 +7,6 @@ import { PipeReader } from './bridge/pipe-reader';
 import { FileWatcher, type BridgeTrade } from './bridge/file-watcher';
 import { createWss } from './ws/ws';
 import { upsertCandles } from './services/candles';
-import { loadMigratedPairs } from './services/candle-store';
 import { SyncWatcher } from './bridge/sync-watcher';
 import { createCandleCloseState, persistClosedCandle, trackCandleCloses } from './services/candle-close';
 import { syncTrades } from './services/trades';
@@ -111,7 +110,6 @@ async function main() {
   await db.$connect();
   console.log('[DB] Connected');
 
-  await loadMigratedPairs();
   await refreshAlerts();
   await refreshEmaAlerts();
   await refreshEmaNotifications();

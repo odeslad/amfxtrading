@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { db } from '../db/client';
 import { chunks } from '../services/chunk';
-import { markMigrated } from '../services/candle-store';
 import { SYNC_DIR, SYNC_STATUS_FILE, withdrawSyncCommand } from './sync-io';
 
 // Spec 049: follows the progress the EA writes to sync-status.json while it rebuilds the
@@ -172,8 +171,6 @@ export class SyncWatcher {
         for (const batch of chunks(rows)) await tx.candle.createMany({ data: batch, skipDuplicates: true });
         await tx.candleSync.update({ where, data: { state: 'done', detail, candleCount, lastSyncAt } });
       }, { timeout: TRANSACTION_TIMEOUT_MS, maxWait: 10_000 });
-
-      markMigrated(this.broker, timeframe);
       this.broadcast(this.broker, { timeframe, state: 'done', detail, candleCount, lastSyncAt: lastSyncAt.toISOString() });
     } catch (err) {
       const detail = errorText(err);
