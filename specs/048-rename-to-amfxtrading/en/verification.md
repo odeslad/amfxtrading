@@ -66,3 +66,12 @@
 - **Steps:** title "AMFX Trading" and folder tree `amfxtrading/` in `.claude/CLAUDE.md`.
 - **Outcome:** ✅ `git grep` for `amfxtradingv2`, `amfxtrading-v2`, `api-v2`, `ssh-v2`, `v2.amfxtrading`, `app-v2` and "Trading v2" finds nothing outside `archive/` and `specs/` (AC 7). Committed, not pushed.
 - **Est vs Actual:** 0.25 SP · 0.05 SP.
+
+## Task 10 · [infra] Server folder and database
+
+- **Mechanism:** manual.
+- **When:** 2026-11-17 from 20:55 UTC, **with the market open, by the operator's decision** (the design asked for the market closed). Brokers and terminals kept running throughout.
+- **Steps:** one script on the server (`C:\backup\spec048\switch.log`), ready to undo everything it did if a step failed: row counts recorded (exact for every table, estimate and size for `candles`, whose full scan once crashed PostgreSQL); backup without the candle rows (`C:\backup\spec048\amfxtradingv2.dump`, 1.6 MB); `.env`, `brokers.json`, `ecosystem.config.js` and `nginx.conf` copied aside; startup tasks stopped and disabled; backend and nginx stopped; `ALTER DATABASE amfxtradingv2 RENAME TO amfxtrading`; folder renamed to `C:\amfxtrading`; `.env`, `ecosystem.config.js`, `nginx.conf`, antivirus exclusion and the paths of both startup tasks updated; nginx and backend started from the new folder; pm2 saved. Then the commits of tasks 5 to 9 pushed one at a time: infra and specs (no pipeline), backend (alone, green; first pipeline through `ssh.amfxtrading.com`), startup tasks re-enabled, frontend (green), ea, docs (no pipeline).
+- **Outcome:** ✅ backend and web stopped about 8 seconds (20:55:55 → 20:56:03). Row counts identical before and after (e.g. `trades` 50765, `balances` 872; `candles` ≈ 8.07 M rows, 2.1 GB). The old folder no longer exists and nothing runs from it. 12/13 brokers connected after every step (the 13th, `solidary isa`, has no EA, as before). Backend and frontend pipelines green.
+- **EA pipeline:** compile and distribute green; the reload step stopped and restarted the 13 terminals one by one, but the SSH session of the pipeline dropped while waiting for the last one (`SADA XII`), so the step ends with exit code 255. The watchdog brought that terminal back; its log shows 13/13 running in every run since. Unrelated to the rename (a dropped connection); the EA source did not change.
+- **Est vs Actual:** 2.5 SP · 1.5 SP.

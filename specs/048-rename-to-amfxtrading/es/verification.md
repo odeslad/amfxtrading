@@ -66,3 +66,12 @@
 - **Pasos:** título "AMFX Trading" y árbol de carpetas `amfxtrading/` en `.claude/CLAUDE.md`.
 - **Resultado:** ✅ `git grep` de `amfxtradingv2`, `amfxtrading-v2`, `api-v2`, `ssh-v2`, `v2.amfxtrading`, `app-v2` y "Trading v2" no encuentra nada fuera de `archive/` y `specs/` (AC 7). Commit hecho, sin subir.
 - **Est vs Actual:** 0.25 SP · 0.05 SP.
+
+## Tarea 10 · [infra] Carpeta del servidor y base de datos
+
+- **Mecanismo:** manual.
+- **Cuándo:** 2026-11-17 desde las 20:55 UTC, **con el mercado abierto, por decisión del operador** (el diseño pedía el mercado cerrado). Brokers y terminales siguieron en marcha todo el tiempo.
+- **Pasos:** un script en el servidor (`C:\backup\spec048\switch.log`), preparado para deshacer todo lo hecho si fallaba un paso: número de filas anotado (exacto en todas las tablas, estimación y tamaño en `candles`, cuya lectura completa ya tumbó PostgreSQL una vez); copia sin las filas de velas (`C:\backup\spec048\amfxtradingv2.dump`, 1,6 MB); `.env`, `brokers.json`, `ecosystem.config.js` y `nginx.conf` copiados aparte; tareas de arranque paradas y desactivadas; backend y nginx parados; `ALTER DATABASE amfxtradingv2 RENAME TO amfxtrading`; carpeta renombrada a `C:\amfxtrading`; `.env`, `ecosystem.config.js`, `nginx.conf`, exclusión del antivirus y rutas de las dos tareas de arranque actualizados; nginx y backend arrancados desde la carpeta nueva; pm2 guardado. Después, los commits de las tareas 5 a 9 subidos de uno en uno: infra y specs (sin pipeline), backend (solo, en verde; primer pipeline por `ssh.amfxtrading.com`), tareas de arranque reactivadas, frontend (en verde), ea y docs (sin pipeline).
+- **Resultado:** ✅ backend y web parados unos 8 segundos (20:55:55 → 20:56:03). Número de filas idéntico antes y después (por ejemplo `trades` 50765, `balances` 872; `candles` ≈ 8,07 M filas, 2,1 GB). La carpeta antigua ya no existe y nada se ejecuta desde ella. 12/13 brokers conectados tras cada paso (el 13.º, `solidary isa`, no tiene EA, como antes). Pipelines de backend y frontend en verde.
+- **Pipeline del EA:** compilación y distribución en verde; el paso de recarga paró y volvió a arrancar los 13 terminales de uno en uno, pero la sesión SSH del pipeline se cortó mientras esperaba al último (`SADA XII`), así que el paso termina con código 255. El vigilante volvió a arrancar ese terminal; su registro muestra 13/13 en marcha en cada pasada desde entonces. No tiene que ver con el renombrado (una conexión cortada); el código del EA no cambió.
+- **Est vs Actual:** 2.5 SP · 1.5 SP.
