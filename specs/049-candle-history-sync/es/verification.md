@@ -13,3 +13,10 @@
 - **Impacto en el diseño:** `HttpBridgeCommands` necesita `user32.dll` (`PostMessageW`), así que *Allow DLL imports* debe estar activado también en ese EA (ya lo está en `HttpBridgeState`, que usa `kernel32.dll` para el pipe).
 - Ficheros de la prueba borrados del terminal Demo.
 - **Est vs Actual:** 1 SP · 1 SP.
+
+## Tarea 2 · [db] Migración: tabla antigua, tabla de velas nueva, candle_syncs
+
+- **Mecanismo:** `prisma validate` + `prisma generate` + `npm run build` + lint + typecheck; `prisma migrate diff` desde el esquema de producción (leído por un túnel SSH, sin escribir nada) hasta el datamodel nuevo.
+- **Pasos:** migración `20261118000000_candle_sync`: `candles` renombrada a `candles_legacy` (y `candles_pkey` a `candles_legacy_pkey`), `candles` nueva y vacía con las mismas columnas y clave, `candle_syncs` nueva (clave broker + temporalidad, `target` 10 000 por defecto, `state` `idle` por defecto). Modelos Prisma `CandleLegacy` y `CandleSync`.
+- **Resultado:** ✅ esquema válido, cliente generado, build, lint y typecheck limpios. La diferencia de producción al datamodel es exactamente `candles_legacy` (mismas columnas y clave que la `candles` de hoy) más `candle_syncs`, con `candles` sin cambios — el estado final de la migración. `prisma migrate status` en producción: solo esta migración pendiente (sin aplicar; se ejecuta con el deploy del backend). El renombrado solo cambia el catálogo: no lee las páginas dañadas. No había credenciales de un PostgreSQL local, así que la migración no se ejecutó en una BD de pruebas.
+- **Est vs Actual:** 0.75 SP · 0.5 SP.

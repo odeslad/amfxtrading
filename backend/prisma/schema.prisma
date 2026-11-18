@@ -22,6 +22,39 @@ model Candle {
   @@map("candles")
 }
 
+// Spec 049: the old candles table, set aside with its damaged pages. A broker and timeframe
+// keeps using it until its first manual sync; dropped once every pair is synced.
+model CandleLegacy {
+  broker    String
+  symbol    String
+  timeframe String
+  time      DateTime
+  open      Float
+  high      Float
+  low       Float
+  close     Float
+
+  @@id([broker, symbol, timeframe, time])
+  @@map("candles_legacy")
+}
+
+// Spec 049: manual candle sync per broker and timeframe (Settings › Data).
+// state: idle | queued | running | done | error. A pair is migrated once lastSyncAt is set.
+model CandleSync {
+  broker      String
+  timeframe   String
+  target      Int       @default(10000)
+  candleCount Int?
+  lastSyncAt  DateTime?
+  state       String    @default("idle")
+  detail      String?
+  requestId   String?
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  @@id([broker, timeframe])
+  @@map("candle_syncs")
+}
+
 model Trade {
   ticket     Int      @id
   broker     String
