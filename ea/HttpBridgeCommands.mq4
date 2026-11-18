@@ -1,13 +1,46 @@
 #property copyright "HttpBridge"
-#property version   "2.22"
+#property version   "2.23"
 #property strict
 
+// Spec 049: the Home key makes MT4 ask the broker for older bars (ChartNavigate alone does not).
+#import "user32.dll"
+   int PostMessageW(int hWnd, int msg, int wParam, int lParam);
+#import
+
+#define WM_KEYDOWN           0x0100
+#define WM_KEYUP             0x0101
+#define VK_HOME              0x24
+#define ERR_HISTORY_UPDATING 4066
+
 input string BROKER_NAME = "ftmo";
+input string SYMBOLS     = "EURUSD,EURGBP,EURJPY,EURCAD,EURAUD,GBPUSD,GBPJPY,GBPCAD,GBPAUD,USDJPY,USDCAD,AUDUSD,AUDJPY,AUDCAD,CADJPY";
+input int    SYNC_IDLE_S      = 5;    // seconds a temporary chart waits for the first new bars before giving up.
+input int    SYNC_STABLE_S    = 12;   // seconds without new bars that end a load once bars started to arrive.
+input int    SYNC_CHART_MAX_S = 120;  // max seconds a temporary chart stays open for one symbol and timeframe.
+input int    SYNC_HANDOFF_MAX_S = 900; // max seconds to wait for the backend to take the files of a timeframe.
 
 string g_brokerName = "";
+string g_symbolsRaw = "";
+string g_symbols[];
+int    g_symbolCount = 0;
+
+// Candle sync in progress (spec 049): one symbol × timeframe per timer tick.
+string g_syncId         = "";
+string g_syncTfLabels[];
+int    g_syncTargets[];
+int    g_syncTfCount    = 0;
+int    g_syncTf         = 0;
+int    g_syncSym        = 0;
+int    g_syncPhase      = 0;     // 0 = next symbol, 1 = temporary chart open, 2 = waiting for the backend.
+long   g_syncChart      = 0;
+int    g_syncLastBars   = 0;
+bool   g_syncGrew       = false;
+ulong  g_syncStarted    = 0;
+ulong  g_syncQuietSince = 0;
 
 void LoadConfig() {
    g_brokerName = BROKER_NAME;
+   g_symbolsRaw = SYMBOLS;
    if (FileIsExist("bridge\\config.json")) {
       int handle = FileOpen("bridge\\config.json", FILE_READ | FILE_TXT | FILE_ANSI);
       if (handle != INVALID_HANDLE) {
@@ -15,7 +48,9 @@ void LoadConfig() {
          while (!FileIsEnding(handle)) content += FileReadString(handle);
          FileClose(handle);
          string b = ExtractField(content, "brokerName");
+         string s = ExtractField(content, "symbols");
          if (StringLen(b) > 0) g_brokerName = b;
+         if (StringLen(s) > 0) g_symbolsRaw = s;
          Print("[CMD] Config loaded from config.json | broker: ", g_brokerName);
          return;
       }
@@ -25,21 +60,44 @@ void LoadConfig() {
    Print("[CMD] No config.json — broker fallback: ", g_brokerName);
 }
 
+void ParseSymbols() {
+   g_symbolCount = 0;
+   ArrayResize(g_symbols, 0);
+   string parts[];
+   int n = StringSplit(g_symbolsRaw, ',', parts);
+   for (int i = 0; i < n; i++) {
+      string sym = parts[i];
+      StringTrimLeft(sym);
+      StringTrimRight(sym);
+      if (StringLen(sym) == 0) continue;
+      ArrayResize(g_symbols, g_symbolCount + 1);
+      g_symbols[g_symbolCount++] = sym;
+   }
+}
+
 int OnInit() {
    LoadConfig();
+   ParseSymbols();
    EventSetTimer(1);
-   Print("[CMD] HttpBridgeCommands v2.22 | broker: ", g_brokerName, " | ready");
+   Print("[CMD] HttpBridgeCommands v2.23 | broker: ", g_brokerName, " | symbols: ", g_symbolCount, " | ready");
    return INIT_SUCCEEDED;
 }
 
 void OnDeinit(const int reason) {
    EventKillTimer();
    FileDelete("bridge\\pending.json");
+   if (g_syncId != "") {
+      if (g_syncChart > 0) { ChartClose(g_syncChart); g_syncChart = 0; }
+      WriteSyncStatus("error", "", "", 0, "The EA stopped during the sync");
+      g_syncId = "";
+   }
    Print("[CMD] Stopped | reason: ", reason);
 }
 
+// Orders first: a sync step never delays a command.
 void OnTimer() {
    CheckCommands();
+   SyncStep();
 }
 
 void CheckCommands() {
@@ -230,4 +288,193 @@ string ExtractField(string json, string key) {
    StringTrimLeft(v);
    StringTrimRight(v);
    return v;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Candle sync (spec 049): Settings › Data asks for the latest N closed bars of every
+// symbol in the marked timeframes. A symbol short of history is shown on a temporary
+// chart taken to its beginning until the broker sends no more bars.
+// ────────────────────────────────────────────────────────────────────────────
+
+int LabelToPeriod(string label) {
+   if (label == "M5")  return PERIOD_M5;
+   if (label == "M15") return PERIOD_M15;
+   if (label == "H1")  return PERIOD_H1;
+   if (label == "H4")  return PERIOD_H4;
+   if (label == "D1")  return PERIOD_D1;
+   return 0;
+}
+
+bool StartSync() {
+   if (!FileIsExist("bridge\\sync-command.json")) return false;
+   int handle = FileOpen("bridge\\sync-command.json", FILE_READ | FILE_TXT | FILE_ANSI);
+   if (handle == INVALID_HANDLE) return false;
+   string json = "";
+   while (!FileIsEnding(handle)) json += FileReadString(handle);
+   FileClose(handle);
+   FileDelete("bridge\\sync-command.json");
+
+   g_syncId = ExtractField(json, "id");
+   g_syncTfCount = 0;
+   ArrayResize(g_syncTfLabels, 0);
+   ArrayResize(g_syncTargets, 0);
+   int p = StringFind(json, "\"tf\"");
+   while (p >= 0) {
+      string item  = StringSubstr(json, p, StringFind(json, "}", p) - p + 1);
+      string label = ExtractField(item, "tf");
+      int target   = (int)StringToInteger(ExtractField(item, "target"));
+      if (LabelToPeriod(label) > 0 && target > 0) {
+         ArrayResize(g_syncTfLabels, g_syncTfCount + 1);
+         ArrayResize(g_syncTargets, g_syncTfCount + 1);
+         g_syncTfLabels[g_syncTfCount] = label;
+         g_syncTargets[g_syncTfCount]  = target;
+         g_syncTfCount++;
+      }
+      p = StringFind(json, "\"tf\"", p + 4);
+   }
+
+   if (g_syncId == "" || g_syncTfCount == 0 || g_symbolCount == 0) {
+      Print("[SYNC] Ignored an invalid sync command");
+      if (g_syncId != "") WriteSyncStatus("error", "", "", 0, "Invalid sync command");
+      g_syncId = "";
+      return false;
+   }
+
+   FolderCreate("bridge\\sync");
+   g_syncTf = 0;
+   g_syncSym = 0;
+   g_syncPhase = 0;
+   Print("[SYNC] Start | id: ", g_syncId, " | timeframes: ", g_syncTfCount, " | symbols: ", g_symbolCount);
+   return true;
+}
+
+void SyncStep() {
+   if (g_syncId == "" && !StartSync()) return;
+
+   string label  = g_syncTfLabels[g_syncTf];
+   int    period = LabelToPeriod(label);
+   int    target = g_syncTargets[g_syncTf];
+   ulong  now    = GetTickCount();
+
+   if (g_syncPhase == 2) {
+      if (!SyncFilesLeft(label)) { NextTimeframe(); return; }
+      if (now - g_syncStarted >= (ulong)SYNC_HANDOFF_MAX_S * 1000) FailSync("The backend did not take the " + label + " candles");
+      return;
+   }
+
+   string sym = g_symbols[g_syncSym];
+
+   if (g_syncPhase == 0) {
+      WriteSyncStatus("running", label, sym, g_syncSym, "");
+      int bars = iBars(sym, period);
+      if (bars > target) { ExportSymbol(sym, period, label, target); return; }
+      g_syncChart = ChartOpen(sym, period);
+      if (g_syncChart <= 0) { FailSync("Could not open a " + sym + " " + label + " chart"); return; }
+      ChartSetInteger(g_syncChart, CHART_AUTOSCROLL, false);
+      g_syncLastBars   = bars;
+      g_syncGrew       = false;
+      g_syncStarted    = now;
+      g_syncQuietSince = now;
+      g_syncPhase      = 1;
+      return;
+   }
+
+   ScrollChartToBeginning(g_syncChart);
+   ResetLastError();
+   int bars = iBars(sym, period);
+   iTime(sym, period, 0);
+   bool updating = GetLastError() == ERR_HISTORY_UPDATING;
+   if (bars != g_syncLastBars) {
+      g_syncLastBars   = bars;
+      g_syncGrew       = true;
+      g_syncQuietSince = now;
+   }
+
+   int  quietS  = g_syncGrew ? SYNC_STABLE_S : SYNC_IDLE_S;
+   bool enough  = bars > target;
+   bool stable  = !updating && now - g_syncQuietSince >= (ulong)quietS * 1000;
+   bool expired = now - g_syncStarted >= (ulong)SYNC_CHART_MAX_S * 1000;
+   if (enough || stable || expired) {
+      ChartClose(g_syncChart);
+      g_syncChart = 0;
+      ExportSymbol(sym, period, label, target);
+   }
+}
+
+void ScrollChartToBeginning(long chart) {
+   ChartNavigate(chart, CHART_BEGIN, 0);
+   int window = (int)ChartGetInteger(chart, CHART_WINDOW_HANDLE);
+   if (window == 0) return;
+   PostMessageW(window, WM_KEYDOWN, VK_HOME, 0);
+   PostMessageW(window, WM_KEYUP, VK_HOME, 0);
+}
+
+// The newest `target` closed bars, oldest first; bar 0 is still forming.
+void ExportSymbol(string sym, int period, string label, int target) {
+   int bars  = iBars(sym, period);
+   int limit = MathMin(bars - 1, target);
+   int brokerOffset = (int)(TimeCurrent() - TimeGMT());
+   string tmp  = "bridge\\sync\\" + sym + "_" + label + ".tmp";
+   string file = "bridge\\sync\\" + sym + "_" + label + ".json";
+
+   int handle = FileOpen(tmp, FILE_WRITE | FILE_TXT | FILE_ANSI);
+   if (handle == INVALID_HANDLE) { FailSync("Could not write the " + sym + " " + label + " candles"); return; }
+   FileWriteString(handle, "{\"brokerOffset\":" + IntegerToString(brokerOffset) + ",\"candles\":[");
+   for (int i = limit; i >= 1; i--) {
+      FileWriteString(handle, "{\"time\":"  + IntegerToString(iTime(sym, period, i)) +
+                              ",\"open\":"  + DoubleToString(iOpen(sym,  period, i), 5) +
+                              ",\"high\":"  + DoubleToString(iHigh(sym,  period, i), 5) +
+                              ",\"low\":"   + DoubleToString(iLow(sym,   period, i), 5) +
+                              ",\"close\":" + DoubleToString(iClose(sym, period, i), 5) + "}" +
+                              (i > 1 ? "," : ""));
+   }
+   FileWriteString(handle, "]}");
+   FileClose(handle);
+   FileDelete(file);
+   if (!FileMove(tmp, 0, file, FILE_REWRITE)) { FailSync("Could not write the " + sym + " " + label + " candles"); return; }
+   Print("[SYNC] ", sym, " ", label, " | bars: ", limit, " of ", target);
+
+   g_syncPhase = 0;
+   g_syncSym++;
+   if (g_syncSym < g_symbolCount) return;
+
+   // Every symbol of the timeframe is written: the backend swaps it, then deletes the files.
+   WriteSyncStatus("complete", label, "", g_symbolCount, "");
+   g_syncPhase   = 2;
+   g_syncStarted = GetTickCount();
+}
+
+bool SyncFilesLeft(string label) {
+   string name;
+   long search = FileFindFirst("bridge\\sync\\*_" + label + ".json", name);
+   if (search == INVALID_HANDLE) return false;
+   FileFindClose(search);
+   return true;
+}
+
+void NextTimeframe() {
+   g_syncTf++;
+   g_syncSym   = 0;
+   g_syncPhase = 0;
+   if (g_syncTf < g_syncTfCount) return;
+   WriteSyncStatus("finished", "", "", g_symbolCount, "");
+   Print("[SYNC] Finished | id: ", g_syncId);
+   g_syncId = "";
+}
+
+void FailSync(string message) {
+   if (g_syncChart > 0) { ChartClose(g_syncChart); g_syncChart = 0; }
+   WriteSyncStatus("error", "", "", 0, message);
+   Print("[SYNC] ERROR: ", message, " | id: ", g_syncId);
+   g_syncId = "";
+}
+
+void WriteSyncStatus(string state, string label, string sym, int done, string message) {
+   string j = "{\"id\":\"" + g_syncId + "\",\"state\":\"" + state + "\"";
+   if (label != "")   j += ",\"timeframe\":\"" + label + "\"";
+   if (sym != "")     j += ",\"symbol\":\"" + sym + "\"";
+   j += ",\"done\":" + IntegerToString(done) + ",\"total\":" + IntegerToString(g_symbolCount);
+   if (message != "") j += ",\"message\":\"" + message + "\"";
+   j += "}";
+   WriteFile("sync-status.json", j);
 }
