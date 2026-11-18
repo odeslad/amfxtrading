@@ -79,7 +79,8 @@ int OnInit() {
    LoadConfig();
    ParseSymbols();
    EventSetTimer(1);
-   Print("[CMD] HttpBridgeCommands v2.23 | broker: ", g_brokerName, " | symbols: ", g_symbolCount, " | ready");
+   Print("[CMD] HttpBridgeCommands v2.23 | broker: ", g_brokerName, " | symbols: ", g_symbolCount,
+         " | max bars in chart: ", TerminalInfoInteger(TERMINAL_MAXBARS), " | ready");
    return INIT_SUCCEEDED;
 }
 
