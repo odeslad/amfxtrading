@@ -1,6 +1,6 @@
 # 048 — Rename the project to amfxtrading
 
-> Status: **implementing**
+> Status: **closed**
 
 ## Context
 

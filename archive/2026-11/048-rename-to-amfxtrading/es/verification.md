@@ -80,7 +80,22 @@
 
 - **Cloudflare (operador, 2026-11-18):** borrado el túnel muerto del servidor cancelado (`420ad992…`); el túnel en uso (`fb1c65c3…`) renombrado de `amfxtrading-v2` a `amfxtrading`. `cloudflared tunnel list` en el servidor muestra solo `amfxtrading` y `rubenlucas`; `amfxtrading.com` y `api.` 200, `v2.` 301, `api-v2.` 200. ✅
 - **Hecho por el asistente:** quitado del PC el acceso SSH `amfx-vps-old` (copia guardada como `~/.ssh/config.bak-048`; `ssh amfx-vps` llega a `WIN-16ESVKMCVCR`); notas del asistente actualizadas a los nombres nuevos y copiadas a la carpeta de la ruta nueva (`~/.claude/projects/c--Work-Odeslad-amfxtrading`); las notas del MVP movidas a `…-amfxtrading-v1`. ✅
-- **Carpetas locales (operador, 2026-11-18):** `C:WorkOdesladamfxtrading` → `amfxtrading-v1` y `amfxtradingv2` → `amfxtrading`; el proyecto se abre desde la carpeta nueva. ✅
-- **Resultado:** ✅ desde `c:WorkOdesladamfxtrading`: `git fetch` contra `odeslad/amfxtrading` funciona, las compilaciones de frontend y backend OK, `ssh amfx-vps` llega a `WIN-16ESVKMCVCR` y el asistente carga sus notas desde la ruta nueva (AC 10).
+- **Carpetas locales (operador, 2026-11-18):** `C:WorkOdesladmfxtrading` → `amfxtrading-v1` y `amfxtradingv2` → `amfxtrading`; el proyecto se abre desde la carpeta nueva. ✅
+- **Resultado:** ✅ desde `c:WorkOdesladmfxtrading`: `git fetch` contra `odeslad/amfxtrading` funciona, las compilaciones de frontend y backend OK, `ssh amfx-vps` llega a `WIN-16ESVKMCVCR` y el asistente carga sus notas desde la ruta nueva (AC 10).
 - **Est vs Actual:** 0.5 SP · 0.5 SP.
 - Nota: el servidor tiene cloudflared 2026.6.0 y avisa de que la actual es la 2026.11.1; actualizarlo queda fuera de esta spec.
+
+## Tarea 12 · [infra] Validación en producción
+
+- **Mecanismo:** manual (validación del usuario).
+- **Resultado:** ✅ confirmado por el operador el 2026-11-18 en `amfxtrading.com` (app instalada): cuentas (12 brokers), gráfico, posiciones, historial, estadísticas y ajustes cargan; una orden nueva en la cuenta Demo; una alerta con notificación; un enlace de `v2` redirige a la dirección nueva.
+- **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Tarea 13 · [specs] Cierre
+
+- **Mecanismo:** manual.
+- **Retirar las direcciones antiguas el 2026-12-17** (30 días después de la tarea 3): quitar `v2`, `api-v2` y `ssh-v2` del túnel y del DNS, el bloque `server` de la redirección en `nginx.conf` y las suscripciones a notificaciones hechas en `v2`.
+- **Resultado:** ✅ spec cerrada y movida a `archive/2026-11/`.
+- **Est vs Actual:** 0.25 SP · 0.1 SP.
+
+**Total**: 10.5 SP estimados · 5.35 SP reales.

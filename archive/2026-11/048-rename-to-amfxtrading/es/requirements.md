@@ -1,6 +1,6 @@
 # 048 — Renombrar el proyecto a amfxtrading
 
-> Status: **implementing**
+> Status: **closed**
 
 ## Contexto
 
