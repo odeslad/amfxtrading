@@ -80,7 +80,8 @@ int OnInit() {
    ParseSymbols();
    EventSetTimer(1);
    Print("[CMD] HttpBridgeCommands v2.23 | broker: ", g_brokerName, " | symbols: ", g_symbolCount,
-         " | max bars in chart: ", TerminalInfoInteger(TERMINAL_MAXBARS), " | ready");
+         " | max bars in chart: ", TerminalInfoInteger(TERMINAL_MAXBARS),
+         " | DLL imports: ", DllsAllowed() ? "allowed" : "OFF (candle sync unavailable)", " | ready");
    return INIT_SUCCEEDED;
 }
 
@@ -297,6 +298,11 @@ string ExtractField(string json, string key) {
 // chart taken to its beginning until the broker sends no more bars.
 // ────────────────────────────────────────────────────────────────────────────
 
+// A DLL call without permission stops the whole EA (orders included): check before calling.
+bool DllsAllowed() {
+   return TerminalInfoInteger(TERMINAL_DLLS_ALLOWED) != 0 && MQLInfoInteger(MQL_DLLS_ALLOWED) != 0;
+}
+
 int LabelToPeriod(string label) {
    if (label == "M5")  return PERIOD_M5;
    if (label == "M15") return PERIOD_M15;
@@ -369,6 +375,7 @@ void SyncStep() {
       WriteSyncStatus("running", label, sym, g_syncSym, "");
       int bars = iBars(sym, period);
       if (bars > target) { ExportSymbol(sym, period, label, target); return; }
+      if (!DllsAllowed()) { FailSync("Allow DLL imports is off in this terminal"); return; }
       g_syncChart = ChartOpen(sym, period);
       if (g_syncChart <= 0) { FailSync("Could not open a " + sym + " " + label + " chart"); return; }
       ChartSetInteger(g_syncChart, CHART_AUTOSCROLL, false);
