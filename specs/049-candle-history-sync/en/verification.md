@@ -58,3 +58,18 @@
 - **Steps:** `lib/useCandleSync.ts` (loads `GET /candle-sync` when the tab opens, applies `candle_sync` WS messages, keeps unsaved targets, saves them per broker with `PUT /candle-sync/targets` after checking 100 … 50 000, starts a sync with `POST /candle-sync` and shows it queued at once, errors as toasts). `features/settings/DataSyncTab.tsx` + `.module.css` as in the approved mockup: one block per broker with a top border by state (green idle, orange syncing, red last error, grey EA not connected), status dot (pulsing gold while syncing), header state text, *Sync selected (n)* / *Retry · Sync selected* / *Sync in progress*; desktop table (checkbox, TF, candles in DB, target input without spinners, last sync, state with progress bar), mobile rows of 56 px with 44 px button; a broker whose EA is not connected shows only its header. `SettingsPage`: new tab *Data*, *Save targets* and "Unsaved targets" in the tab bar.
 - **Outcome:** ✅ build and lint clean.
 - **Est vs Actual:** 3 SP · 1 SP.
+
+## Task 8 · [docs] Project guidelines and backend architecture
+
+- **Mechanism:** manual — both documents agree.
+- **Steps:** `backend/docs/architecture.md`: data flow of the sync (`/candle-sync` → `sync-command.json` → EA → `sync-status.json` + `sync/` → sync watcher), new files in the project tree, router `/candle-sync`, WS `candle_sync`, section "Candle history sync (spec 049)", tables `candles` (migrated pairs only), `candles_legacy` and `candle_syncs`. `.claude/CLAUDE.md`: bridge files of the sync, WS `candle_sync`, section "Sincronización del histórico de velas", 18 routers with `/candle-sync`, models `CandleLegacy` and `CandleSync`.
+- **Outcome:** ✅ both describe the same tables, files, router, message and rule (unsynced pair → `candles_legacy`).
+- **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Task 10 · [infra] Deploy and production validation (in progress)
+
+- **Backend (2026-11-18, push of `ece59f1` alone):** pipeline green; `/health` 12/13 brokers connected as before; migration `20261118000000_candle_sync` applied; `candles` empty, `candles_legacy` still receiving (last Demo EURUSD M5 16:25 broker time at 16:34).
+- **Frontend (push of `2e5df3a` alone; the frontend commit was moved before the EA commit, both still local, so the EA pipeline would not run):** Settings › Data live at `amfxtrading.com`.
+- **Demo sync from the app (operator, M5 + D1):** live progress shown ("syncing · M5 · EURGBP 1/15", bar, D1 queued, controls locked); M5 done with 10 000, D1 "done · broker has 2 517 of 10 000". In the database: Demo M5 150 052 rows (15 × 10 000 from 30 Sep plus 52 bars that arrived after the swap through the regular candle file — no hole), D1 40 968 rows from 20 Oct 2015. The operator checked the Demo M5 chart: candles shown and paging back works.
+- **Order during a sync:** Demo log — `buy EURUSD 0.01` received 14:44:10.859, executed 14:44:11.062 (0.2 s); `close` received 14:44:42.013, executed 14:44:42.235; the M5 sync ended at 14:47.
+- **EA:** the commands EA now logs `max bars in chart` at start (task 9 reads it from every terminal after the EA deploy).

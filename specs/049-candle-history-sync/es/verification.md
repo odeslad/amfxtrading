@@ -58,3 +58,18 @@
 - **Pasos:** `lib/useCandleSync.ts` (carga `GET /candle-sync` al abrir la pestaña, aplica los mensajes WS `candle_sync`, guarda los objetivos sin guardar, los guarda por broker con `PUT /candle-sync/targets` tras comprobar 100 … 50 000, lanza una sincronización con `POST /candle-sync` y la muestra en cola al momento, errores como toasts). `features/settings/DataSyncTab.tsx` + `.module.css` según la maqueta aprobada: un bloque por broker con borde superior según el estado (verde en reposo, naranja sincronizando, rojo último error, gris EA sin conectar), punto de estado (dorado parpadeando al sincronizar), texto de estado en la cabecera, *Sync selected (n)* / *Retry · Sync selected* / *Sync in progress*; tabla en desktop (casilla, TF, velas en BD, objetivo sin flechas, última sincronización, estado con barra de progreso), filas de 56 px en móvil con botón de 44 px; un broker con el EA sin conectar solo muestra su cabecera. `SettingsPage`: pestaña nueva *Data*, *Save targets* y «Unsaved targets» en la barra de pestañas.
 - **Resultado:** ✅ build y lint limpios.
 - **Est vs Actual:** 3 SP · 1 SP.
+
+## Tarea 8 · [docs] Directrices del proyecto y arquitectura del backend
+
+- **Mecanismo:** manual — los dos documentos coinciden.
+- **Pasos:** `backend/docs/architecture.md`: flujo de la sincronización (`/candle-sync` → `sync-command.json` → EA → `sync-status.json` + `sync/` → sync watcher), ficheros nuevos en el árbol del proyecto, router `/candle-sync`, WS `candle_sync`, sección «Candle history sync (spec 049)», tablas `candles` (solo parejas migradas), `candles_legacy` y `candle_syncs`. `.claude/CLAUDE.md`: ficheros del bridge de la sincronización, WS `candle_sync`, sección «Sincronización del histórico de velas», 18 routers con `/candle-sync`, modelos `CandleLegacy` y `CandleSync`.
+- **Resultado:** ✅ los dos describen las mismas tablas, ficheros, router, mensaje y regla (pareja sin sincronizar → `candles_legacy`).
+- **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Tarea 10 · [infra] Despliegue y validación en producción (en curso)
+
+- **Backend (2026-11-18, push de `ece59f1` solo):** pipeline en verde; `/health` 12/13 brokers conectados como antes; migración `20261118000000_candle_sync` aplicada; `candles` vacía, `candles_legacy` sigue recibiendo (última M5 de EURUSD en Demo a las 16:25 hora del broker, consultado a las 16:34).
+- **Frontend (push de `2e5df3a` solo; el commit del frontend se movió delante del del EA, ambos aún locales, para no lanzar el pipeline del EA):** Settings › Data en `amfxtrading.com`.
+- **Sincronización de Demo desde la app (operador, M5 + D1):** progreso en vivo («syncing · M5 · EURGBP 1/15», barra, D1 en cola, controles bloqueados); M5 hecha con 10 000, D1 «done · broker has 2 517 of 10 000». En la BD: Demo M5 150 052 filas (15 × 10 000 desde el 30 de septiembre más 52 barras que llegaron tras el cambio por el fichero de velas normal — sin hueco), D1 40 968 filas desde el 20 de octubre de 2015. El operador comprobó el gráfico M5 de Demo: se ven las velas y se puede retroceder.
+- **Orden durante una sincronización:** log de Demo — `buy EURUSD 0.01` recibida 14:44:10.859, ejecutada 14:44:11.062 (0,2 s); `close` recibida 14:44:42.013, ejecutada 14:44:42.235; la sincronización de M5 terminó a las 14:47.
+- **EA:** el EA de órdenes ahora escribe `max bars in chart` al arrancar (la tarea 9 lo lee de cada terminal tras el despliegue del EA).

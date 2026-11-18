@@ -21,7 +21,7 @@ MT4 EA (one terminal per broker)
     │
     └── <bridgePath>/*.json (written by the EA every 60 s)
             └── bridge/file-watcher.ts — polls every 5 s, skips files whose mtime/size did not change (history/account also by content)
-                    ├── candles_<SYM>_<TF>.json → services/candles.ts            → candles (closed bars only)
+                    ├── candles_<SYM>_<TF>.json → services/candles.ts            → candles or candles_legacy (closed bars only, spec 049)
                     ├── history.json            → services/trades.ts             → trades
                     │                           → services/balance-operations.ts → balance_operations
                     └── account.json            → services/account.ts            → balances (one row per broker and UTC day)
@@ -32,6 +32,9 @@ Frontend ──HTTP (JWT cookie)──▶ Express routes ──▶ PostgreSQL / 
 Frontend ◀──WebSocket /ws────── ws/ws.ts
 Frontend ──POST /commands──▶ bridge/command-io.ts ──▶ <bridgePath>/command.json ──▶ EA
                                                    ◀── <bridgePath>/result.json, pending.json
+Frontend ──POST /candle-sync──▶ bridge/sync-io.ts ──▶ <bridgePath>/sync-command.json ──▶ EA (HttpBridgeCommands 2.23+)
+                                                   ◀── <bridgePath>/sync-status.json, sync/<SYM>_<TF>.json
+                                                       └── bridge/sync-watcher.ts (every 1 s) → candles, candle_syncs, WS 'candle_sync'
 ```
 
 Alerts run on the tick stream (`alerts/`): price alerts fire when the bid crosses the level between two ticks; EMA alerts fire at candle close (detected by a change of `<tf>_time` in the tick) when the fast and slow EMAs are converging within the threshold. A fired alert is updated in the DB, broadcast over the WebSocket to its owner and sent as a Web Push notification.
@@ -64,7 +67,9 @@ backend/
 │   ├── bridge/
 │   │   ├── pipe-reader.ts        # named-pipe server per broker, retries listen with backoff
 │   │   ├── file-watcher.ts       # polls bridge/*.json, awaited handlers per file
-│   │   └── command-io.ts         # command.json / result.json / pending.json I/O and waits
+│   │   ├── command-io.ts         # command.json / result.json / pending.json I/O and waits
+│   │   ├── sync-io.ts            # sync-command.json writer (spec 049)
+│   │   └── sync-watcher.ts       # follows sync-status.json and swaps a timeframe into candles (spec 049)
 │   ├── db/
 │   │   └── client.ts             # Prisma singleton (PRISMA_LOG=query logs queries)
 │   ├── indicators/
@@ -136,6 +141,7 @@ Every router except `/auth` and `/health` sits behind `requireAuth`: the JWT tra
 | `/settings` | `GET`, `PUT` | EA mirror settings per broker, display settings and `visibility` (brokers and per-broker symbols hidden from the frontend; purely visual, spec 024) |
 | `/symbols` | `GET` | Symbols with a tick per broker |
 | `/candles` | `GET` | Closed candles (`before` / `after` paging, up to 5 000) |
+| `/candle-sync` | `GET`, `PUT /targets`, `POST` | Settings › Data (spec 049): candles per broker and timeframe, their targets (100 … 50 000, default 10 000) and the manual sync (below) |
 | `/chart-indicators` | `GET`, `PUT` | The user's EMA list for the chart |
 | `/drawings` | `GET`, `PUT` | Chart drawings per user, broker, symbol, timeframe |
 | `/alerts` | `GET`, `POST`, `PUT /:id`, `DELETE /:id` | Price alerts |
@@ -213,6 +219,7 @@ Every message is `{ "type", … }` with `broker` at the root (never per item):
 | `trades_updated` | `{ broker }` | the watcher synced a changed `history.json` (spec 030): History and Stats refetch |
 | `candle` | `{ broker, symbol, timeframe, time, open, high, low, close }` | a candle closed on the tick stream (`<tf>_time` changed, spec 025): stored at once unless the EA's file already wrote it, `time` in seconds |
 | `command_result` | `{ id, status, ticket?, error?, late? }` | command bridge |
+| `candle_sync` | `{ broker, timeframe, state, detail, candleCount, lastSyncAt, done?, total? }` | sync watcher: progress and result of a manual candle sync (spec 049) |
 | `alert` | `{ broker, symbol, price, direction }` | price alert, only to its owner |
 | `ema_alert` | `{ broker, symbol, timeframe, direction }` | EMA alert, only to its owner |
 | `ema_notification` | `{ notificationId, broker, symbol, timeframe, kind, direction, gapPips, emaFast, emaSlow, note }` | A standing EMA notification rule fired (spec 023), only to its owner |
@@ -220,6 +227,12 @@ Every message is `{ "type", … }` with `broker` at the root (never per item):
 **Tick subscription (spec 041).** A client receives no `ticks` until it sends the only inbound message, `{ "type": "subscribe", "ticks": [ { "broker", "symbol" }, … ] }` (at most 16 pairs, names up to 64 characters, frame up to 4 KiB). Each frame replaces the whole set and an empty list stops the ticks; an invalid frame is ignored and the previous set kept. Every batch is filtered per client and skipped when nothing matches, so a client only pays for the charts it has open (the frontend re-sends its set on every reconnect). Every other message type is delivered regardless of the subscription. `scripts/ws-measure.ts` connects as a client and reports the bytes received per type, with or without a subscription.
 
 A tick carries `symbol`, `bid`, `ask`, `time`, `broker_offset` and the open/high/low/time of the current M5, M15, H1, H4 and D1 candles, so the frontend builds the live candle itself; only closed candles are persisted. When a tick's `<tf>_time` advances, the previous bar (its OHLC from the last tick, close = that tick's bid) is upserted into `candles` without overwriting a row the EA already wrote, and broadcast as `candle`; the EA's `candles_<SYM>_<TF>.json` keeps authority because the watcher upserts the file's last two closed bars with their values.
+
+## Candle history sync (spec 049)
+
+The old `candles` table had damaged pages (a full read or `pg_dump` failed), so migration `20261118000000_candle_sync` renamed it to `candles_legacy` and created a new, empty `candles`. `services/candle-store.ts` keeps the set of **migrated** pairs (broker + timeframe whose `candle_syncs.lastSyncAt` is set, loaded at start): every reader and writer of candles (`GET /candles`, `GET /setup-levels`, the watcher, the tick rollover, the EMA alert and notification evaluators) asks it for the table, so an unsynced pair keeps using `candles_legacy` exactly as before; `GET /symbols` lists both tables.
+
+`POST /candle-sync { broker, timeframes }` answers `404` for an unknown broker, `503` when its pipe is not connected, `409` while it has a sync queued or running; otherwise the rows go `queued` with a new `requestId` and `sync-command.json` (`{ id, timeframes: [{ tf, target }] }`, temp + rename) is written, `202`. The commands EA (2.23+) works one symbol × timeframe per 1 s tick after any order: a symbol short of history is shown on a temporary chart sent to its beginning with the Home key (`PostMessageW`, needs *Allow DLL imports*), then the newest `target` closed bars go to `sync/<SYM>_<TF>.json`; it writes progress to `sync-status.json` (`running` / `complete` / `finished` / `error`) and waits on `complete` until the backend has taken the files. On `complete` the sync watcher, in one transaction, deletes the pair from `candles`, inserts the files and sets `done`, `candleCount` (the fewest candles of any symbol), `detail` and `lastSyncAt`; then the pair is migrated and the files deleted. Any failure rolls back and leaves the previous history; 5 minutes without a status change turns a queued or running sync into `error` and withdraws the command. `candles_legacy` is dropped once every pair is migrated.
 
 ## Libro de esquemas (book)
 
@@ -231,7 +244,9 @@ Managed with **Prisma**; see `prisma/schema.prisma`. Migrations are hand-written
 
 | Table | Written by | Pattern |
 |-------|------------|---------|
-| `candles` | file watcher | `createMany({ skipDuplicates })` of closed bars; PK `(broker, symbol, timeframe, time)`; `time` is the bar open in broker time stored as UTC |
+| `candles` | file watcher, sync watcher | `createMany({ skipDuplicates })` of closed bars; PK `(broker, symbol, timeframe, time)`; `time` is the bar open in broker time stored as UTC; holds only migrated pairs (spec 049) |
+| `candles_legacy` | file watcher (unmigrated pairs) | the old candles table with damaged pages, same columns and key; dropped when every pair is synced (spec 049) |
+| `candle_syncs` | `/candle-sync`, sync watcher | one row per broker and timeframe: `target`, `candleCount`, `lastSyncAt`, `state`, `detail`, `requestId` (spec 049) |
 | `trades` | file watcher | `createMany({ skipDuplicates })` by ticket, never updated; indexes `(broker, closeTime)`, `(closeTime)`, `(broker, symbol)` |
 | `balance_operations` | file watcher | deposits/withdrawals from `history.json`, `createMany({ skipDuplicates })` by ticket |
 | `balances` | file watcher | one `upsert` per broker and UTC `day`, `timestamp` refreshed on every poll |
