@@ -34,7 +34,7 @@ Settings › Data ──POST /candle-sync──▶ backend ──bridge/sync-com
 ## EA (`[ea]`, `HttpBridgeCommands` 2.23)
 - Reads `symbols` from `config.json` like `HttpBridgeState` (same list).
 - Its 1 s timer checks `sync-command.json` **after** `command.json`, so an order never waits for a sync. Work is done **one symbol × timeframe per timer tick** (AC 10):
-  1. If `iBars(sym, tf) < target`: `ChartOpen(sym, tf)`, then repeatedly `ChartNavigate(CHART_BEGIN)` to make MT4 download older bars, until `iBars ≥ target` or no growth in 10 tries; `ChartClose` (AC 4).
+  1. If `iBars(sym, tf) < target`: `ChartOpen(sym, tf)` and, one step per timer tick, `ChartNavigate(CHART_BEGIN)` plus the Home key sent with `PostMessageW` to the chart window (the method of spec 044, commit `a86b7fb`; `ChartNavigate` alone downloads nothing, task 1), until `iBars ≥ target`, or no new bars and no `ERR_HISTORY_UPDATING` for a quiet period, or a maximum time per chart; `ChartClose` (AC 4). Needs `user32.dll`: *Allow DLL imports* on for this EA.
   2. Write `sync/<SYM>_<TF>.json` with the newest `min(target, iBars)` **closed** bars (same fields and `brokerOffset` as the candle files).
   3. Write `sync-status.json` (`running`, symbol, done/total). After the last symbol of a timeframe: `complete` for that timeframe; after the last timeframe: `finished`.
 - Errors (chart cannot open, file cannot be written) → `sync-status.json` `error` with the message.

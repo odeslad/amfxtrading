@@ -34,7 +34,7 @@ Settings › Data ──POST /candle-sync──▶ backend ──bridge/sync-com
 ## EA (`[ea]`, `HttpBridgeCommands` 2.23)
 - Lee `symbols` de `config.json` como `HttpBridgeState` (la misma lista).
 - Su temporizador de 1 s mira `sync-command.json` **después** de `command.json`, así una orden nunca espera a una sincronización. El trabajo se hace **un símbolo × temporalidad por vuelta del temporizador** (AC 10):
-  1. Si `iBars(sym, tf) < target`: `ChartOpen(sym, tf)` y `ChartNavigate(CHART_BEGIN)` repetido para que MT4 descargue barras antiguas, hasta `iBars ≥ target` o 10 intentos sin crecer; `ChartClose` (AC 4).
+  1. Si `iBars(sym, tf) < target`: `ChartOpen(sym, tf)` y, un paso por vuelta del temporizador, `ChartNavigate(CHART_BEGIN)` más la tecla Inicio enviada con `PostMessageW` a la ventana del gráfico (el método de la spec 044, commit `a86b7fb`; `ChartNavigate` solo no descarga nada, tarea 1), hasta `iBars ≥ target`, o un rato sin barras nuevas ni `ERR_HISTORY_UPDATING`, o un tiempo máximo por gráfico; `ChartClose` (AC 4). Necesita `user32.dll`: *Allow DLL imports* activado en este EA.
   2. Escribe `sync/<SYM>_<TF>.json` con las `min(target, iBars)` barras **cerradas** más recientes (mismos campos y `brokerOffset` que los ficheros de velas).
   3. Escribe `sync-status.json` (`running`, símbolo, hechos/total). Tras el último símbolo de una temporalidad: `complete` de esa temporalidad; tras la última: `finished`.
 - Errores (el gráfico no abre, el fichero no se escribe) → `sync-status.json` `error` con el mensaje.
