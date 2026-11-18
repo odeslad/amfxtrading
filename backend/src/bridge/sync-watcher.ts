@@ -66,6 +66,8 @@ export class SyncWatcher {
   private lastRaw = '';
   private busy = false;
   private timer: NodeJS.Timeout | null = null;
+  // Last time the EA wrote anything: a queued timeframe waits untouched while earlier ones run.
+  private lastStatusAt = 0;
 
   constructor(
     private readonly broker: string,
@@ -93,6 +95,7 @@ export class SyncWatcher {
     const raw = this.readStatusFile();
     if (raw !== null && raw !== this.lastRaw) {
       this.lastRaw = raw;
+      this.lastStatusAt = this.now();
       const status = parseStatus(raw);
       if (status) await this.handle(status);
     }
@@ -109,6 +112,13 @@ export class SyncWatcher {
 
   private async handle(status: SyncStatus): Promise<void> {
     const rows = await db.candleSync.findMany({ where: { broker: this.broker, requestId: status.id } });
+    const row = rows.find((r) => r.timeframe === status.timeframe);
+
+    // Files of a cancelled request: taken away at once so the EA does not wait for a swap that never comes.
+    if (status.state === 'complete' && status.timeframe && (!row || !BUSY_STATES.includes(row.state))) {
+      this.clearSyncFiles(status.timeframe);
+      return;
+    }
     if (rows.length === 0) return;   // a status left over from an older request
 
     if (status.state === 'error') {
@@ -122,7 +132,6 @@ export class SyncWatcher {
       return;
     }
 
-    const row = rows.find((r) => r.timeframe === status.timeframe);
     if (!row || !BUSY_STATES.includes(row.state)) return;
 
     if (status.state === 'running') {
@@ -216,7 +225,7 @@ export class SyncWatcher {
   private async checkStall(): Promise<void> {
     const busy = await db.candleSync.findMany({ where: { broker: this.broker, state: { in: BUSY_STATES } } });
     if (busy.length === 0) return;
-    const lastChange = Math.max(...busy.map((r) => r.updatedAt.getTime()));
+    const lastChange = Math.max(this.lastStatusAt, ...busy.map((r) => r.updatedAt.getTime()));
     if (this.now() - lastChange < STALL_MS) return;
     withdrawSyncCommand(this.bridgePath);
     const ids = new Set(busy.map((r) => r.requestId ?? ''));

@@ -131,6 +131,28 @@ describe('SyncWatcher', () => {
     expect(db.candleSync.update).not.toHaveBeenCalled();
   });
 
+  it('does not fail queued timeframes while the EA keeps writing progress (FTMO, 18 Nov)', async () => {
+    let clock = NOW;
+    const w = new SyncWatcher('demo', bridge, broadcast, () => clock);
+    const queuedLongAgo = row('D1', 'queued', { updatedAt: new Date(NOW - 20 * 60_000) });
+    db.candleSync.findMany.mockResolvedValue([queuedLongAgo]);
+    writeStatus({ id: 'req-1', state: 'running', timeframe: 'H4', symbol: 'EURUSD', done: 1, total: 15 });
+    await w.poll();
+    clock = NOW + 60_000;
+    await w.poll();
+    expect(db.candleSync.update).not.toHaveBeenCalled();
+  });
+
+  it('takes away the files of a cancelled request so the EA moves on', async () => {
+    db.candleSync.findMany.mockResolvedValueOnce([row('H4', 'error')]);
+    writeCandles('EURUSD', 'H4', 10);
+    writeCandles('EURUSD', 'D1', 10);
+    writeStatus({ id: 'req-1', state: 'complete', timeframe: 'H4' });
+    await watcher().poll();
+    expect(db.$transaction).not.toHaveBeenCalled();
+    expect(fs.readdirSync(path.join(bridge, 'sync'))).toEqual(['EURUSD_D1.json']);
+  });
+
   it('fails a sync with no change for 5 minutes and withdraws the command', async () => {
     fs.writeFileSync(path.join(bridge, 'sync-command.json'), '{}');
     const stale = row('M5', 'queued', { updatedAt: new Date(NOW - STALL_MS) });
