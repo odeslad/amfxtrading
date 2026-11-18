@@ -20,3 +20,10 @@
 - **Pasos:** migración `20261118000000_candle_sync`: `candles` renombrada a `candles_legacy` (y `candles_pkey` a `candles_legacy_pkey`), `candles` nueva y vacía con las mismas columnas y clave, `candle_syncs` nueva (clave broker + temporalidad, `target` 10 000 por defecto, `state` `idle` por defecto). Modelos Prisma `CandleLegacy` y `CandleSync`.
 - **Resultado:** ✅ esquema válido, cliente generado, build, lint y typecheck limpios. La diferencia de producción al datamodel es exactamente `candles_legacy` (mismas columnas y clave que la `candles` de hoy) más `candle_syncs`, con `candles` sin cambios — el estado final de la migración. `prisma migrate status` en producción: solo esta migración pendiente (sin aplicar; se ejecuta con el deploy del backend). El renombrado solo cambia el catálogo: no lee las páginas dañadas. No había credenciales de un PostgreSQL local, así que la migración no se ejecutó en una BD de pruebas.
 - **Est vs Actual:** 0.75 SP · 0.5 SP.
+
+## Tarea 3 · [backend] Tabla antigua o nueva por broker y temporalidad
+
+- **Mecanismo:** vitest + lint + typecheck + build.
+- **Pasos:** `services/candle-store.ts`: conjunto en memoria de parejas migradas cargado al arrancar desde `candle_syncs` (`lastSyncAt` con valor), `markMigrated`, `candleTable(broker, timeframe)` → `db.candle` o `db.candleLegacy`, `storedSymbols` (DISTINCT de las dos tablas). Visto al implementar: además del watcher, el cierre en el tick y `GET /candles`, otros tres lectores usan velas — el evaluador de alertas de EMA, el de notificaciones de EMA y `GET /setup-levels` — más `GET /symbols`; todos pasan por el store (diseño actualizado).
+- **Resultado:** ✅ 5 tests nuevos (pareja sin sincronizar → antigua; pareja marcada → nueva, solo esa; parejas cargadas al arrancar; recargar olvida; símbolos de las dos tablas, una vez cada uno, ordenados); suite completa 18 ficheros / 151 tests; lint, typecheck y build limpios. Sin parejas migradas el backend lee y escribe `candles_legacy`, las mismas filas que hoy.
+- **Est vs Actual:** 1.5 SP · 0.75 SP.

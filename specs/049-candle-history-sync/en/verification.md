@@ -20,3 +20,10 @@
 - **Steps:** migration `20261118000000_candle_sync`: `candles` renamed to `candles_legacy` (and `candles_pkey` to `candles_legacy_pkey`), new empty `candles` with the same columns and key, new `candle_syncs` (key broker + timeframe, `target` 10 000 by default, `state` `idle` by default). Prisma models `CandleLegacy` and `CandleSync`.
 - **Outcome:** ✅ schema valid, client generated, build, lint and typecheck clean. The diff from production to the datamodel is exactly `candles_legacy` (same columns and key as today's `candles`) plus `candle_syncs`, with `candles` unchanged — the end state of the migration. `prisma migrate status` on production: only this migration pending (not applied; it runs with the backend deploy). The rename is a catalogue change only: it does not read the damaged pages. No local PostgreSQL credentials were available, so the migration was not run on a scratch database.
 - **Est vs Actual:** 0.75 SP · 0.5 SP.
+
+## Task 3 · [backend] Legacy or new table per broker and timeframe
+
+- **Mechanism:** vitest + lint + typecheck + build.
+- **Steps:** `services/candle-store.ts`: in-memory set of migrated pairs loaded at start from `candle_syncs` (`lastSyncAt` set), `markMigrated`, `candleTable(broker, timeframe)` → `db.candle` or `db.candleLegacy`, `storedSymbols` (DISTINCT of both tables). Found while implementing: besides the watcher, the rollover and `GET /candles`, three more readers use candles — the EMA alert evaluator, the EMA notification evaluator and `GET /setup-levels` — plus `GET /symbols`; all go through the store (design updated).
+- **Outcome:** ✅ 5 new tests (unsynced pair → legacy; marked pair → new, only that pair; pairs loaded at start; reload forgets; symbols of both tables, once each, sorted); full suite 18 files / 151 tests; lint, typecheck and build clean. With no pair migrated the backend reads and writes `candles_legacy`, the same rows as today.
+- **Est vs Actual:** 1.5 SP · 0.75 SP.

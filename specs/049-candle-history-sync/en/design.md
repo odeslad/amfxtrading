@@ -21,7 +21,7 @@ Settings › Data ──POST /candle-sync──▶ backend ──bridge/sync-com
 - Last task: `DROP TABLE candles_legacy` once every pair is migrated, then a full `pg_dump` must succeed.
 
 ## Backend (`[backend]`)
-- `services/candle-store.ts`: `tableFor(broker, timeframe)` → new or legacy, from an in-memory cache of migrated pairs (loaded at start, updated at the end of each sync). `upsertCandles` (watcher), `persistClosedCandle` (tick rollover) and `GET /candles` go through it. Unmigrated pairs behave exactly as today.
+- `services/candle-store.ts`: `tableFor(broker, timeframe)` → new or legacy, from an in-memory cache of migrated pairs (loaded at start, updated at the end of each sync). `upsertCandles` (watcher), `persistClosedCandle` (tick rollover), `GET /candles`, the EMA alert and EMA notification evaluators and `GET /setup-levels` go through it; `GET /symbols` lists the symbols of both tables. Unmigrated pairs behave exactly as today.
 - `routes/candle-sync.ts` (`requireAuth`):
   - `GET /candle-sync` → every broker × M5/M15/H1/H4/D1 with `target`, `candleCount`, `lastSyncAt`, `state`, `detail`. Missing rows are created with the default target. `candleCount` is stored at the end of a sync, never counted live (counting the legacy table is what crashed PostgreSQL).
   - `PUT /candle-sync/targets` `{ broker, targets: { M5?: n, … } }` → 400 outside 100 … 50 000 (range set by the operator).

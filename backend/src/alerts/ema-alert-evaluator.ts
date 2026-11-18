@@ -1,5 +1,6 @@
 import type { TickData, TickBatch } from '../bridge/pipe-reader';
 import { db } from '../db/client';
+import { candleTable } from '../services/candle-store';
 import { sendToUser } from '../services/push';
 import { calculateEma, type Candle } from '../indicators/ema';
 import { getPipSize } from '../indicators/pip-size';
@@ -48,7 +49,7 @@ async function fire(alert: ArmedEmaAlert, crossDir: 'buy' | 'sell'): Promise<voi
 // Evaluate one alert against the closed candles of its symbol/timeframe.
 async function evaluateAlert(alert: ArmedEmaAlert): Promise<void> {
   const need = Math.max(alert.emaFast, alert.emaSlow) + 2;
-  const rows = await db.candle.findMany({
+  const rows = await candleTable(alert.broker, alert.timeframe).findMany({
     where: { broker: alert.broker, symbol: alert.symbol, timeframe: alert.timeframe },
     orderBy: { time: 'desc' },
     take: Math.max(need, 200),

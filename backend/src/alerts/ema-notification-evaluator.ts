@@ -1,5 +1,6 @@
 import type { TickData, TickBatch } from '../bridge/pipe-reader';
 import { db } from '../db/client';
+import { candleTable } from '../services/candle-store';
 import { sendToUser } from '../services/push';
 import { calculateEma, type Candle } from '../indicators/ema';
 import { getPipSize } from '../indicators/pip-size';
@@ -100,7 +101,7 @@ async function onCandleClose(broker: string, symbol: string, timeframe: string):
   if (rules.length === 0) return;
 
   const need = Math.max(...rules.map(r => Math.max(r.emaFast, r.emaSlow))) + 2;
-  const rows = await db.candle.findMany({
+  const rows = await candleTable(broker, timeframe).findMany({
     where: { broker, symbol, timeframe },
     orderBy: { time: 'desc' },
     take: Math.max(need, 200),

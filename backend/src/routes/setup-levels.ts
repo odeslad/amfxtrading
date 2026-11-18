@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { db } from '../db/client';
+import { candleTable } from '../services/candle-store';
 import { detectEmaCrossSetups } from '../indicators/ema-cross';
 import { getPipSize } from '../indicators/pip-size';
 import type { Candle } from '../indicators/ema';
@@ -34,7 +34,7 @@ router.get('/', asyncRoute(async (req, res) => {
     return;
   }
 
-  const rows = await db.candle.findMany({
+  const rows = await candleTable(broker, tf).findMany({
     where: { broker, symbol, timeframe: tf },
     orderBy: { time: 'desc' },
     take: MAX_CANDLES,
