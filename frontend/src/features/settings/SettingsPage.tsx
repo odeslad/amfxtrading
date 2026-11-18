@@ -13,11 +13,13 @@ import { NotificationPanel } from './NotificationPanel';
 import { DevicesPanel } from './DevicesPanel';
 import { VisibilityTab } from './VisibilityTab';
 import { SymbolsPanel } from './SymbolsPanel';
+import { DataSyncTab } from './DataSyncTab';
+import { useCandleSync } from '../../lib/useCandleSync';
 import { usePushDevices } from '../../lib/usePushDevices';
 import { EMPTY_VISIBILITY, isBrokerVisible, setVisibility as publishVisibility, useVisibility, type Visibility } from '../../lib/visibility';
 import styles from './SettingsPage.module.css';
 
-type Tab = 'mirror' | 'display' | 'notifications' | 'visibility';
+type Tab = 'mirror' | 'display' | 'notifications' | 'visibility' | 'data';
 
 interface SavedPreset {
   id: number;
@@ -73,6 +75,7 @@ export function SettingsPage() {
   const [confirming, setConfirming] = useState(false);
   const pushDevices = usePushDevices();
   const [devicesOpen, setDevicesOpen] = useState(false);
+  const candleSync = useCandleSync(tab === 'data');
 
   useEffect(() => {
     const ac = new AbortController();
@@ -215,6 +218,7 @@ export function SettingsPage() {
             <span className={styles.tabLong}>Notifications</span><span className={styles.tabShort}>Notif.</span>
           </button>
           <button type="button" className={`${styles.tab} ${tab === 'visibility' ? styles.tabActive : ''}`} onClick={() => setTab('visibility')}>Visibility</button>
+          <button type="button" className={`${styles.tab} ${tab === 'data' ? styles.tabActive : ''}`} onClick={() => setTab('data')}>Data</button>
         </div>
 
         <div className={styles.tabBarRight}>
@@ -222,6 +226,12 @@ export function SettingsPage() {
           {savable && (
             <button type="button" className={styles.saveBtn} onClick={handleSave} disabled={saving || !dirty}>
               {saving ? 'Saving…' : 'Save'}
+            </button>
+          )}
+          {tab === 'data' && candleSync.dirty && <span className={styles.unsaved}>Unsaved targets</span>}
+          {tab === 'data' && (
+            <button type="button" className={styles.saveBtn} onClick={candleSync.saveTargets} disabled={candleSync.saving || !candleSync.dirty}>
+              {candleSync.saving ? 'Saving…' : 'Save targets'}
             </button>
           )}
           {tab === 'notifications' && (
@@ -261,6 +271,14 @@ export function SettingsPage() {
           visibility={visibility}
           onToggleBroker={toggleBrokerVisible}
           onOpenSymbols={openSymbols}
+        />
+      )}
+      {tab === 'data' && (
+        <DataSyncTab
+          brokers={candleSync.brokers}
+          edits={candleSync.edits}
+          onTarget={candleSync.setTarget}
+          onSync={candleSync.startSync}
         />
       )}
       {tab === 'notifications' && (
