@@ -80,8 +80,8 @@
 
 - **Cloudflare (operator, 2026-11-18):** the dead tunnel of the cancelled server (`420ad992…`) deleted; the tunnel in use (`fb1c65c3…`) renamed from `amfxtrading-v2` to `amfxtrading`. `cloudflared tunnel list` on the server shows only `amfxtrading` and `rubenlucas`; `amfxtrading.com` and `api.` 200, `v2.` 301, `api-v2.` 200. ✅
 - **Done by the assistant:** the `amfx-vps-old` SSH shortcut removed from the PC (copy kept as `~/.ssh/config.bak-048`; `ssh amfx-vps` reaches `WIN-16ESVKMCVCR`); the assistant's notes updated to the new names and copied to the folder of the new path (`~/.claude/projects/c--Work-Odeslad-amfxtrading`); the MVP's notes moved to `…-amfxtrading-v1`. ✅
-- **Local folders (operator, 2026-11-18):** `C:WorkOdesladmfxtrading` → `amfxtrading-v1` and `amfxtradingv2` → `amfxtrading`; the project opens from the new folder. ✅
-- **Outcome:** ✅ from `c:WorkOdesladmfxtrading`: `git fetch` against `odeslad/amfxtrading` works, frontend and backend builds OK, `ssh amfx-vps` reaches `WIN-16ESVKMCVCR`, and the assistant loads its notes from the new path (AC 10).
+- **Local folders (operator, 2026-11-18):** `C:\Work\Odeslad\amfxtrading` → `amfxtrading-v1` and `amfxtradingv2` → `amfxtrading`; the project opens from the new folder. ✅
+- **Outcome:** ✅ from `c:\Work\Odeslad\amfxtrading`: `git fetch` against `odeslad/amfxtrading` works, frontend and backend builds OK, `ssh amfx-vps` reaches `WIN-16ESVKMCVCR`, and the assistant loads its notes from the new path (AC 10).
 - **Est vs Actual:** 0.5 SP · 0.5 SP.
 - Note: the server runs cloudflared 2026.6.0 and it reports 2026.11.1 as current; updating it is out of the scope of this spec.
 
