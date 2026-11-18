@@ -76,9 +76,11 @@
 - **EA pipeline:** compile and distribute green; the reload step stopped and restarted the 13 terminals one by one, but the SSH session of the pipeline dropped while waiting for the last one (`SADA XII`), so the step ends with exit code 255. The watchdog brought that terminal back; its log shows 13/13 running in every run since. Unrelated to the rename (a dropped connection); the EA source did not change.
 - **Est vs Actual:** 2.5 SP · 1.5 SP.
 
-## Task 11 · [infra] Operator steps (in progress)
+## Task 11 · [infra] Operator steps
 
 - **Cloudflare (operator, 2026-11-18):** the dead tunnel of the cancelled server (`420ad992…`) deleted; the tunnel in use (`fb1c65c3…`) renamed from `amfxtrading-v2` to `amfxtrading`. `cloudflared tunnel list` on the server shows only `amfxtrading` and `rubenlucas`; `amfxtrading.com` and `api.` 200, `v2.` 301, `api-v2.` 200. ✅
 - **Done by the assistant:** the `amfx-vps-old` SSH shortcut removed from the PC (copy kept as `~/.ssh/config.bak-048`; `ssh amfx-vps` reaches `WIN-16ESVKMCVCR`); the assistant's notes updated to the new names and copied to the folder of the new path (`~/.claude/projects/c--Work-Odeslad-amfxtrading`); the MVP's notes moved to `…-amfxtrading-v1`. ✅
-- **Pending (operator, editor closed):** rename `C:\Work\Odeslad\amfxtrading` → `amfxtrading-v1` and `C:\Work\Odeslad\amfxtradingv2` → `amfxtrading`, then open the project from the new folder. 🕐
+- **Local folders (operator, 2026-11-18):** `C:WorkOdesladamfxtrading` → `amfxtrading-v1` and `amfxtradingv2` → `amfxtrading`; the project opens from the new folder. ✅
+- **Outcome:** ✅ from `c:WorkOdesladamfxtrading`: `git fetch` against `odeslad/amfxtrading` works, frontend and backend builds OK, `ssh amfx-vps` reaches `WIN-16ESVKMCVCR`, and the assistant loads its notes from the new path (AC 10).
+- **Est vs Actual:** 0.5 SP · 0.5 SP.
 - Note: the server runs cloudflared 2026.6.0 and it reports 2026.11.1 as current; updating it is out of the scope of this spec.

@@ -76,9 +76,11 @@
 - **Pipeline del EA:** compilación y distribución en verde; el paso de recarga paró y volvió a arrancar los 13 terminales de uno en uno, pero la sesión SSH del pipeline se cortó mientras esperaba al último (`SADA XII`), así que el paso termina con código 255. El vigilante volvió a arrancar ese terminal; su registro muestra 13/13 en marcha en cada pasada desde entonces. No tiene que ver con el renombrado (una conexión cortada); el código del EA no cambió.
 - **Est vs Actual:** 2.5 SP · 1.5 SP.
 
-## Tarea 11 · [infra] Pasos del operador (en curso)
+## Tarea 11 · [infra] Pasos del operador
 
 - **Cloudflare (operador, 2026-11-18):** borrado el túnel muerto del servidor cancelado (`420ad992…`); el túnel en uso (`fb1c65c3…`) renombrado de `amfxtrading-v2` a `amfxtrading`. `cloudflared tunnel list` en el servidor muestra solo `amfxtrading` y `rubenlucas`; `amfxtrading.com` y `api.` 200, `v2.` 301, `api-v2.` 200. ✅
 - **Hecho por el asistente:** quitado del PC el acceso SSH `amfx-vps-old` (copia guardada como `~/.ssh/config.bak-048`; `ssh amfx-vps` llega a `WIN-16ESVKMCVCR`); notas del asistente actualizadas a los nombres nuevos y copiadas a la carpeta de la ruta nueva (`~/.claude/projects/c--Work-Odeslad-amfxtrading`); las notas del MVP movidas a `…-amfxtrading-v1`. ✅
-- **Pendiente (operador, con el editor cerrado):** renombrar `C:\Work\Odeslad\amfxtrading` → `amfxtrading-v1` y `C:\Work\Odeslad\amfxtradingv2` → `amfxtrading`, y abrir el proyecto desde la carpeta nueva. 🕐
+- **Carpetas locales (operador, 2026-11-18):** `C:WorkOdesladamfxtrading` → `amfxtrading-v1` y `amfxtradingv2` → `amfxtrading`; el proyecto se abre desde la carpeta nueva. ✅
+- **Resultado:** ✅ desde `c:WorkOdesladamfxtrading`: `git fetch` contra `odeslad/amfxtrading` funciona, las compilaciones de frontend y backend OK, `ssh amfx-vps` llega a `WIN-16ESVKMCVCR` y el asistente carga sus notas desde la ruta nueva (AC 10).
+- **Est vs Actual:** 0.5 SP · 0.5 SP.
 - Nota: el servidor tiene cloudflared 2026.6.0 y avisa de que la actual es la 2026.11.1; actualizarlo queda fuera de esta spec.
