@@ -27,3 +27,10 @@
 - **Pasos:** `services/candle-store.ts`: conjunto en memoria de parejas migradas cargado al arrancar desde `candle_syncs` (`lastSyncAt` con valor), `markMigrated`, `candleTable(broker, timeframe)` → `db.candle` o `db.candleLegacy`, `storedSymbols` (DISTINCT de las dos tablas). Visto al implementar: además del watcher, el cierre en el tick y `GET /candles`, otros tres lectores usan velas — el evaluador de alertas de EMA, el de notificaciones de EMA y `GET /setup-levels` — más `GET /symbols`; todos pasan por el store (diseño actualizado).
 - **Resultado:** ✅ 5 tests nuevos (pareja sin sincronizar → antigua; pareja marcada → nueva, solo esa; parejas cargadas al arrancar; recargar olvida; símbolos de las dos tablas, una vez cada uno, ordenados); suite completa 18 ficheros / 151 tests; lint, typecheck y build limpios. Sin parejas migradas el backend lee y escribe `candles_legacy`, las mismas filas que hoy.
 - **Est vs Actual:** 1.5 SP · 0.75 SP.
+
+## Tarea 4 · [backend] Rutas /candle-sync
+
+- **Mecanismo:** vitest (router montado en un Express de prueba, `fetch` contra él; BD, config y liveness simulados) + lint + typecheck + build.
+- **Pasos:** `routes/candle-sync.ts` montado en `/candle-sync` detrás de `requireAuth`: `GET /` (crea las filas que falten con objetivo 10 000; cada broker con `connected` y sus cinco temporalidades en orden M5 → D1), `PUT /targets` (100 … 50 000), `POST /` (404 broker desconocido, 503 EA sin conectar, 409 sincronización en cola o en curso; si no, filas → `queued` con un `requestId` nuevo y `sync-command.json` escrito, 202). `bridge/sync-io.ts`: `writeSyncCommand` (temporal + rename) y `withdrawSyncCommand` para la tarea 5.
+- **Resultado:** ✅ 10 tests nuevos (rango del objetivo, temporalidad desconocida, lista vacía; temporalidades sin duplicados y ordenadas; el POST encola y escribe el comando con cada objetivo; 409 y 503 no escriben nada; 404; orden y conexión del GET; el PUT guarda el objetivo); suite completa 19 ficheros / 161 tests; lint, typecheck y build limpios.
+- **Est vs Actual:** 1.5 SP · 0.75 SP.

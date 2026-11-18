@@ -27,3 +27,10 @@
 - **Steps:** `services/candle-store.ts`: in-memory set of migrated pairs loaded at start from `candle_syncs` (`lastSyncAt` set), `markMigrated`, `candleTable(broker, timeframe)` → `db.candle` or `db.candleLegacy`, `storedSymbols` (DISTINCT of both tables). Found while implementing: besides the watcher, the rollover and `GET /candles`, three more readers use candles — the EMA alert evaluator, the EMA notification evaluator and `GET /setup-levels` — plus `GET /symbols`; all go through the store (design updated).
 - **Outcome:** ✅ 5 new tests (unsynced pair → legacy; marked pair → new, only that pair; pairs loaded at start; reload forgets; symbols of both tables, once each, sorted); full suite 18 files / 151 tests; lint, typecheck and build clean. With no pair migrated the backend reads and writes `candles_legacy`, the same rows as today.
 - **Est vs Actual:** 1.5 SP · 0.75 SP.
+
+## Task 4 · [backend] Routes /candle-sync
+
+- **Mechanism:** vitest (router mounted on a throwaway Express server, `fetch` against it; DB, config and liveness mocked) + lint + typecheck + build.
+- **Steps:** `routes/candle-sync.ts` mounted at `/candle-sync` behind `requireAuth`: `GET /` (creates missing rows with target 10 000; every broker with `connected` and its five timeframes in M5 → D1 order), `PUT /targets` (100 … 50 000), `POST /` (404 unknown broker, 503 EA not connected, 409 a sync queued or running, otherwise rows → `queued` with a new `requestId` and `sync-command.json` written, 202). `bridge/sync-io.ts`: `writeSyncCommand` (temp + rename) and `withdrawSyncCommand` for task 5.
+- **Outcome:** ✅ 10 new tests (target range, unknown timeframe, empty list; timeframes deduplicated and ordered; POST queues and writes the command with each target; 409 and 503 write nothing; 404; GET order and connection; PUT stores the target); full suite 19 files / 161 tests; lint, typecheck and build clean.
+- **Est vs Actual:** 1.5 SP · 0.75 SP.
