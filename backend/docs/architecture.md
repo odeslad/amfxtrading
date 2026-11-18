@@ -21,7 +21,7 @@ MT4 EA (one terminal per broker)
     │
     └── <bridgePath>/*.json (written by the EA every 60 s)
             └── bridge/file-watcher.ts — polls every 5 s, skips files whose mtime/size did not change (history/account also by content)
-                    ├── candles_<SYM>_<TF>.json → services/candles.ts            → candles or candles_legacy (closed bars only, spec 049)
+                    ├── candles_<SYM>_<TF>.json → services/candles.ts            → candles (closed bars only)
                     ├── history.json            → services/trades.ts             → trades
                     │                           → services/balance-operations.ts → balance_operations
                     └── account.json            → services/account.ts            → balances (one row per broker and UTC day)
@@ -230,9 +230,9 @@ A tick carries `symbol`, `bid`, `ask`, `time`, `broker_offset` and the open/high
 
 ## Candle history sync (spec 049)
 
-The old `candles` table had damaged pages (a full read or `pg_dump` failed), so migration `20261118000000_candle_sync` renamed it to `candles_legacy` and created a new, empty `candles`. `services/candle-store.ts` keeps the set of **migrated** pairs (broker + timeframe whose `candle_syncs.lastSyncAt` is set, loaded at start): every reader and writer of candles (`GET /candles`, `GET /setup-levels`, the watcher, the tick rollover, the EMA alert and notification evaluators) asks it for the table, so an unsynced pair keeps using `candles_legacy` exactly as before; `GET /symbols` lists both tables.
+The old `candles` table had damaged pages (a full read or `pg_dump` failed). Migration `20261118000000_candle_sync` set it aside as `candles_legacy` and started a new, empty `candles`; once every broker with an EA was synced, migration `20261118100000_drop_candles_legacy` dropped it (a broker never synced, like solidary isa, starts empty). Every reader and writer uses `candles`.
 
-`POST /candle-sync { broker, timeframes }` answers `404` for an unknown broker, `503` when its pipe is not connected, `409` while it has a sync queued or running; otherwise the rows go `queued` with a new `requestId` and `sync-command.json` (`{ id, timeframes: [{ tf, target }] }`, temp + rename) is written, `202`. The commands EA (2.23+) works one symbol × timeframe per 1 s tick after any order: a symbol short of history is shown on a temporary chart sent to its beginning with the Home key (`PostMessageW`, needs *Allow DLL imports*), then the newest `target` closed bars go to `sync/<SYM>_<TF>.json`; it writes progress to `sync-status.json` (`running` / `complete` / `finished` / `error`) and waits on `complete` until the backend has taken the files. On `complete` the sync watcher, in one transaction, deletes the pair from `candles`, inserts the files and sets `done`, `candleCount` (the fewest candles of any symbol), `detail` and `lastSyncAt`; then the pair is migrated and the files deleted. Any failure rolls back and leaves the previous history; 5 minutes without a status change turns a queued or running sync into `error` and withdraws the command. `candles_legacy` is dropped once every pair is migrated.
+`POST /candle-sync { broker, timeframes }` answers `404` for an unknown broker, `503` when its pipe is not connected, `409` while it has a sync queued or running; otherwise the rows go `queued` with a new `requestId` and `sync-command.json` (`{ id, timeframes: [{ tf, target }] }`, temp + rename) is written, `202`. The commands EA (2.23+) works one symbol × timeframe per 1 s tick after any order: a symbol short of history is shown on a temporary chart sent to its beginning with the Home key (`PostMessageW`, needs *Allow DLL imports*), then the newest `target` closed bars go to `sync/<SYM>_<TF>.json`; it writes progress to `sync-status.json` (`running` / `complete` / `finished` / `error`) and waits on `complete` until the backend has taken the files. On `complete` the sync watcher, in one transaction, deletes the pair from `candles`, inserts the files and sets `done`, `candleCount` (the fewest candles of any symbol), `detail` and `lastSyncAt`; then the files are deleted. Any failure rolls back and leaves the previous history; 5 minutes without a status change turns a queued or running sync into `error` and withdraws the command.
 
 ## Libro de esquemas (book)
 
@@ -244,8 +244,7 @@ Managed with **Prisma**; see `prisma/schema.prisma`. Migrations are hand-written
 
 | Table | Written by | Pattern |
 |-------|------------|---------|
-| `candles` | file watcher, sync watcher | `createMany({ skipDuplicates })` of closed bars; PK `(broker, symbol, timeframe, time)`; `time` is the bar open in broker time stored as UTC; holds only migrated pairs (spec 049) |
-| `candles_legacy` | file watcher (unmigrated pairs) | the old candles table with damaged pages, same columns and key; dropped when every pair is synced (spec 049) |
+| `candles` | file watcher, sync watcher | `createMany({ skipDuplicates })` of closed bars; PK `(broker, symbol, timeframe, time)`; `time` is the bar open in broker time stored as UTC |
 | `candle_syncs` | `/candle-sync`, sync watcher | one row per broker and timeframe: `target`, `candleCount`, `lastSyncAt`, `state`, `detail`, `requestId` (spec 049) |
 | `trades` | file watcher | `createMany({ skipDuplicates })` by ticket, never updated; indexes `(broker, closeTime)`, `(closeTime)`, `(broker, symbol)` |
 | `balance_operations` | file watcher | deposits/withdrawals from `history.json`, `createMany({ skipDuplicates })` by ticket |
