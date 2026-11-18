@@ -1,6 +1,6 @@
 # 049 — Candle history sync from Settings
 
-> Status: **approved**
+> Status: **closed**
 
 ## Context
 Candles reach the database only from MT4: the EA writes `candles_<SYM>_<TF>.json` every 60 s and the backend saves each candle that closes on the tick. How far back the history goes depends on what each MT4 had downloaded, and there is no way to see or control it from the app. The `candles` table also has damaged pages (~8 M rows, 2.1 GB): a full read or a full `pg_dump` fails, which blocks moving to another server. This spec gives the operator a manual, per broker and timeframe, way to rebuild the candle history from the EA, with a target number of candles set in Settings.

@@ -1,6 +1,6 @@
 # 049 — Sincronización del histórico de velas desde Settings
 
-> Status: **approved**
+> Status: **closed**
 
 ## Contexto
 Las velas solo llegan a la BD desde MT4: el EA escribe `candles_<SYM>_<TF>.json` cada 60 s y el backend guarda cada vela que cierra en el tick. Lo lejos que llega el histórico depende de lo que cada MT4 tuviera descargado, y desde la app no se puede ver ni controlar. Además, la tabla `candles` tiene páginas dañadas (~8 M filas, 2,1 GB): leerla entera o hacer un `pg_dump` completo falla, lo que impide pasar a otro servidor. Esta spec da al operador una forma manual, por broker y temporalidad, de rehacer el histórico de velas desde el EA, con un número de velas objetivo fijado en Settings.

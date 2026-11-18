@@ -66,10 +66,49 @@
 - **Resultado:** ✅ los dos describen las mismas tablas, ficheros, router, mensaje y regla (pareja sin sincronizar → `candles_legacy`).
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
 
-## Tarea 10 · [infra] Despliegue y validación en producción (en curso)
+## Tarea 10 · [infra] Despliegue y validación en producción
 
 - **Backend (2026-11-18, push de `ece59f1` solo):** pipeline en verde; `/health` 12/13 brokers conectados como antes; migración `20261118000000_candle_sync` aplicada; `candles` vacía, `candles_legacy` sigue recibiendo (última M5 de EURUSD en Demo a las 16:25 hora del broker, consultado a las 16:34).
 - **Frontend (push de `2e5df3a` solo; el commit del frontend se movió delante del del EA, ambos aún locales, para no lanzar el pipeline del EA):** Settings › Data en `amfxtrading.com`.
 - **Sincronización de Demo desde la app (operador, M5 + D1):** progreso en vivo («syncing · M5 · EURGBP 1/15», barra, D1 en cola, controles bloqueados); M5 hecha con 10 000, D1 «done · broker has 2 517 of 10 000». En la BD: Demo M5 150 052 filas (15 × 10 000 desde el 30 de septiembre más 52 barras que llegaron tras el cambio por el fichero de velas normal — sin hueco), D1 40 968 filas desde el 20 de octubre de 2015. El operador comprobó el gráfico M5 de Demo: se ven las velas y se puede retroceder.
 - **Orden durante una sincronización:** log de Demo — `buy EURUSD 0.01` recibida 14:44:10.859, ejecutada 14:44:11.062 (0,2 s); `close` recibida 14:44:42.013, ejecutada 14:44:42.235; la sincronización de M5 terminó a las 14:47.
 - **EA:** el EA de órdenes ahora escribe `max bars in chart` al arrancar (la tarea 9 lo lee de cada terminal tras el despliegue del EA).
+- **Despliegue del EA (2026-11-18):** el pipeline compiló la 2.23 y copió el `.ex4` a los 13 terminales a las 15:11; el VPS se colgó (pantallazo azul 0x1A) a las 15:13 mientras los terminales recargaban y volvió solo; el operador reabrió los terminales. Dos hallazgos: *Allow DLL imports* tiene que estar activado también en *Herramientas › Opciones › Asesores Expertos* (el ajuste global), no solo en el EA — el EA ahora comprueba los dos antes de abrir un gráfico y da la sincronización por fallida con un mensaje claro en vez de pararse; y una sincronización podía darse por atascada con el EA aún trabajando (FTMO H4 + D1) — corregido en `4dfe010` (el atasco se cuenta desde el último estado del EA; se retiran los ficheros de un encargo cancelado). Ese fallo de FTMO no borró nada: las parejas conservaron sus filas hasta volver a sincronizar.
+- **Todos los brokers sincronizados por el operador (2026-11-18, 14:47 – 19:02):** 12 brokers × 5 temporalidades, 60 parejas `done`, sin errores. Menor número de velas por símbolo: FTMO M5 10 000 · M15 5 874 · H1 3 005 · H4 7 364 · D1 3 724; Darwinex 10 000 · 10 000 · 4 643 · 2 696 · 1 577; Demo 10 000 · 2 256 · 2 099 · 2 060 · 2 517; las cuentas Solidary entre 6 246 y 10 000 en M5 y lo que tenga el broker en el resto. solidary isa no tiene EA y no se sincronizó; el operador decidió que empiece vacía.
+- **Resultado:** ✅
+- **Est vs Actual:** 1 SP · 3 SP (caída del VPS, ajuste de DLL, corrección del atasco).
+
+## Tarea 9 · [infra] Máximo de barras en el gráfico
+
+- **Mecanismo:** manual — el EA de órdenes escribe `max bars in chart` al arrancar.
+- **Resultado:** ✅ todos los terminales que lo escribieron muestran 65 000 (≥ 50 000); no hizo falta cambiar nada.
+- **Est vs Actual:** 0.25 SP · 0.25 SP.
+
+## Tarea 11 · [db] Borrar la tabla de velas antigua
+
+- **Mecanismo:** lint + typecheck + 166 tests; en el servidor una lectura completa y un `pg_dump` completo.
+- **Pasos:** `3ca53e6` (migración `20261118100000_drop_candles_legacy`, fuera `CandleLegacy` y `services/candle-store.ts`; todo lee y escribe en `candles`), push solo; migración aplicada a las 19:23 UTC; `candles_legacy` ya no existe.
+- **Resultado:** ✅ la lectura completa de `candles` (2 520 740 filas) funciona; `pg_dump` completo con salida 0 en 9 s (31 MB); la BD pasa de 2,1 GB a 430 MB; `/health` 12/13 conectados como antes (solidary isa no tiene EA). AC 11 cumplido.
+- **Est vs Actual:** 1 SP · 0.5 SP.
+
+## Tarea 12 · [specs] Cierre
+
+- **Est vs Actual:** 0.25 SP · 0.25 SP.
+
+## Est vs Actual
+
+| Tarea | Est | Real |
+|---|---|---|
+| 1 | 1 | 1 |
+| 2 | 0.75 | 0.5 |
+| 3 | 1.5 | 0.75 |
+| 4 | 1.5 | 0.75 |
+| 5 | 2.5 | 1 |
+| 6 | 2.5 | 1.5 |
+| 7 | 3 | 1 |
+| 8 | 0.5 | 0.25 |
+| 9 | 0.25 | 0.25 |
+| 10 | 1 | 3 |
+| 11 | 1 | 0.5 |
+| 12 | 0.25 | 0.25 |
+| **Total** | **15.75** | **10.75** |

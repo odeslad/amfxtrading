@@ -66,10 +66,49 @@
 - **Outcome:** ✅ both describe the same tables, files, router, message and rule (unsynced pair → `candles_legacy`).
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
 
-## Task 10 · [infra] Deploy and production validation (in progress)
+## Task 10 · [infra] Deploy and production validation
 
 - **Backend (2026-11-18, push of `ece59f1` alone):** pipeline green; `/health` 12/13 brokers connected as before; migration `20261118000000_candle_sync` applied; `candles` empty, `candles_legacy` still receiving (last Demo EURUSD M5 16:25 broker time at 16:34).
 - **Frontend (push of `2e5df3a` alone; the frontend commit was moved before the EA commit, both still local, so the EA pipeline would not run):** Settings › Data live at `amfxtrading.com`.
 - **Demo sync from the app (operator, M5 + D1):** live progress shown ("syncing · M5 · EURGBP 1/15", bar, D1 queued, controls locked); M5 done with 10 000, D1 "done · broker has 2 517 of 10 000". In the database: Demo M5 150 052 rows (15 × 10 000 from 30 Sep plus 52 bars that arrived after the swap through the regular candle file — no hole), D1 40 968 rows from 20 Oct 2015. The operator checked the Demo M5 chart: candles shown and paging back works.
 - **Order during a sync:** Demo log — `buy EURUSD 0.01` received 14:44:10.859, executed 14:44:11.062 (0.2 s); `close` received 14:44:42.013, executed 14:44:42.235; the M5 sync ended at 14:47.
 - **EA:** the commands EA now logs `max bars in chart` at start (task 9 reads it from every terminal after the EA deploy).
+- **EA deploy (2026-11-18):** pipeline compiled 2.23 and copied the `.ex4` to the 13 terminals at 15:11; the VPS crashed (BSOD 0x1A) at 15:13 while the terminals reloaded, and came back on its own; the operator reopened the terminals. Two findings: *Allow DLL imports* must also be on in *Tools › Options › Expert Advisors* (the global setting), not only in the EA — the EA now checks both before opening a chart and fails the sync with a clear message instead of stopping; and a sync could be failed as stalled while the EA was still working (FTMO H4 + D1) — fixed in `4dfe010` (the stall counts from the last EA status; files of a cancelled request are taken away). That FTMO failure deleted nothing: the pairs kept their rows until the re-sync.
+- **Every broker synced by the operator (2026-11-18, 14:47 – 19:02):** 12 brokers × 5 timeframes, 60 pairs `done`, no error. Fewest candles per symbol: FTMO M5 10 000 · M15 5 874 · H1 3 005 · H4 7 364 · D1 3 724; Darwinex 10 000 · 10 000 · 4 643 · 2 696 · 1 577; Demo 10 000 · 2 256 · 2 099 · 2 060 · 2 517; the Solidary accounts 6 246 – 10 000 in M5 and whatever the broker has above. solidary isa has no EA and was not synced; the operator chose to let it start empty.
+- **Outcome:** ✅
+- **Est vs Actual:** 1 SP · 3 SP (VPS crash, DLL setting, stall fix).
+
+## Task 9 · [infra] Max bars in chart
+
+- **Mechanism:** manual — the commands EA logs `max bars in chart` at start.
+- **Outcome:** ✅ every terminal that logged it shows 65 000 (≥ 50 000); no change needed.
+- **Est vs Actual:** 0.25 SP · 0.25 SP.
+
+## Task 11 · [db] Drop the legacy candles table
+
+- **Mechanism:** lint + typecheck + 166 tests; on the server a full read and a full `pg_dump`.
+- **Steps:** `3ca53e6` (migration `20261118100000_drop_candles_legacy`, `CandleLegacy` and `services/candle-store.ts` removed; every reader and writer uses `candles`), pushed alone; migration applied 19:23 UTC; `candles_legacy` gone.
+- **Outcome:** ✅ full read of `candles` (2 520 740 rows) succeeds; full `pg_dump` exit 0 in 9 s (31 MB); database 2.1 GB → 430 MB; `/health` 12/13 connected as before (solidary isa has no EA). AC 11 met.
+- **Est vs Actual:** 1 SP · 0.5 SP.
+
+## Task 12 · [specs] Close
+
+- **Est vs Actual:** 0.25 SP · 0.25 SP.
+
+## Est vs Actual
+
+| Task | Est | Actual |
+|---|---|---|
+| 1 | 1 | 1 |
+| 2 | 0.75 | 0.5 |
+| 3 | 1.5 | 0.75 |
+| 4 | 1.5 | 0.75 |
+| 5 | 2.5 | 1 |
+| 6 | 2.5 | 1.5 |
+| 7 | 3 | 1 |
+| 8 | 0.5 | 0.25 |
+| 9 | 0.25 | 0.25 |
+| 10 | 1 | 3 |
+| 11 | 1 | 0.5 |
+| 12 | 0.25 | 0.25 |
+| **Total** | **15.75** | **10.75** |
