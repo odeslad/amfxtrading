@@ -99,3 +99,11 @@
 - **Est vs Actual:** 0.25 SP · 0.1 SP.
 
 **Total**: 10.5 SP estimados · 5.35 SP reales.
+
+## Tras el cierre · Direcciones antiguas retiradas (2026-11-18)
+
+- Adelantado respecto a la fecha prevista (2026-12-17) por decisión del operador: nadie usa ya las direcciones antiguas.
+- **Servidor:** una tarea puntual como SYSTEM quitó de `nginx.conf` el bloque `server` de la redirección de `v2` (`nginx -t` OK, servicio reiniciado) y del fichero del túnel las entradas `v2`, `api-v2` y `ssh-v2` (`ingress validate` OK, servicio reiniciado); copias guardadas como `nginx.conf.bak-retire` y `config.yml.bak-retire`; la tarea se borró después.
+- **Cloudflare (operador):** borrados los registros DNS `v2`, `api-v2` y `ssh-v2`; quitado `ssh-v2.amfxtrading.com` de la aplicación de Access «VPS SSH», que conserva `ssh.amfxtrading.com`.
+- **Resultado:** ✅ `amfxtrading.com` y `api.amfxtrading.com/health` 200 con 12/13 brokers conectados; `v2` y `api-v2` ya no responden; `ssh amfx-vps` funciona. Las suscripciones a notificaciones hechas en `v2` no se borraron: la BD no guarda su origen.
+- `www.amfxtrading.com` (CNAME a Vercel) se deja intacto para la futura web corporativa.

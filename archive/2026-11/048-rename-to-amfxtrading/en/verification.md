@@ -99,3 +99,11 @@
 - **Est vs Actual:** 0.25 SP · 0.1 SP.
 
 **Total**: 10.5 SP estimated · 5.35 SP actual.
+
+## After closing · Old addresses retired (2026-11-18)
+
+- Done ahead of the planned date (2026-12-17) by the operator's decision: nobody uses the old addresses.
+- **Server:** a one-off SYSTEM task removed the `v2` redirect `server` block from `nginx.conf` (`nginx -t` OK, service restarted) and the `v2`, `api-v2` and `ssh-v2` entries from the tunnel file (`ingress validate` OK, service restarted); previous files kept as `nginx.conf.bak-retire` and `config.yml.bak-retire`; the task was deleted afterwards.
+- **Cloudflare (operator):** DNS records `v2`, `api-v2` and `ssh-v2` deleted; `ssh-v2.amfxtrading.com` removed from the Access application "VPS SSH", which keeps `ssh.amfxtrading.com`.
+- **Outcome:** ✅ `amfxtrading.com` and `api.amfxtrading.com/health` 200 with 12/13 brokers connected; `v2` and `api-v2` no longer answer; `ssh amfx-vps` works. Notification subscriptions made at `v2` were not removed: the database does not record their origin.
+- `www.amfxtrading.com` (CNAME to Vercel) left untouched for the future corporate site.
