@@ -1,6 +1,7 @@
 import { SETUP_LEVEL_KEYS, type PnlMode, type SetupLevelKey } from '../journal/utils/position';
 import { FIB_LEVEL_ANCHORS, FIB_LEVEL_CATALOGUE, type TrendlineStyle } from '../chart/DrawingTools';
 import { EMA_TRADES_LABEL_KEYS, EMA_TRADES_LABEL_NAMES, EMA_TRADES_LIMITS, type EmaTradesLabel, type EmaTradesSettings } from '../chart/emaTrades';
+import { MaTemplatesSection } from './MaTemplatesSection';
 import styles from './SettingsPage.module.css';
 
 export interface DisplaySettingsForm {
@@ -232,6 +233,7 @@ export function DisplayTab({ display, onChange }: DisplayTabProps) {
           </div>
         </div>
       </div>
+      <MaTemplatesSection />
     </>
   );
 }
