@@ -57,14 +57,16 @@ model MaTemplate {
   @@map("ma_templates")
 }
 
-// Spec 052: the template of each broker; deleting the template deletes the row (back to the default).
+// Spec 052: the template of a broker, on every timeframe (timeframe '') or on one; a chart uses
+// broker + timeframe, then broker, then the default. Deleting the template deletes the row.
 model MaTemplateBroker {
   userId     Int
   broker     String
+  timeframe  String     @default("")
   templateId Int
   template   MaTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
-  @@id([userId, broker])
+  @@id([userId, broker, timeframe])
   @@map("ma_template_brokers")
 }
 
