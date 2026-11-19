@@ -135,6 +135,10 @@ export function createWss(server: Server) {
     broadcastCandleSync(broker: string, update: Record<string, unknown>) {
       broadcast('candle_sync', { broker, ...update });
     },
+    // Spec 052: the user's moving average templates or assignments changed; their clients reload.
+    broadcastMaTemplates(userId: number) {
+      sendToUser(userId, 'ma_templates', {});
+    },
     broadcastTradesUpdated(broker: string) {
       broadcast('trades_updated', { broker });
     },
