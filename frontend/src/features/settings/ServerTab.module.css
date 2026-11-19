@@ -183,7 +183,10 @@
 .summary {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
+  white-space: nowrap;
 }
+
+.titleShort { display: none; }
 
 .collapseBtn {
   width: 27px;
@@ -300,6 +303,8 @@
   .gaugeValue { font-size: var(--text-xl); }
   .section { padding: 12px 14px; }
   .collapseBtn { width: 44px; height: 44px; }
+  .titleLong { display: none; }
+  .titleShort { display: inline; }
   .tableWrapper { display: none; }
   .cards { display: flex; flex-direction: column; }
 }

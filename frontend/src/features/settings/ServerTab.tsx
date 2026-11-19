@@ -81,13 +81,15 @@ function useCollapsed() {
   return { collapsed, toggle };
 }
 
-function Section({ title, summary, tone, open, onToggle, children }: {
-  title: string; summary?: string; tone?: Tone; open: boolean; onToggle: () => void; children: ReactNode;
+function Section({ title, shortTitle, summary, tone, open, onToggle, children }: {
+  title: string; shortTitle?: string; summary?: string; tone?: Tone; open: boolean; onToggle: () => void; children: ReactNode;
 }) {
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
-        <span className={styles.label}>{title}</span>
+        {shortTitle
+          ? <span className={styles.label}><span className={styles.titleLong}>{title}</span><span className={styles.titleShort}>{shortTitle}</span></span>
+          : <span className={styles.label}>{title}</span>}
         <span className={styles.sectionRight}>
           {summary && <span className={`${styles.summary} ${tone ? styles[tone] : ''}`}>{summary}</span>}
           <button type="button" className={styles.collapseBtn} aria-expanded={open} aria-label={open ? `Collapse ${title}` : `Expand ${title}`} onClick={onToggle}>
@@ -236,7 +238,7 @@ export function ServerTab({ report, lastOkAt, checkedAt, failing, charts }: Serv
         </Section>
       </div>
 
-      <Section title="Crashes and unexpected shutdowns · last 30 days" summary={report.events === null ? 'not read yet' : `${events.length} ${events.length === 1 ? 'event' : 'events'}`} tone={events.length > 0 ? 'error' : 'ok'} open={!collapsed.events} onToggle={() => toggle('events')}>
+      <Section title="Crashes and unexpected shutdowns · last 30 days" shortTitle="Crashes · 30 days" summary={report.events === null ? 'not read yet' : `${events.length} ${events.length === 1 ? 'event' : 'events'}`} tone={events.length > 0 ? 'error' : 'ok'} open={!collapsed.events} onToggle={() => toggle('events')}>
         {events.length === 0
           ? <p className={styles.muted}>{report.events === null ? 'The event log is read every 10 minutes.' : 'None in the last 30 days.'}</p>
           : (
