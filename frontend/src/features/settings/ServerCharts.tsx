@@ -19,11 +19,12 @@ interface Marker {
   x: number;
   gapEnd: number | null;
   label: string;
+  short: string;
   tone: 'error' | 'warn' | 'restart';
   showTag: boolean;
 }
 
-const TAG_SPACING_PX = 260;
+const TAG_SPACING_PX = 120;
 
 const STEP_S: Record<HistoryRange, number> = { '24h': 60, '7d': 600 };
 // Samples come every step ±1 s; one missing sample (a backend restart) already breaks the line.
@@ -171,7 +172,8 @@ export function ServerCharts({ history, gaps, range, onRange, events }: ServerCh
         if (x === null) continue;
         const event = (events ?? []).find(e => { const at = Date.parse(e.at); return at > g.from && at <= g.to + 15 * 60_000; });
         const downMin = Math.max(1, Math.round((g.to - g.from) / 60_000));
-        const what = !event ? 'BACKEND RESTART' : event.kind === 'bugcheck' ? `CRASH ${event.code ?? ''}` : 'UNEXPECTED SHUTDOWN';
+        const what = !event ? 'Backend restart' : event.kind === 'bugcheck' ? `Crash ${event.code ?? ''} (${event.param1 ?? ''})` : 'Unexpected shutdown';
+        const at = formatTime(new Date(g.from).toISOString());
         // Holes close together (7D) keep their lines but share one label.
         const showTag = x - lastTagX > TAG_SPACING_PX;
         if (showTag) lastTagX = x;
@@ -180,7 +182,8 @@ export function ServerCharts({ history, gaps, range, onRange, events }: ServerCh
           x,
           gapEnd: toX(g.to),
           tone: !event ? 'restart' : event.kind === 'bugcheck' ? 'error' : 'warn',
-          label: `${what} · ${formatTime(new Date(g.from).toISOString())} · ${downMin} MIN`,
+          label: what,
+          short: `${at} · ${downMin} min`,
           showTag,
         });
       }
@@ -218,11 +221,11 @@ export function ServerCharts({ history, gaps, range, onRange, events }: ServerCh
         {!history && <div className={styles.overlayText}>Loading…</div>}
         {history && history.length === 0 && <div className={styles.overlayText}>No samples yet</div>}
         {markers.map(m => (
-          <div key={m.key} className={styles.marker} style={{ left: m.x }} aria-label={m.label} role="img">
+          <div key={m.key} className={styles.marker} style={{ left: m.x }} aria-label={`${m.label}: ${m.short}`} role="img">
             {m.gapEnd !== null && m.gapEnd > m.x && <span className={`${styles.gap} ${styles[`gap_${m.tone}`]}`} style={{ width: m.gapEnd - m.x }} />}
             <span className={`${styles.line} ${styles[`line_${m.tone}`]}`} />
             {m.gapEnd !== null && m.gapEnd > m.x && <span className={styles.restart} style={{ left: m.gapEnd - m.x }} />}
-            {m.showTag && <span className={`${styles.tag} ${styles[`tag_${m.tone}`]}`}>{m.label}</span>}
+            {m.showTag && <span className={`${styles.tag} ${styles[`tag_${m.tone}`]}`} title={m.label}>{m.short}</span>}
           </div>
         ))}
       </div>
