@@ -24,6 +24,7 @@ import { evaluateEmaAlerts, setEmaAlertBroadcaster } from './alerts/ema-alert-ev
 import { refreshEmaAlerts } from './alerts/ema-alert-store';
 import { evaluateEmaNotifications, setEmaNotificationBroadcaster } from './alerts/ema-notification-evaluator';
 import { refreshEmaNotifications, startEmaNotificationRefresh } from './alerts/ema-notification-store';
+import { startServerMonitor } from './services/server-monitor';
 
 type Wss = ReturnType<typeof createWss>;
 
@@ -126,6 +127,8 @@ async function main() {
   const watchers = config.brokers.map(({ name, bridgePath }) =>
     startBroker(name, bridgePath, wss),
   );
+  // Spec 051: Settings › Server. Off for a local backend, which would report the developer's PC.
+  const monitor = config.features.serverMonitor ? startServerMonitor(config.brokersFile) : null;
 
   server.listen(config.port, () => {
     console.log(`[HTTP] Listening on port ${config.port}`);
@@ -135,6 +138,7 @@ async function main() {
   process.on('SIGTERM', async () => {
     wss.close();
     watchers.forEach(({ pipe, watcher }) => { pipe?.stop(); watcher?.stop(); });
+    monitor?.stop();
     server.close();
     await db.$disconnect();
   });
