@@ -78,3 +78,24 @@
 - **Pasos:** `backend/docs/architecture.md`: router `/ma-templates` y `/chart-indicators` marcado sin uso, WS `ma_templates`, sección «Moving average templates (spec 052)» (regla de la de por defecto, asignación por broker y temporalidad con su prioridad, cascada, validación, Settings › Display y el botón del gráfico, SMA en el frontend, spec 053 pendiente), tablas `ma_templates` y `ma_template_brokers`, `chart_indicators` marcada para quitar. `.claude/CLAUDE.md`: sección «Plantillas de medias móviles (spec 052)», 20 routers, modelos `MaTemplate` y `MaTemplateBroker`.
 - **Resultado:** ✅
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Tarea 10 · [infra] Despliegue y validación en producción
+
+- **Pushes (19-nov-2026), una capa cada vez:** backend `7b335a4`…`3acb4a7` (tarea 2) y `cdbcac3` + `e2bf080` (tareas 6–7, desde un worktree); frontend `6ed372f`…`276b61d` solo (build 283); documentación `4f4b922` (tarea 9) (pipeline del backend, sin cambios de código). Todos los pipelines en verde.
+- **Validación del operador en `amfxtrading.com`, escritorio y móvil:** gráficos iguales con la plantilla por defecto (AC 6); sección de plantillas en Settings › Display; plantilla elegida desde el gráfico, por broker y solo para una temporalidad; una SMA dibujada y siguiendo la vela en curso; cambios de Settings llegando a un gráfico abierto; vista de móvil.
+- **Resultado:** ✅ AC 1–12 (AC 8: la vista partida comparte un broker, ver tarea 4).
+- **Est vs Actual:** 1 SP · 1 SP (el reordenado para subir solo el backend).
+
+## Tarea 11 · [backend] Ruta antigua quitada
+
+- **Mecanismo:** lint + typecheck + tests + build; búsqueda en `frontend/` y `backend/`.
+- **Pasos:** borrado `routes/chart-indicators.ts` y quitado su montaje de `app.ts`; nada en `frontend/src` llamaba ya a `/chart-indicators`.
+- **Resultado:** ✅ 202 tests en verde.
+- **Est vs Actual:** 0.25 SP · 0.1 SP.
+
+## Tarea 12 · [db] Tabla antigua borrada
+
+- **Mecanismo:** `prisma validate` + `prisma generate` + build; `prisma migrate diff` desde producción.
+- **Pasos:** migración `20261119300000_drop_chart_indicators` (`DROP TABLE "chart_indicators"`); quitados el modelo `ChartIndicators` y la relación `User.chartIndicators`. Subida junto con la tarea 11: el deploy aplica la migración antes de arrancar el código nuevo, que ya no lee la tabla.
+- **Resultado:** ✅ el diff desde producción es solo la tabla y su clave ajena, que el `DROP TABLE` quita.
+- **Est vs Actual:** 0.5 SP · 0.15 SP.

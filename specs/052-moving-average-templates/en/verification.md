@@ -78,3 +78,24 @@
 - **Steps:** `backend/docs/architecture.md`: router `/ma-templates` and `/chart-indicators` marked unused, WS `ma_templates`, section "Moving average templates (spec 052)" (default rule, assignment per broker and timeframe with its fallback, cascade, validation, Settings › Display and the chart button, SMA in the frontend, spec 053 pending), tables `ma_templates` and `ma_template_brokers`, `chart_indicators` marked for removal. `.claude/CLAUDE.md`: section "Plantillas de medias móviles (spec 052)", 20 routers, models `MaTemplate` and `MaTemplateBroker`.
 - **Outcome:** ✅
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Task 10 · [infra] Deploy and production validation
+
+- **Pushes (2026-11-19), one layer at a time:** backend `7b335a4`…`3acb4a7` (task 2) and `cdbcac3` + `e2bf080` (tasks 6–7, from a worktree); frontend `6ed372f`…`276b61d` alone (build 283); docs `4f4b922` (task 9) (backend pipeline, no code change). Every pipeline green.
+- **Operator validation on `amfxtrading.com`, desktop and phone:** charts unchanged with the default template (AC 6); templates section in Settings › Display; template chosen from the chart, per broker and only for a timeframe; an SMA drawn and following the live candle; Settings changes reaching an open chart; phone layout.
+- **Outcome:** ✅ AC 1–12 (AC 8: the split view shares one broker, see task 4).
+- **Est vs Actual:** 1 SP · 1 SP (the reorder to push the backend alone).
+
+## Task 11 · [backend] Old route removed
+
+- **Mechanism:** lint + typecheck + tests + build; search of `frontend/` and `backend/`.
+- **Steps:** `routes/chart-indicators.ts` deleted and its mount removed from `app.ts`; nothing in `frontend/src` called `/chart-indicators` any more.
+- **Outcome:** ✅ 202 tests green.
+- **Est vs Actual:** 0.25 SP · 0.1 SP.
+
+## Task 12 · [db] Old table dropped
+
+- **Mechanism:** `prisma validate` + `prisma generate` + build; `prisma migrate diff` from production.
+- **Steps:** migration `20261119300000_drop_chart_indicators` (`DROP TABLE "chart_indicators"`); model `ChartIndicators` and the `User.chartIndicators` relation removed. Pushed together with task 11: the deploy applies the migration before starting the new code, which no longer reads the table.
+- **Outcome:** ✅ the diff from production is only the table and its foreign key, both removed by the `DROP TABLE`.
+- **Est vs Actual:** 0.5 SP · 0.15 SP.
