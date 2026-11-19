@@ -47,3 +47,27 @@
 - **Change asked after this check:** a template per broker **and timeframe** (AC 12) — tasks 6 to 8 added.
 - **Outcome:** ✅
 - **Est vs Actual:** 3 SP · 1.5 SP.
+
+## Task 6 · [db] Assignment per timeframe
+
+- **Mechanism:** `prisma validate` + `prisma generate`; `prisma migrate diff` from production; dry run on production in a rolled-back transaction.
+- **Steps:** migration `20261119200000_ma_template_timeframes`: `timeframe` text not null default `''` (every timeframe), key `(userId, broker, timeframe)`.
+- **Outcome:** ✅ the diff is exactly the migration's `ALTER TABLE`; the dry run adds the column (production had no assignment then). The commit alone does not build (the route still used the old key); task 7's commit, right after, does.
+- **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Task 7 · [backend] Assignments with a timeframe
+
+- **Mechanism:** vitest + lint + typecheck + build.
+- **Steps:** `GET /ma-templates` returns `assignments` as `[{ broker, timeframe: string | null, templateId }]`; `PUT /assignments` takes an optional `timeframe` (M1, M5, M15, M30, H1, H4, D1, W1, MN; absent or `null` = every timeframe).
+- **Tests:** list shape; broker-wide set and clear; one timeframe set and clear; `H2` refused `400`. Full suite 202 green.
+- **Deploy (2026-11-19):** the local `master` had the frontend commits of tasks 3–5 before these two, so they were cherry-picked onto `origin/master` in a temporary worktree and pushed alone (backend pipeline only); migration applied, `ma_template_brokers` has `timeframe`.
+- **Outcome:** ✅
+- **Est vs Actual:** 0.75 SP · 0.5 SP.
+
+## Task 8 · [frontend] Template per broker and timeframe
+
+- **Mechanism:** `npm run build` + eslint; operator's local check against production.
+- **Steps:** `useMaTemplates`: assignments as a list, `templateFor(broker, timeframe)` and `sourceOf` (broker + timeframe → broker → default), `assign(broker, timeframe | null, templateId | null)`. Each chart slot opens the indicators button with its own timeframe. Panel: "Only on <timeframe>" — ticking keeps the template on screen for that timeframe only, unticking returns the timeframe to the broker's template; with it ticked the select's empty option is "Same as <broker>". Settings list shows "FTMO · H1" for timeframe assignments. At the operator's request: more space above the checkbox and no source line.
+- **Operator check (2026-11-19):** a template on FTMO M15 only (SMA 200, SMA 800), FTMO's other timeframes on their own template, another broker on the default, unticking back to the broker's template, split view with two timeframes, Settings listing the timeframe assignment.
+- **Outcome:** ✅ AC 3, 9, 12.
+- **Est vs Actual:** 1.5 SP · 1 SP.

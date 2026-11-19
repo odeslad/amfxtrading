@@ -47,3 +47,27 @@
 - **Cambio pedido tras esta comprobación:** una plantilla por broker **y temporalidad** (AC 12) — añadidas las tareas 6 a 8.
 - **Resultado:** ✅
 - **Est vs Actual:** 3 SP · 1.5 SP.
+
+## Tarea 6 · [db] Asignación por temporalidad
+
+- **Mecanismo:** `prisma validate` + `prisma generate`; `prisma migrate diff` desde producción; ensayo en producción en una transacción deshecha.
+- **Pasos:** migración `20261119200000_ma_template_timeframes`: `timeframe` texto no nulo por defecto `''` (todas las temporalidades), clave `(userId, broker, timeframe)`.
+- **Resultado:** ✅ el diff es exactamente el `ALTER TABLE` de la migración; el ensayo añade la columna (producción no tenía asignaciones entonces). El commit solo no compila (la ruta aún usaba la clave antigua); el de la tarea 7, justo después, sí.
+- **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Tarea 7 · [backend] Asignaciones con temporalidad
+
+- **Mecanismo:** vitest + lint + typecheck + build.
+- **Pasos:** `GET /ma-templates` devuelve `assignments` como `[{ broker, timeframe: string | null, templateId }]`; `PUT /assignments` recibe un `timeframe` opcional (M1, M5, M15, M30, H1, H4, D1, W1, MN; ausente o `null` = todas).
+- **Tests:** forma de la lista; asignación de todo el broker puesta y quitada; una temporalidad puesta y quitada; `H2` rechazada `400`. Suite completa 202 en verde.
+- **Deploy (19-nov-2026):** el `master` local tenía los commits del frontend de las tareas 3–5 delante de estos dos, así que se aplicaron sobre `origin/master` en un worktree temporal y se subieron solos (solo el pipeline del backend); migración aplicada, `ma_template_brokers` tiene `timeframe`.
+- **Resultado:** ✅
+- **Est vs Actual:** 0.75 SP · 0.5 SP.
+
+## Tarea 8 · [frontend] Plantilla por broker y temporalidad
+
+- **Mecanismo:** `npm run build` + eslint; comprobación local del operador contra producción.
+- **Pasos:** `useMaTemplates`: asignaciones como lista, `templateFor(broker, timeframe)` y `sourceOf` (broker + temporalidad → broker → por defecto), `assign(broker, timeframe | null, templateId | null)`. Cada lado del gráfico abre el botón de indicadores con su temporalidad. Panel: «Only on <temporalidad>» — marcarlo deja la plantilla visible solo para esa temporalidad, desmarcarlo devuelve la temporalidad a la plantilla del broker; marcado, la opción vacía del selector es «Same as <broker>». La lista de Settings muestra «FTMO · H1» para las asignaciones por temporalidad. A petición del operador: más espacio sobre la casilla y sin línea de origen.
+- **Comprobación del operador (19-nov-2026):** una plantilla solo en FTMO M15 (SMA 200, SMA 800), las demás temporalidades de FTMO con su plantilla, otro broker con la de por defecto, desmarcar vuelve a la plantilla del broker, vista partida con dos temporalidades, Settings mostrando la asignación por temporalidad.
+- **Resultado:** ✅ AC 3, 9, 12.
+- **Est vs Actual:** 1.5 SP · 1 SP.
