@@ -15,3 +15,12 @@
 - **Tests:** 14 new in `server-monitor.test.ts` (CPU % over all cores, nothing when no time passed, average, probe parsing incl. PowerShell's single-object lists and foreign output, minute row with averaged CPU and probe figures, no row before the first reading, previous probe kept on failure, events only from an events run, 7-day cleanup cutoff, database error survived). Full suite 180 tests green; lint, typecheck and build clean.
 - **Outcome:** ✅
 - **Est vs Actual:** 3 SP · 1.5 SP.
+
+## Task 3 · [backend] Routes /server
+
+- **Mechanism:** vitest on a throwaway Express server with `requireAuth` and a real JWT cookie + lint + typecheck + build; the 7-day query run on the production PostgreSQL 17 over the SSH tunnel with inline rows (nothing written).
+- **Steps:** `src/routes/server.ts`, mounted in `app.ts` as `/server` behind `requireAuth`. `GET /server` joins the monitor snapshot with every broker of `brokers.json` (terminal running and memory from the probe, pipe and tick age from `store/liveness`); `lastBootAfterCrash` when an event 41 lies between 1 min before and 15 min after the last boot; `staleS` = age of the last probe; `503` when the monitor is off. `GET /server/history?range=24h|7d`: 24h the minute rows, 7d `date_bin('10 minutes')` averages in SQL; another range `400`.
+- **SQL check:** three inline rows at 12:01, 12:07 and 12:12 → buckets 12:00 (CPU 15, memory 3 050, page file 900 — the null ignored) and 12:10 (30, 3 200, 950).
+- **Tests:** 9 new in `server.test.ts` (range parsing, crash-boot window, 401 without session on both routes, 503 with the monitor off, the joined report, the report before the first probe, 24h rows and their cut-off, 7d bucketing query, 400 for another range). A first run failed in the full suite on an exact tick age (the suite is slower than the file alone); the assertion now checks a bound. Full suite 189 tests green; lint, typecheck and build clean.
+- **Outcome:** ✅
+- **Est vs Actual:** 1.5 SP · 0.75 SP.

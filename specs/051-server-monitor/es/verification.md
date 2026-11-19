@@ -15,3 +15,12 @@
 - **Tests:** 14 nuevos en `server-monitor.test.ts` (% de CPU sobre todos los núcleos, nada si no pasó tiempo, media, lectura de la sonda incluidas las listas de un solo objeto de PowerShell y salidas ajenas, fila por minuto con CPU media y datos de la sonda, ninguna fila antes de la primera lectura, sonda anterior conservada si falla, eventos solo de una ejecución con eventos, corte de limpieza de 7 días, error de base de datos superado). Suite completa 180 tests en verde; lint, typecheck y build limpios.
 - **Resultado:** ✅
 - **Est vs Actual:** 3 SP · 1.5 SP.
+
+## Tarea 3 · [backend] Rutas /server
+
+- **Mecanismo:** vitest sobre un servidor Express de usar y tirar con `requireAuth` y una cookie JWT real + lint + typecheck + build; la consulta de 7 días ejecutada en el PostgreSQL 17 de producción por el túnel SSH con filas en línea (sin escribir nada).
+- **Pasos:** `src/routes/server.ts`, montado en `app.ts` como `/server` detrás de `requireAuth`. `GET /server` une la foto del monitor con cada broker de `brokers.json` (terminal en marcha y memoria de la sonda, pipe y antigüedad del tick de `store/liveness`); `lastBootAfterCrash` cuando hay un evento 41 entre 1 min antes y 15 min después del último arranque; `staleS` = antigüedad de la última sonda; `503` con el monitor apagado. `GET /server/history?range=24h|7d`: 24h las filas por minuto, 7d medias con `date_bin('10 minutes')` en SQL; otro rango `400`.
+- **Comprobación SQL:** tres filas en línea a las 12:01, 12:07 y 12:12 → tramos 12:00 (CPU 15, memoria 3 050, fichero de paginación 900 — el nulo ignorado) y 12:10 (30, 3 200, 950).
+- **Tests:** 9 nuevos en `server.test.ts` (lectura del rango, ventana de arranque tras cuelgue, 401 sin sesión en las dos rutas, 503 con el monitor apagado, el informe unido, el informe antes de la primera sonda, filas de 24h y su corte, consulta de tramos de 7d, 400 para otro rango). Una primera ejecución falló en la suite completa por una antigüedad de tick exacta (la suite va más lenta que el fichero solo); la comprobación usa ahora un límite. Suite completa 189 tests en verde; lint, typecheck y build limpios.
+- **Resultado:** ✅
+- **Est vs Actual:** 1.5 SP · 0.75 SP.
