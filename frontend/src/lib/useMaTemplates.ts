@@ -10,9 +10,19 @@ export interface MaTemplate {
   averages: MovingAverage[];
 }
 
+// One assignment: a broker on every timeframe (timeframe null) or on one.
+export interface MaAssignment {
+  broker: string;
+  timeframe: string | null;
+  templateId: number;
+}
+
+// Where a chart's template comes from: its broker and timeframe, its broker, or the default.
+export type MaSource = 'timeframe' | 'broker' | 'default';
+
 interface MaTemplatesResponse {
   templates: MaTemplate[];
-  assignments: Record<string, number>;
+  assignments: MaAssignment[];
 }
 
 const HIDDEN_KEY = 'chart.maHidden';
@@ -26,11 +36,11 @@ const readHidden = (): string[] => {
   }
 };
 
-// Moving average templates (spec 052): each broker draws its assigned template, or the
-// default one. Reloaded when the backend says they changed (from this or another tab).
-// Hidden averages are a per-device choice, kept in localStorage.
+// Moving average templates (spec 052): a chart draws the template assigned to its broker on
+// its timeframe, else to its broker, else the default. Reloaded when the backend says they
+// changed (from this or another tab). Hidden averages are a per-device choice.
 export function useMaTemplates() {
-  const [data, setData] = useState<MaTemplatesResponse>({ templates: [], assignments: {} });
+  const [data, setData] = useState<MaTemplatesResponse>({ templates: [], assignments: [] });
   const [hidden, setHidden] = useState<string[]>(readHidden);
 
   const reload = useCallback((signal?: AbortSignal) =>
@@ -48,13 +58,26 @@ export function useMaTemplates() {
 
   const defaultTemplate = useMemo(() => data.templates.find(t => t.isDefault) ?? null, [data.templates]);
 
-  const templateFor = useCallback((broker: string): MaTemplate | null => {
-    const id = data.assignments[broker];
-    return data.templates.find(t => t.id === id) ?? defaultTemplate;
-  }, [data, defaultTemplate]);
+  const assignmentOf = useCallback((broker: string, timeframe: string | null): MaAssignment | undefined =>
+    data.assignments.find(a => a.broker === broker && a.timeframe === timeframe), [data.assignments]);
 
-  const averagesFor = useCallback((broker: string): MovingAverage[] =>
-    (templateFor(broker)?.averages ?? []).filter(a => !hidden.includes(a.id)), [templateFor, hidden]);
+  const sourceOf = useCallback((broker: string, timeframe: string): MaSource => {
+    const byTf = assignmentOf(broker, timeframe);
+    if (byTf && data.templates.some(t => t.id === byTf.templateId)) return 'timeframe';
+    const byBroker = assignmentOf(broker, null);
+    if (byBroker && data.templates.some(t => t.id === byBroker.templateId)) return 'broker';
+    return 'default';
+  }, [assignmentOf, data.templates]);
+
+  const templateFor = useCallback((broker: string, timeframe: string): MaTemplate | null => {
+    const source = sourceOf(broker, timeframe);
+    if (source === 'default') return defaultTemplate;
+    const id = assignmentOf(broker, source === 'timeframe' ? timeframe : null)?.templateId;
+    return data.templates.find(t => t.id === id) ?? defaultTemplate;
+  }, [sourceOf, assignmentOf, data.templates, defaultTemplate]);
+
+  const averagesFor = useCallback((broker: string, timeframe: string): MovingAverage[] =>
+    (templateFor(broker, timeframe)?.averages ?? []).filter(a => !hidden.includes(a.id)), [templateFor, hidden]);
 
   const toggleHidden = useCallback((id: string) => {
     setHidden(prev => {
@@ -64,8 +87,9 @@ export function useMaTemplates() {
     });
   }, []);
 
-  const assign = useCallback(async (broker: string, templateId: number | null) => {
-    await apiSend('/ma-templates/assignments', 'PUT', { broker, templateId });
+  // templateId null clears that assignment (the timeframe row, or the broker row).
+  const assign = useCallback(async (broker: string, timeframe: string | null, templateId: number | null) => {
+    await apiSend('/ma-templates/assignments', 'PUT', { broker, timeframe, templateId });
     await reload();
   }, [reload]);
 
@@ -73,6 +97,8 @@ export function useMaTemplates() {
     templates: data.templates,
     assignments: data.assignments,
     defaultTemplate,
+    assignmentOf,
+    sourceOf,
     templateFor,
     averagesFor,
     hidden,

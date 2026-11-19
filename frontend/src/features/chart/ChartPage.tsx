@@ -117,6 +117,7 @@ export function ChartPage() {
   // Price shown by the alerts panel; fed only while the panel is open.
   const [panelPrice, setPanelPrice] = useState<number | null>(null);
   const [indicatorsOpen, setIndicatorsOpen] = useState(false);
+  const [indicatorsTimeframe, setIndicatorsTimeframe] = useState('H1');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [newTradeOpen, setNewTradeOpen] = useState(false);
@@ -449,7 +450,7 @@ export function ChartPage() {
   }, [broker, acceptPositions]);
 
   // Stable handlers so the memoised panels and toolbar skip renders (spec 019).
-  const openIndicators = useCallback(() => setIndicatorsOpen(true), []);
+  const openIndicators = useCallback((tf: string) => { setIndicatorsTimeframe(tf); setIndicatorsOpen(true); }, []);
   const closeIndicators = useCallback(() => setIndicatorsOpen(false), []);
   const openFilters = useCallback(() => setFiltersOpen(true), []);
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
@@ -603,9 +604,11 @@ export function ChartPage() {
         open={indicatorsOpen}
         onClose={closeIndicators}
         broker={broker}
+        timeframe={indicatorsTimeframe}
         templates={maTemplates.templates}
-        assignedId={maTemplates.assignments[broker] ?? null}
-        template={maTemplates.templateFor(broker)}
+        template={maTemplates.templateFor(broker, indicatorsTimeframe)}
+        source={maTemplates.sourceOf(broker, indicatorsTimeframe)}
+        assignmentOf={maTemplates.assignmentOf}
         hidden={maTemplates.hidden}
         onToggleHidden={maTemplates.toggleHidden}
         onAssign={maTemplates.assign}

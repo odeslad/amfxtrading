@@ -33,7 +33,7 @@ interface ChartSlotProps {
   positions: Position[];
   balance?: number;
   // Spec 052: the moving averages of a broker's template, minus those hidden on this device.
-  averagesFor: (broker: string) => MovingAverage[];
+  averagesFor: (broker: string, timeframe: string) => MovingAverage[];
   trendlineAppearance: TrendlineAppearance;
   showSpread: boolean;
   pnlMode: PnlMode;
@@ -43,7 +43,8 @@ interface ChartSlotProps {
   onEditAlertPrice: (alert: PriceAlert) => void;
   onToggleAlert: (alert: PriceAlert) => void;
   onDeleteAlert: (alert: PriceAlert) => void;
-  onIndicators: () => void;
+  // Spec 052: the indicators button is about this slot's timeframe (the split view has two).
+  onIndicators: (timeframe: string) => void;
   onFilters: () => void;
   onAlerts: () => void;
   alertsActive: boolean;
@@ -130,7 +131,8 @@ export function ChartSlot({
   onNewTrade, onEditPosition, onClosePosition, onModifyPosition, onFullscreen, isFullscreen,
   splitAvailable, splitActive, onSplit,
 }: ChartSlotProps) {
-  const emas = useMemo(() => averagesFor(broker), [averagesFor, broker]);
+  const emas = useMemo(() => averagesFor(broker, timeframe), [averagesFor, broker, timeframe]);
+  const openIndicators = useCallback(() => onIndicators(timeframe), [onIndicators, timeframe]);
   const [candles, setCandles] = useState<Candle[]>([]);
   // Live candle: pushed into the chart through its handle, never slot state (spec 019).
   const chartRef = useRef<ChartHandle>(null);
@@ -321,7 +323,7 @@ export function ChartSlot({
         onBrokerChange={onBrokerChange}
         onSymbolChange={onSymbolChange}
         onTimeframeChange={onTimeframeChange}
-        onIndicators={onIndicators}
+        onIndicators={openIndicators}
         onFilters={onFilters}
         drawMode={drawMode}
         onDrawMode={toggleDrawMode}

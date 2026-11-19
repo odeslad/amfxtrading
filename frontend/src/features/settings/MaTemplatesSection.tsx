@@ -48,7 +48,7 @@ export function MaTemplatesSection() {
 
   const brokersOf = useMemo(() => {
     const map = new Map<number, string[]>();
-    for (const [broker, id] of Object.entries(assignments)) map.set(id, [...(map.get(id) ?? []), broker]);
+    for (const a of assignments) map.set(a.templateId, [...(map.get(a.templateId) ?? []), a.timeframe ? `${a.broker} · ${a.timeframe}` : a.broker]);
     return map;
   }, [assignments]);
 

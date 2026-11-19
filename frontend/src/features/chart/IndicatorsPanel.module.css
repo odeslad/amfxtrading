@@ -135,6 +135,22 @@
 }
 
 .select:focus { border-color: var(--orange); }
+
+.onlyTf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: var(--text-sm);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.onlyTf input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--orange);
+}
 .select:disabled { opacity: 0.5; }
 
 .link {
@@ -145,6 +161,12 @@
 }
 
 .link:hover { color: var(--text); }
+
+.error {
+  margin: 8px 0 0;
+  color: var(--red);
+  font-size: var(--text-sm);
+}
 
 .empty,
 .note {
