@@ -42,3 +42,41 @@
 - **Nota:** npm escribe avisos por la salida de error, lo que paró el script con `ErrorActionPreference = Stop` después de instalar pm2; el resto se lanzó aparte.
 - **Resultado:** ✅
 - **Est vs Actual:** 1.5 SP · 0.5 SP.
+
+## Tarea 3 · [infra] Proyecto en el XL+
+
+- **Mecanismo:** los pasos de build de los scripts de deploy ejecutados a mano por SSH; `/health` y nginx comprobados en el XL+.
+- **Pasos (19-nov-2026):** `git clone` del repositorio público en `C:\amfxtrading` (`c2c4730`, el `master` subido); `backend\.env` y `backend\brokers.json` copiados del M+, `FEATURE_ALERTS=false` puesto con node (sin BOM); backend `npm install`, `prisma generate`, `tsc --outDir dist`; frontend `.env.production` con `VITE_API_BASE=https://api.amfxtrading.com`, `npm ci`, `npm run build`; tras la base de datos de la tarea 4, `prisma migrate status` («Database schema is up to date!»), `pm2 start ecosystem.config.js`, `pm2 save`.
+- **Resultado:** ✅ `http://localhost:3000/health` en el XL+ responde con los 13 brokers en `listening` (aún sin terminales); `http://localhost/` por nginx responde 200 con el frontend compilado. El frontend llama a `api.amfxtrading.com`, que es el M+ hasta el cambio, así que la app en el navegador se comprueba en la tarea 9.
+- **Est vs Actual:** 1 SP · 0.5 SP.
+
+## Tarea 4 · [db] Ensayo de la copia de la base de datos
+
+- **Mecanismo:** `pg_dump -Fc` en el M+, paso por el PC, `pg_restore --no-owner` en una base de datos `amfxtrading` nueva en el XL+; `count(*)` exacto de cada tabla pública en los dos lados con el mismo script.
+- **Tiempos:** volcado 9,2 s (38,1 MB) · transferencia 6,7 s · restauración 21,2 s — unos 37 s en total.
+- **Número de filas (igual en los dos servidores):**
+
+| Tabla | Filas |
+|---|---|
+| `_prisma_migrations` | 41 |
+| `balance_operations` | 626 |
+| `balances` | 895 |
+| `book_schemes` | 459 |
+| `book_trades` | 888 |
+| `candle_syncs` | 65 |
+| `candles` | 3 125 066 |
+| `chart_indicators` | 1 |
+| `drawings` | 48 |
+| `ema_cross_alerts` | 0 |
+| `ema_notification_events` | 25 |
+| `ema_notifications` | 1 |
+| `mirror_presets` | 7 |
+| `position_colors` | 0 |
+| `price_alerts` | 1 |
+| `push_subscriptions` | 2 |
+| `settings_display` | 1 |
+| `trades` | 50 783 |
+| `users` | 1 |
+
+- **Resultado:** ✅ 19 tablas, mismos números; `prisma migrate status` al día en el XL+.
+- **Est vs Actual:** 0.5 SP · 0.25 SP.
