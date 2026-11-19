@@ -22,6 +22,8 @@ interface Marker {
 }
 
 const STEP_S: Record<HistoryRange, number> = { '24h': 60, '7d': 600 };
+// Samples come every step ±1 s; one missing sample (a backend restart) already breaks the line.
+const GAP_FACTOR = 1.5;
 const HEIGHT_KEY = 'amfx.server.chartHeight';
 const MIN_HEIGHT = 140;
 const MAX_HEIGHT = 600;
@@ -46,7 +48,7 @@ function seriesOf(history: HistoryPoint[], step: number, pick: (p: HistoryPoint)
   let prev: number | null = null;
   for (const p of history) {
     const ms = Date.parse(p.t);
-    if (prev !== null && ms - prev > 2.5 * step * 1000) out.push({ time: toChartTime(prev + step * 1000) });
+    if (prev !== null && ms - prev > GAP_FACTOR * step * 1000) out.push({ time: toChartTime(prev + step * 1000) });
     const value = pick(p);
     out.push(value === null ? { time: toChartTime(ms) } : { time: toChartTime(ms), value });
     prev = ms;
@@ -105,7 +107,7 @@ export function ServerCharts({ history, range, onRange, events }: ServerChartsPr
         vertLine: { color: 'rgba(255,255,255,0.2)', labelBackgroundColor: '#1e1e1e', width: 1, style: LineStyle.Dashed },
         horzLine: { color: 'rgba(255,255,255,0.2)', labelBackgroundColor: '#1e1e1e', width: 1, style: LineStyle.Dashed },
       },
-      leftPriceScale: { visible: true, borderColor: 'rgba(255,255,255,0.08)' },
+      leftPriceScale: { visible: true, borderColor: 'rgba(255,255,255,0.08)', scaleMargins: { top: 0.04, bottom: 0.02 } },
       rightPriceScale: { visible: true, borderColor: 'rgba(255,255,255,0.08)' },
       timeScale: { borderColor: 'rgba(255,255,255,0.08)', timeVisible: true, secondsVisible: false, rightOffset: 0, minBarSpacing: 0.01 },
       handleScroll: false,
