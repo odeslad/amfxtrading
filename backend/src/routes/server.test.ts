@@ -138,3 +138,21 @@ describe('GET /server/history', () => {
     expect((await get('/history?range=30d')).status).toBe(400);
   });
 });
+
+describe('GET /server/gaps', () => {
+  it('lists the holes between minute rows, for the 7-day range too', async () => {
+    db.$queryRaw.mockResolvedValue([{ from: new Date('2026-11-19T14:15:41Z'), to: new Date('2026-11-19T14:17:14Z') }]);
+    const res = await get('/gaps?range=7d');
+    expect(await res.json()).toEqual([{ from: '2026-11-19T14:15:41.000Z', to: '2026-11-19T14:17:14.000Z' }]);
+    const call = db.$queryRaw.mock.calls[0];
+    const sql = (call[0] as TemplateStringsArray).join('?');
+    expect(sql).toContain('lag("time")');
+    expect(call[2]).toBe(90);
+    expect(Math.abs(Date.now() - 7 * 24 * 3_600_000 - (call[1] as Date).getTime())).toBeLessThan(5_000);
+  });
+
+  it('needs a session and a valid range', async () => {
+    expect((await get('/gaps', false)).status).toBe(401);
+    expect((await get('/gaps?range=1y')).status).toBe(400);
+  });
+});

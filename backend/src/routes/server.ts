@@ -99,6 +99,23 @@ export async function history(range: HistoryRange, now: Date): Promise<HistoryPo
   return rows.map((r) => ({ t: r.t.toISOString(), cpu: r.cpu, memUsedMb: r.memUsedMb, pageFileMb: r.pageFileMb }));
 }
 
+export interface Gap { from: string; to: string }
+
+// Samples are written every 60 s ± 1 s: more than 90 s between two means at least one
+// minute was not recorded (backend or server down). Read from the minute rows, so even the
+// 7-day chart, which averages them into 10-minute buckets, can mark short restarts.
+export const GAP_S = 90;
+
+export async function gaps(range: HistoryRange, now: Date): Promise<Gap[]> {
+  const since = new Date(now.getTime() - RANGE_MS[range]);
+  const rows = await db.$queryRaw<{ from: Date; to: Date }[]>`
+    SELECT prev AS "from", "time" AS "to"
+    FROM (SELECT "time", lag("time") OVER (ORDER BY "time") AS prev FROM "server_samples" WHERE "time" >= ${since}) s
+    WHERE prev IS NOT NULL AND "time" - prev > make_interval(secs => ${GAP_S})
+    ORDER BY "time"`;
+  return rows.map((r) => ({ from: r.from.toISOString(), to: r.to.toISOString() }));
+}
+
 const router = Router();
 
 const requireMonitor = () => {
@@ -114,6 +131,11 @@ router.get('/', (_req, res) => {
 router.get('/history', asyncRoute(async (req, res) => {
   const range = parseRange(singleQuery(req.query, 'range'));
   res.json(await history(range, new Date()));
+}));
+
+router.get('/gaps', asyncRoute(async (req, res) => {
+  const range = parseRange(singleQuery(req.query, 'range'));
+  res.json(await gaps(range, new Date()));
 }));
 
 export default router;
