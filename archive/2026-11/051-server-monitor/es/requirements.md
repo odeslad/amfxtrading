@@ -1,6 +1,6 @@
 # 051 — Monitor del servidor en Settings
 
-> Status: **approved**
+> Status: **closed**
 
 ## Contexto
 

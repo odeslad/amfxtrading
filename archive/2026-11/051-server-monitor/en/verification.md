@@ -54,3 +54,31 @@
 - **Steps:** `backend/docs/architecture.md`: `FEATURE_SERVER_MONITOR` in the flags paragraph and the environment table (with the warning about a local backend), `scripts/server-probe.ps1` and `services/server-monitor.ts` in the project tree, router `/server`, section "Server monitor (spec 051)", table `server_samples`, and the local run (flag off; Vite proxied to the production API to look at the tab). `.claude/CLAUDE.md`: section "Monitor del servidor (spec 051)", 19 routers with `/server`, model `ServerSample`, the flag.
 - **Outcome:** ✅ both describe the same collectors, intervals, table, retention, routes and flag.
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Task 7 · [infra] Deploy and production validation
+
+- **Pushes (2026-11-19), one layer at a time:** backend `8b2a10c`…`c7b9d05` (see above); frontend `489c339` + `37dc310`; docs `deab07f` (backend pipeline, restart); frontend fixes `b7e21d0`, `27a452d` + `f335f91`; backend `e7b7411`; frontend `71b0772`, `0b2a1a6`. Every pipeline green; the frontend build checked on the XL+ after each push.
+- **AC 9:** probe 0.55 s a minute (1.2 s with events, every 10 min) ≈ 0.1 % of the 8 cores; the backend process, with all its normal work, 0.8–1.5 % of the machine.
+- **AC 7, gaps:** the docs deploy restarted the backend: rows 14:15:41 → 14:17:14 UTC (93 s). Findings fixed on the way: (1) the chart joined lines across the gap — lightweight-charts 5.2 joins a line over whitespace points, so the last point before a gap now gets a transparent colour (its segment is drawn in its colour), and the break threshold went from 2.5 to 1.5 samples, since samples come every 60 s ± 1 s; (2) the CPU scale showed 120 % — margins removed; (3) at the operator's request a hole without a Windows event is marked in orange as a backend restart (red stays for crashes, gold for unexpected shutdowns); (4) markers were shifted left by the width of the CPU scale — `timeToCoordinate` counts from the plot area; (5) the 7-day chart averages 10-minute buckets and hid short holes — new `GET /server/gaps?range=` (holes > 90 s between minute rows, `lag()` in SQL, 2 vitest) and markers placed by interpolation between points, close holes sharing one label; (6) labels made compact at the operator's request: time and duration on the chart, the reason as a tooltip.
+- **Operator validation (2026-11-19):** desktop and phone at `amfxtrading.com` › Settings › Server — machine header, gauges, services and backend, terminals (cards on the phone), crashes list, collapsible sections, resizable chart, the two backend restarts (15:15 and 15:37 local) marked in orange in 24H and 7D with their gap and restart lines.
+- **Phone:** the crashes header wrapped its title and its summary on a phone; it now shows "Crashes · 30 days" at ≤ 768 px and summaries never wrap.
+- **Outcome:** ✅ AC 1–11.
+- **Est vs Actual:** 1 SP · 2.5 SP (the six chart findings, the gaps endpoint).
+
+## Task 8 · [specs] Close
+
+- **Est vs Actual:** 0.25 SP · 0.25 SP.
+
+## Est vs Actual
+
+| Task | Est | Actual |
+|---|---|---|
+| 1 | 0.5 | 0.25 |
+| 2 | 3 | 1.5 |
+| 3 | 1.5 | 0.75 |
+| 4 | 3 | 1.5 |
+| 5 | 2 | 1 |
+| 6 | 0.5 | 0.25 |
+| 7 | 1 | 2.5 |
+| 8 | 0.25 | 0.25 |
+| **Total** | **11.75** | **8** |

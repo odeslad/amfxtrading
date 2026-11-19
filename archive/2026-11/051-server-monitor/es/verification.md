@@ -54,3 +54,31 @@
 - **Pasos:** `backend/docs/architecture.md`: `FEATURE_SERVER_MONITOR` en el párrafo de flags y en la tabla de entorno (con el aviso sobre un backend local), `scripts/server-probe.ps1` y `services/server-monitor.ts` en el árbol del proyecto, router `/server`, sección «Server monitor (spec 051)», tabla `server_samples` y la ejecución en local (flag apagado; Vite con proxy al API de producción para ver la pestaña). `.claude/CLAUDE.md`: sección «Monitor del servidor (spec 051)», 19 routers con `/server`, modelo `ServerSample`, el flag.
 - **Resultado:** ✅ los dos describen los mismos recolectores, intervalos, tabla, retención, rutas y flag.
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Tarea 7 · [infra] Despliegue y validación en producción
+
+- **Pushes (19-nov-2026), una capa cada vez:** backend `8b2a10c`…`c7b9d05` (ver arriba); frontend `489c339` + `37dc310`; documentación `deab07f` (pipeline del backend, reinicio); arreglos del frontend `b7e21d0`, `27a452d` + `f335f91`; backend `e7b7411`; frontend `71b0772`, `0b2a1a6`. Todos los pipelines en verde; el build del frontend comprobado en el XL+ tras cada push.
+- **AC 9:** sonda 0,55 s por minuto (1,2 s con eventos, cada 10 min) ≈ 0,1 % de los 8 núcleos; el proceso del backend, con todo su trabajo normal, 0,8–1,5 % de la máquina.
+- **AC 7, huecos:** el deploy de la documentación reinició el backend: filas 14:15:41 → 14:17:14 UTC (93 s). Hallazgos corregidos por el camino: (1) la gráfica unía las líneas por encima del hueco — lightweight-charts 5.2 une una línea a través de los puntos vacíos, así que el último punto antes de un hueco lleva ahora color transparente (su tramo se dibuja con su color), y el umbral de corte pasó de 2,5 a 1,5 muestras, porque llegan cada 60 s ± 1 s; (2) la escala de CPU llegaba al 120 % — márgenes quitados; (3) a petición del operador, un hueco sin evento de Windows se marca en naranja como reinicio del backend (rojo sigue siendo cuelgue, dorado apagado inesperado); (4) las marcas salían desplazadas a la izquierda el ancho de la escala de CPU — `timeToCoordinate` cuenta desde el área de dibujo; (5) la gráfica de 7 días promedia tramos de 10 minutos y ocultaba los huecos cortos — nuevo `GET /server/gaps?range=` (huecos > 90 s entre filas por minuto, `lag()` en SQL, 2 vitest) y marcas colocadas por interpolación entre puntos, con una sola etiqueta para huecos cercanos; (6) etiquetas compactas a petición del operador: hora y duración en la gráfica, el motivo como tooltip.
+- **Validación del operador (19-nov-2026):** escritorio y móvil en `amfxtrading.com` › Settings › Server — cabecera de la máquina, indicadores, servicios y backend, terminales (tarjetas en el móvil), lista de cuelgues, secciones plegables, gráfica redimensionable, los dos reinicios del backend (15:15 y 15:37 hora local) marcados en naranja en 24H y 7D con su hueco y sus líneas de reinicio.
+- **Móvil:** la cabecera de cuelgues partía el título y el resumen en el móvil; ahora muestra «Crashes · 30 days» a ≤ 768 px y los resúmenes no se parten.
+- **Resultado:** ✅ AC 1–11.
+- **Est vs Actual:** 1 SP · 2.5 SP (los seis hallazgos de la gráfica, el endpoint de huecos).
+
+## Tarea 8 · [specs] Cierre
+
+- **Est vs Actual:** 0.25 SP · 0.25 SP.
+
+## Est vs Actual
+
+| Tarea | Est | Real |
+|---|---|---|
+| 1 | 0.5 | 0.25 |
+| 2 | 3 | 1.5 |
+| 3 | 1.5 | 0.75 |
+| 4 | 3 | 1.5 |
+| 5 | 2 | 1 |
+| 6 | 0.5 | 0.25 |
+| 7 | 1 | 2.5 |
+| 8 | 0.25 | 0.25 |
+| **Total** | **11.75** | **8** |
