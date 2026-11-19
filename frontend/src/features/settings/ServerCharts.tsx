@@ -3,11 +3,12 @@ import {
   createChart, LineSeries, LineStyle, CrosshairMode,
   type IChartApi, type Time, type LineData, type WhitespaceData,
 } from 'lightweight-charts';
-import type { HistoryPoint, HistoryRange, ServerEvent } from '../../lib/useServerStatus';
+import type { HistoryGap, HistoryPoint, HistoryRange, ServerEvent } from '../../lib/useServerStatus';
 import styles from './ServerCharts.module.css';
 
 interface ServerChartsProps {
   history: HistoryPoint[] | null;
+  gaps: HistoryGap[] | null;
   range: HistoryRange;
   onRange: (range: HistoryRange) => void;
   events: ServerEvent[] | null;
@@ -19,7 +20,10 @@ interface Marker {
   gapEnd: number | null;
   label: string;
   tone: 'error' | 'warn' | 'restart';
+  showTag: boolean;
 }
+
+const TAG_SPACING_PX = 260;
 
 const STEP_S: Record<HistoryRange, number> = { '24h': 60, '7d': 600 };
 // Samples come every step ±1 s; one missing sample (a backend restart) already breaks the line.
@@ -63,7 +67,7 @@ function seriesOf(history: HistoryPoint[], step: number, pick: (p: HistoryPoint)
 const formatTime = (iso: string): string =>
   new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-export function ServerCharts({ history, range, onRange, events }: ServerChartsProps) {
+export function ServerCharts({ history, gaps, range, onRange, events }: ServerChartsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [markers, setMarkers] = useState<Marker[]>([]);
@@ -138,36 +142,46 @@ export function ServerCharts({ history, range, onRange, events }: ServerChartsPr
     chart.timeScale().fitContent();
     chartRef.current = chart;
 
-    // Every hole in the samples is marked from the last sample before it to the first after
-    // it: a crash or unclean stop of Windows when the event log has one inside the hole,
-    // otherwise a restart of the backend (deploy, pm2 restart).
-    const gaps: { from: number; to: number }[] = [];
-    for (let i = 1; i < history.length; i++) {
-      const from = Date.parse(history[i - 1].t);
-      const to = Date.parse(history[i].t);
-      if (to - from > GAP_FACTOR * step * 1000) gaps.push({ from, to });
-    }
-    // timeToCoordinate counts from the plot area, which starts after the left (CPU) price scale.
+    // Every hole in the minute samples (from /server/gaps, so the 10-minute buckets of 7D do
+    // not hide short ones) is marked from the last sample before it to the first after it: a
+    // crash or unclean stop of Windows when the event log has one inside the hole, otherwise
+    // a restart of the backend (deploy, pm2 restart).
+    const holes = (gaps ?? []).map(g => ({ from: Date.parse(g.from), to: Date.parse(g.to) }));
+    const times = history.map(p => Date.parse(p.t));
+    // timeToCoordinate only knows the times of the data points and counts from the plot area,
+    // which starts after the left (CPU) price scale: other times are placed between their
+    // neighbouring points.
     const placeMarkers = () => {
       const scale = chart.timeScale();
       const left = chart.priceScale('left').width();
+      const xOf = (ms: number): number | null => scale.timeToCoordinate(toChartTime(ms));
       const toX = (ms: number): number | null => {
-        const x = scale.timeToCoordinate(toChartTime(ms));
-        return x === null ? null : x + left;
+        if (times.length === 0 || ms < times[0] || ms > times[times.length - 1]) return null;
+        const i = times.findIndex(t => t >= ms);
+        if (times[i] === ms) { const x = xOf(ms); return x === null ? null : x + left; }
+        const x0 = xOf(times[i - 1]);
+        const x1 = xOf(times[i]);
+        if (x0 === null || x1 === null) return null;
+        return x0 + (x1 - x0) * ((ms - times[i - 1]) / (times[i] - times[i - 1])) + left;
       };
       const next: Marker[] = [];
-      for (const g of gaps) {
+      let lastTagX = -Infinity;
+      for (const g of holes) {
         const x = toX(g.from);
         if (x === null) continue;
         const event = (events ?? []).find(e => { const at = Date.parse(e.at); return at > g.from && at <= g.to + 15 * 60_000; });
         const downMin = Math.max(1, Math.round((g.to - g.from) / 60_000));
         const what = !event ? 'BACKEND RESTART' : event.kind === 'bugcheck' ? `CRASH ${event.code ?? ''}` : 'UNEXPECTED SHUTDOWN';
+        // Holes close together (7D) keep their lines but share one label.
+        const showTag = x - lastTagX > TAG_SPACING_PX;
+        if (showTag) lastTagX = x;
         next.push({
           key: String(g.from),
           x,
           gapEnd: toX(g.to),
           tone: !event ? 'restart' : event.kind === 'bugcheck' ? 'error' : 'warn',
           label: `${what} · ${formatTime(new Date(g.from).toISOString())} · ${downMin} MIN`,
+          showTag,
         });
       }
       setMarkers(next);
@@ -181,7 +195,7 @@ export function ServerCharts({ history, range, onRange, events }: ServerChartsPr
       chart.remove();
       chartRef.current = null;
     };
-  }, [history, range, events]);
+  }, [history, gaps, range, events]);
 
   return (
     <div className={styles.wrap}>
@@ -208,7 +222,7 @@ export function ServerCharts({ history, range, onRange, events }: ServerChartsPr
             {m.gapEnd !== null && m.gapEnd > m.x && <span className={`${styles.gap} ${styles[`gap_${m.tone}`]}`} style={{ width: m.gapEnd - m.x }} />}
             <span className={`${styles.line} ${styles[`line_${m.tone}`]}`} />
             {m.gapEnd !== null && m.gapEnd > m.x && <span className={styles.restart} style={{ left: m.gapEnd - m.x }} />}
-            <span className={`${styles.tag} ${styles[`tag_${m.tone}`]}`}>{m.label}</span>
+            {m.showTag && <span className={`${styles.tag} ${styles[`tag_${m.tone}`]}`}>{m.label}</span>}
           </div>
         ))}
       </div>

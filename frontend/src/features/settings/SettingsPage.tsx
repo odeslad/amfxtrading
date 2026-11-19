@@ -292,7 +292,7 @@ export function SettingsPage() {
           lastOkAt={server.lastOkAt}
           checkedAt={server.checkedAt}
           failing={server.failing}
-          charts={<ServerCharts history={server.history} range={server.range} onRange={server.setRange} events={server.report?.events ?? null} />}
+          charts={<ServerCharts history={server.history} gaps={server.gaps} range={server.range} onRange={server.setRange} events={server.report?.events ?? null} />}
         />
       )}
       {tab === 'notifications' && (

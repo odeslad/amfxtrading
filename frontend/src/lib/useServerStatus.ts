@@ -39,6 +39,11 @@ export interface ServerReport {
   staleS: number | null;
 }
 
+export interface HistoryGap {
+  from: string;
+  to: string;
+}
+
 export interface HistoryPoint {
   t: string;
   cpu: number;
@@ -57,7 +62,7 @@ export function useServerStatus(active: boolean) {
   const [checkedAt, setCheckedAt] = useState<number | null>(null);
   const [failing, setFailing] = useState(false);
   const [range, setRange] = useState<HistoryRange>('24h');
-  const [loaded, setLoaded] = useState<{ range: HistoryRange; points: HistoryPoint[] } | null>(null);
+  const [loaded, setLoaded] = useState<{ range: HistoryRange; points: HistoryPoint[]; gaps: HistoryGap[] } | null>(null);
 
   const loadStatus = useCallback((signal: AbortSignal) =>
     apiFetch<ServerReport>('/server', { signal })
@@ -75,8 +80,12 @@ export function useServerStatus(active: boolean) {
   useEffect(() => {
     if (!active) return;
     const ac = new AbortController();
-    const load = () => apiFetch<HistoryPoint[]>(`/server/history?range=${range}`, { signal: ac.signal })
-      .then(points => setLoaded({ range, points }))
+    // A backend without /server/gaps (deployed before the frontend) still draws the chart.
+    const load = () => Promise.all([
+      apiFetch<HistoryPoint[]>(`/server/history?range=${range}`, { signal: ac.signal }),
+      apiFetch<HistoryGap[]>(`/server/gaps?range=${range}`, { signal: ac.signal }).catch(() => [] as HistoryGap[]),
+    ])
+      .then(([points, gaps]) => setLoaded({ range, points, gaps }))
       .catch(() => {});
     void load();
     const timer = setInterval(() => void load(), HISTORY_MS);
@@ -85,6 +94,7 @@ export function useServerStatus(active: boolean) {
 
   // Points of another range are not shown while the new range loads.
   const history = loaded?.range === range ? loaded.points : null;
+  const gaps = loaded?.range === range ? loaded.gaps : null;
 
-  return { report, lastOkAt, checkedAt, failing, range, setRange, history };
+  return { report, lastOkAt, checkedAt, failing, range, setRange, history, gaps };
 }
