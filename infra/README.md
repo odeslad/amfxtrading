@@ -5,7 +5,7 @@ Scripts de operación del servidor que no pertenecen a ninguna capa (EA, backend
 ## Qué hace
 
 Tras un reinicio del VPS, Windows entra solo con `Administrator` y dos tareas programadas
-levantan el backend (pm2) y los 10 terminales MT4 de `backend/brokers.json`, sin intervención manual.
+levantan el backend (pm2) y los 13 terminales MT4 de `backend/brokers.json`, sin intervención manual.
 
 ```
 reinicio → autologon Administrator
@@ -47,10 +47,21 @@ que guarda la contraseña cifrada como secreto LSA (no en texto plano en el regi
 
 ```powershell
 Invoke-WebRequest https://live.sysinternals.com/Autologon64.exe -OutFile C:\deploy\Autologon64.exe
-C:\deploy\Autologon64.exe /accepteula Administrator WIN-16ESVKMCVCR <contraseña>
+C:\deploy\Autologon64.exe /accepteula Administrator $env:COMPUTERNAME <contraseña>
 ```
 
 Si se cambia la contraseña de `Administrator`, hay que volver a ejecutarlo.
+
+## Registro de memoria
+
+Dos tareas como `SYSTEM`, al arrancar, que no dependen de la sesión (spec 050):
+
+| Tarea | Script | Escribe |
+|---|---|---|
+| `RAM-Log` | `C:\monitoring\ram-log.ps1`, cada minuto | `C:\monitoring\ram-YYYYMM.csv`: hora, RAM usada y libre, memoria comprometida y su límite, uso del fichero de paginación, terminales abiertos |
+| `PoolWatch` | `C:\pool-watch.ps1`, bucle cada 30 s | `C:\pool-monitor.log`: pools paginado y no paginado del núcleo, RAM libre |
+
+Sirven de evidencia si el servidor vuelve a colgarse: la memoria de los minutos anteriores queda en disco.
 
 ## Comprobar
 
@@ -58,6 +69,7 @@ Si se cambia la contraseña de `Administrator`, hay que volver a ejecutarlo.
 Get-Content C:\monitoring\startup.log -Tail 20
 Get-ScheduledTask -TaskName 'AMFX-*' | Format-Table TaskName, State
 Get-ScheduledTaskInfo -TaskName AMFX-Watchdog | Select-Object LastRunTime, LastTaskResult
+Get-Content "C:\monitoring\ram-$(Get-Date -Format yyyyMM).csv" -Tail 5
 ```
 
 ## Lo que no cubre
