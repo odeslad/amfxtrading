@@ -39,6 +39,35 @@ model CandleSync {
   @@map("candle_syncs")
 }
 
+// Spec 052: named lists of moving averages ({ id, type: 'ema'|'sma', period, color, style, width }).
+// One default per user, kept by routes/ma-templates.ts in a transaction (Prisma cannot
+// express a partial unique index); brokers without a row in ma_template_brokers use it.
+model MaTemplate {
+  id        Int                @id @default(autoincrement())
+  userId    Int
+  user      User               @relation(fields: [userId], references: [id])
+  name      String
+  isDefault Boolean            @default(false)
+  averages  Json               @default("[]")
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @default(now()) @updatedAt
+  brokers   MaTemplateBroker[]
+
+  @@index([userId])
+  @@map("ma_templates")
+}
+
+// Spec 052: the template of each broker; deleting the template deletes the row (back to the default).
+model MaTemplateBroker {
+  userId     Int
+  broker     String
+  templateId Int
+  template   MaTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@id([userId, broker])
+  @@map("ma_template_brokers")
+}
+
 // Spec 051: the server's CPU and memory once a minute (Settings › Server), kept 7 days.
 // pageFileMb and terminals come from the slow probe and are null until its first run.
 model ServerSample {
@@ -129,6 +158,7 @@ model User {
   passwordHash      String
   createdAt         DateTime          @default(now())
   chartIndicators   ChartIndicators?
+  maTemplates       MaTemplate[]
   drawings          Drawing[]
   alerts            PriceAlert[]
   emaCrossAlerts    EmaCrossAlert[]

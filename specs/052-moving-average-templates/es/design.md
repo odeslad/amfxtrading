@@ -10,7 +10,7 @@ La SMA se dibuja igual que la EMA hoy: calculada sobre las velas cargadas y actu
 
 ### db
 
-- `ma_templates`: `id`, `userId` (FK users), `name`, `isDefault` (bool), `averages` (array JSON de `{ id, type: 'ema'|'sma', period, color, style, width }`), `createdAt`, `updatedAt`. Una por defecto por usuario (índice único parcial `WHERE "isDefault"`).
+- `ma_templates`: `id`, `userId` (FK users), `name`, `isDefault` (bool), `averages` (array JSON de `{ id, type: 'ema'|'sma', period, color, style, width }`), `createdAt`, `updatedAt`. Una por defecto por usuario, mantenida por las rutas en una transacción (un índice único parcial impediría que `prisma migrate diff` saliera vacío, porque Prisma 5 no puede expresarlo).
 - `ma_template_brokers`: `userId`, `broker`, `templateId` (FK `ma_templates` **on delete cascade**), PK `(userId, broker)`. Un broker sin fila usa la plantilla por defecto; borrar una plantilla borra sus filas, así que sus brokers pasan a la de por defecto (AC 5).
 - **Migración de datos en el mismo fichero SQL (AC 6):** por cada fila de `chart_indicators`, se inserta una plantilla por defecto «Default» cuyas medias son sus `emas` con `type: 'ema'` añadido a cada una. Un usuario sin fila recibe una plantilla por defecto vacía en la primera lectura.
 - `chart_indicators` se conserva, sin usar, hasta validar la spec (vuelta atrás); la última tarea de código la borra junto con su ruta.

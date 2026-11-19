@@ -10,7 +10,7 @@ The SMA is drawn the same way as the EMA today: computed over the loaded candles
 
 ### db
 
-- `ma_templates`: `id`, `userId` (FK users), `name`, `isDefault` (bool), `averages` (JSON array of `{ id, type: 'ema'|'sma', period, color, style, width }`), `createdAt`, `updatedAt`. One default per user (partial unique index `WHERE "isDefault"`).
+- `ma_templates`: `id`, `userId` (FK users), `name`, `isDefault` (bool), `averages` (JSON array of `{ id, type: 'ema'|'sma', period, color, style, width }`), `createdAt`, `updatedAt`. One default per user, kept by the routes in a transaction (a partial unique index would keep `prisma migrate diff` from ever being empty, since Prisma 5 cannot express it).
 - `ma_template_brokers`: `userId`, `broker`, `templateId` (FK `ma_templates` **on delete cascade**), PK `(userId, broker)`. A broker without a row uses the default template; deleting a template deletes its rows, so its brokers fall back to the default (AC 5).
 - **Data migration in the same SQL file (AC 6):** for every row of `chart_indicators`, insert a default template "Default" whose averages are its `emas` with `type: 'ema'` added to each. A user without a row gets an empty default template on first read.
 - `chart_indicators` is kept, unused, until the spec is validated (rollback); the last code task drops it and its route.
