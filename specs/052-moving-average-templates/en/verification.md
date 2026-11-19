@@ -71,3 +71,10 @@
 - **Operator check (2026-11-19):** a template on FTMO M15 only (SMA 200, SMA 800), FTMO's other timeframes on their own template, another broker on the default, unticking back to the broker's template, split view with two timeframes, Settings listing the timeframe assignment.
 - **Outcome:** ✅ AC 3, 9, 12.
 - **Est vs Actual:** 1.5 SP · 1 SP.
+
+## Task 9 · [docs] Project guidelines and backend architecture
+
+- **Mechanism:** manual — both documents agree.
+- **Steps:** `backend/docs/architecture.md`: router `/ma-templates` and `/chart-indicators` marked unused, WS `ma_templates`, section "Moving average templates (spec 052)" (default rule, assignment per broker and timeframe with its fallback, cascade, validation, Settings › Display and the chart button, SMA in the frontend, spec 053 pending), tables `ma_templates` and `ma_template_brokers`, `chart_indicators` marked for removal. `.claude/CLAUDE.md`: section "Plantillas de medias móviles (spec 052)", 20 routers, models `MaTemplate` and `MaTemplateBroker`.
+- **Outcome:** ✅
+- **Est vs Actual:** 0.5 SP · 0.25 SP.

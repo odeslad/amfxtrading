@@ -145,7 +145,8 @@ Every router except `/auth` and `/health` sits behind `requireAuth`: the JWT tra
 | `/symbols` | `GET` | Symbols with a tick per broker |
 | `/candles` | `GET` | Closed candles (`before` / `after` paging, up to 5 000) |
 | `/candle-sync` | `GET`, `PUT /targets`, `POST` | Settings › Data (spec 049): candles per broker and timeframe, their targets (100 … 50 000, default 10 000) and the manual sync (below) |
-| `/chart-indicators` | `GET`, `PUT` | The user's EMA list for the chart |
+| `/chart-indicators` | `GET`, `PUT` | The user's old EMA list; unused since spec 052, removed after its validation |
+| `/ma-templates` | `GET`, `POST`, `PUT /:id`, `PUT /:id/default`, `DELETE /:id`, `PUT /assignments` | Moving average templates (spec 052, below) |
 | `/drawings` | `GET`, `PUT` | Chart drawings per user, broker, symbol, timeframe |
 | `/alerts` | `GET`, `POST`, `PUT /:id`, `DELETE /:id` | Price alerts |
 | `/ema-alerts` | `GET`, `POST`, `PUT /:id`, `DELETE /:id` | EMA convergence alerts |
@@ -223,6 +224,7 @@ Every message is `{ "type", … }` with `broker` at the root (never per item):
 | `trades_updated` | `{ broker }` | the watcher synced a changed `history.json` (spec 030): History and Stats refetch |
 | `candle` | `{ broker, symbol, timeframe, time, open, high, low, close }` | a candle closed on the tick stream (`<tf>_time` changed, spec 025): stored at once unless the EA's file already wrote it, `time` in seconds |
 | `command_result` | `{ id, status, ticket?, error?, late? }` | command bridge |
+| `ma_templates` | `{}` | the user's moving average templates or assignments changed; their clients reload `/ma-templates` (spec 052) |
 | `candle_sync` | `{ broker, timeframe, state, detail, candleCount, lastSyncAt, done?, total? }` | sync watcher: progress and result of a manual candle sync (spec 049) |
 | `alert` | `{ broker, symbol, price, direction }` | price alert, only to its owner |
 | `ema_alert` | `{ broker, symbol, timeframe, direction }` | EMA alert, only to its owner |
@@ -241,6 +243,10 @@ The old `candles` table had damaged pages (a full read or `pg_dump` failed). Mig
 ## Server monitor (spec 051)
 
 The backend reports on the machine it runs on. `services/server-monitor.ts` reads CPU (deltas of `os.cpus()`) and memory every 15 s, runs `scripts/server-probe.ps1` every 60 s (page file, C: disk, the services `postgresql-x64-17` / `nginx` / `Cloudflared` / `sshd`, each broker's `terminal.exe` resolved like `infra/scripts/startup.ps1`, last boot) and with `-Events` every 10 min (System event 41 of the last 30 days — a bugcheck code, or 0 for an unexpected shutdown — and the pm2 restart count). A failed probe keeps the previous figures. Once a minute one row goes to `server_samples` with the average CPU of the minute; rows older than 7 days are deleted daily. `GET /server` joins that snapshot with `store/liveness` (pipe state and tick age per broker) and answers `503` when `FEATURE_SERVER_MONITOR=false`; `GET /server/history` returns the minute rows for `24h` and 10-minute averages (`date_bin` in SQL) for `7d`. The probe costs about 0.5 s of one core a minute (1.2 s with events).
+
+## Moving average templates (spec 052)
+
+The chart draws the moving averages (EMA or SMA) of a template. A template (`ma_templates`) is a named list `[{ id, type: 'ema'|'sma', period, color, style, width }]`; each user has exactly one default (kept by `PUT /ma-templates/:id/default` in a transaction; `GET` creates an empty one when missing) and it cannot be deleted (`409`). `ma_template_brokers` assigns a template to a broker on every timeframe (`timeframe ''`) or on one; a chart uses broker + timeframe, then broker, then the default. Deleting a template cascades its assignments, so those brokers fall back. Validation: period a whole number ≥ 1 with no upper limit, colour `#rrggbb`, style solid/dashed/dotted, width 1–3. Every write sends `ma_templates` over the WebSocket to the user's clients. Templates are edited in Settings › Display; the chart's indicators button chooses a broker's template (optionally only for its timeframe) and hides averages per device (`localStorage`). The SMA is computed in the frontend like the EMA, including the live candle. Alerts, notifications, the cross trades overlay and setup levels still use EMAs (spec 053).
 
 ## Libro de esquemas (book)
 
@@ -266,7 +272,9 @@ Managed with **Prisma**; see `prisma/schema.prisma`. Migrations are hand-written
 | `push_subscriptions` | `/push` | Web Push endpoints per user, with `userAgent` and `lastPushAt` |
 | `ema_notifications`, `ema_notification_events` | `/ema-notifications`, `ema-notification-evaluator` | standing rules (never self-disabled) and every fire: symbol, kind, direction, candle, time |
 | `drawings` | `/drawings` | chart drawings JSON per user, broker, symbol, timeframe |
-| `chart_indicators` | `/chart-indicators` | the user's EMA list |
+| `chart_indicators` | `/chart-indicators` | the user's old EMA list; copied into the default template by spec 052's migration, dropped after its validation |
+| `ma_templates` | `/ma-templates` | moving average templates per user: `name`, `isDefault` (one per user), `averages` JSON (spec 052) |
+| `ma_template_brokers` | `/ma-templates/assignments` | template per broker, key `(userId, broker, timeframe)`, `timeframe ''` = every timeframe; cascades with its template (spec 052) |
 
 ### Common commands
 

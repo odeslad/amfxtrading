@@ -71,3 +71,10 @@
 - **Comprobación del operador (19-nov-2026):** una plantilla solo en FTMO M15 (SMA 200, SMA 800), las demás temporalidades de FTMO con su plantilla, otro broker con la de por defecto, desmarcar vuelve a la plantilla del broker, vista partida con dos temporalidades, Settings mostrando la asignación por temporalidad.
 - **Resultado:** ✅ AC 3, 9, 12.
 - **Est vs Actual:** 1.5 SP · 1 SP.
+
+## Tarea 9 · [docs] Directrices del proyecto y arquitectura del backend
+
+- **Mecanismo:** manual — los dos documentos coinciden.
+- **Pasos:** `backend/docs/architecture.md`: router `/ma-templates` y `/chart-indicators` marcado sin uso, WS `ma_templates`, sección «Moving average templates (spec 052)» (regla de la de por defecto, asignación por broker y temporalidad con su prioridad, cascada, validación, Settings › Display y el botón del gráfico, SMA en el frontend, spec 053 pendiente), tablas `ma_templates` y `ma_template_brokers`, `chart_indicators` marcada para quitar. `.claude/CLAUDE.md`: sección «Plantillas de medias móviles (spec 052)», 20 routers, modelos `MaTemplate` y `MaTemplateBroker`.
+- **Resultado:** ✅
+- **Est vs Actual:** 0.5 SP · 0.25 SP.
