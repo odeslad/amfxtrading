@@ -159,7 +159,6 @@ model User {
   email             String            @unique
   passwordHash      String
   createdAt         DateTime          @default(now())
-  chartIndicators   ChartIndicators?
   maTemplates       MaTemplate[]
   drawings          Drawing[]
   alerts            PriceAlert[]
@@ -279,15 +278,6 @@ model Drawing {
 
   @@unique([userId, broker, symbol, timeframe])
   @@map("drawings")
-}
-
-model ChartIndicators {
-  id     Int  @id @default(autoincrement())
-  userId Int  @unique
-  user   User @relation(fields: [userId], references: [id])
-  emas   Json @default("[]")
-
-  @@map("chart_indicators")
 }
 
 model Balance {
