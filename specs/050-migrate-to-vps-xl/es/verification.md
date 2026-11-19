@@ -80,3 +80,28 @@
 
 - **Resultado:** ✅ 19 tablas, mismos números; `prisma migrate status` al día en el XL+.
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Tarea 5 · [ea] Terminales MT4 en el XL+
+
+- **Mecanismo:** `tar` (sin comprimir, a disco, poca memoria en el M+ de 4 GB) de las 13 carpetas de instalación (882 MB, 2 s) y de `AppData\Roaming\MetaQuotes` sin `logs` (631 MB, 4 s), los dos con salida 0 con los terminales del M+ en marcha; paso por el PC (42 s de bajada, 32 s de subida); extraídos en el XL+ en las mismas rutas. Terminales arrancados por `AMFX-Startup` / `AMFX-Watchdog` cuando el operador entró por RDP (tarea 6).
+- **Comprobaciones:** 13 instalaciones; las 13 carpetas de datos tienen los mismos nombres hash y el mismo `origin.txt` que en el M+; existen los 13 `bridgePath` de `brokers.json`.
+- **Brokers (19-nov-2026 10:31, los dos servidores a la vez, mismas cuentas):** XL+ 12 `connected` con `tickAge 0` y `solidary isa` en `listening` — lo mismo que el M+ en ese momento. Los logins guardados sobrevivieron a la copia; ningún broker cortó ninguno de los dos lados.
+- **Memoria con 13 terminales:**
+
+| | M+ | XL+ |
+|---|---|---|
+| RAM usada / total | 2,67 / 4 GB | 5,29 / 16 GB |
+| Memoria en uso de los 13 terminales | 0,38 GB | 1,56 GB |
+
+  En el M+ los terminales están casi enteros en el fichero de paginación (0,38 GB para 13), que es el tráfico de paginación donde salta su bugcheck.
+- **Seguir o no:** seguir — mismos brokers y antigüedad de ticks 0 en los dos; el XL+ tiene más de 10 GB libres.
+- **Resultado:** ✅
+- **Est vs Actual:** 1.5 SP · 0.75 SP.
+
+## Tarea 6 · [infra] Tareas de arranque, registro de RAM, Autologon y reinicio
+
+- **Pasos:** `register-startup-tasks.ps1` registró `AMFX-Startup` (al iniciar sesión) y `AMFX-Watchdog` (cada 5 min), las dos interactivas. El operador activó el Autologon por RDP (Sysinternals). `PoolWatch` replicada con el `C:\pool-watch.ps1` del M+ (SYSTEM, al arrancar, `C:\pool-monitor.log` cada 30 s). `RAM-Log` nueva (SYSTEM, al arrancar y cada minuto) escribiendo `C:\monitoring\ram-YYYYMM.csv`: hora, usada, libre, comprometida, límite, uso del fichero de paginación, terminales.
+- **Autologon leído de vuelta:** `AutoAdminLogon=1`, usuario `Administrator`, dominio `WIN-5SSFL41HHDI`, sin contraseña en texto plano en el registro.
+- **Prueba de reinicio (19-nov-2026):** `shutdown /r` por SSH a las 10:31; arrancó a las 10:31:59; sin que nadie tocara nada, 13 terminales en marcha unos 5 minutos después, `startup.log` con `13/13 running (13 started now)` y `run end: OK`, servicios `postgresql-x64-17`, `nginx` y `sshd` en marcha, `/health` con los mismos 12 brokers `connected` (antigüedad 0) y `solidary isa` en `listening`, fichero de RAM creciendo cada minuto (5,2 GB usados, 13 terminales).
+- **Resultado:** ✅
+- **Est vs Actual:** 1 SP · 0.5 SP.

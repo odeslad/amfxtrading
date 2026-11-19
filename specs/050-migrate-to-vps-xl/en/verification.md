@@ -80,3 +80,28 @@
 
 - **Outcome:** ✅ 19 tables, identical counts; `prisma migrate status` up to date on the XL+.
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Task 5 · [ea] MT4 terminals on the XL+
+
+- **Mechanism:** `tar` (uncompressed, to disk, little memory on the 4 GB M+) of the 13 installation folders (882 MB, 2 s) and of `AppData\Roaming\MetaQuotes` without `logs` (631 MB, 4 s), both with exit 0 while the M+'s terminals kept running; relayed through the PC (42 s down, 32 s up); extracted on the XL+ to the same paths. Terminals started by `AMFX-Startup` / `AMFX-Watchdog` once the operator logged in by RDP (task 6).
+- **Checks:** 13 installations; the 13 data folders have the same hash names and the same `origin.txt` as on the M+; the 13 `bridgePath` of `brokers.json` exist.
+- **Brokers (2026-11-19 10:31, both servers at once, same accounts):** XL+ 12 `connected` with `tickAge 0` and `solidary isa` `listening` — the same as the M+ at the same moment. The saved logins survived the copy; no broker dropped either side.
+- **Memory with 13 terminals:**
+
+| | M+ | XL+ |
+|---|---|---|
+| RAM used / total | 2.67 / 4 GB | 5.29 / 16 GB |
+| Working set of the 13 terminals | 0.38 GB | 1.56 GB |
+
+  On the M+ the terminals are kept mostly paged out (0.38 GB for 13), which is the page-file traffic where its bugcheck fires.
+- **Go / no-go:** go — same brokers and tick age 0 on both; the XL+ has 10+ GB free.
+- **Outcome:** ✅
+- **Est vs Actual:** 1.5 SP · 0.75 SP.
+
+## Task 6 · [infra] Startup tasks, RAM logging, Autologon and reboot
+
+- **Steps:** `register-startup-tasks.ps1` registered `AMFX-Startup` (at logon) and `AMFX-Watchdog` (every 5 min), both interactive. The operator enabled Autologon by RDP (Sysinternals). `PoolWatch` replicated with the M+'s `C:\pool-watch.ps1` (SYSTEM, at startup, `C:\pool-monitor.log` every 30 s). New `RAM-Log` (SYSTEM, at startup and every minute) writing `C:\monitoring\ram-YYYYMM.csv`: time, used, free, commit, commit limit, page-file use, terminals.
+- **Autologon read back:** `AutoAdminLogon=1`, user `Administrator`, domain `WIN-5SSFL41HHDI`, no plain-text password in the registry.
+- **Reboot test (2026-11-19):** `shutdown /r` over SSH at 10:31; booted 10:31:59; with nobody touching it, 13 terminals running about 5 minutes later, `startup.log` `13/13 running (13 started now)` and `run end: OK`, services `postgresql-x64-17`, `nginx` and `sshd` running, `/health` with the same 12 brokers `connected` (tick age 0) and `solidary isa` `listening`, RAM file growing every minute (5.2 GB used, 13 terminals).
+- **Outcome:** ✅
+- **Est vs Actual:** 1 SP · 0.5 SP.
