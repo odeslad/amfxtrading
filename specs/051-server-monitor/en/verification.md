@@ -38,3 +38,12 @@
 - **Operator check (2026-11-19):** `WIN-5SSFL41HHDI`, Windows Server 2025, 8 cores, 16 GB; last boot 19 Nov 11:31 local, uptime 3 h 31 m; CPU 28.1 %, memory 3.1 / 16 GB, page file 1.0 GB, disk 449 / 479 GB; services 4 / 4; backend 17 m, 183 MB, 0 restarts (pm2's counter restarts with each deploy, which deletes and recreates the process); terminals 13 / 13, 12 connected at 0 s and `solidary isa` last in grey as "no ticks"; crashes "None in the last 30 days".
 - **Outcome:** ✅
 - **Est vs Actual:** 3 SP · 1.5 SP.
+
+## Task 5 · [frontend] Charts
+
+- **Mechanism:** `npm run build` + eslint; local check with Vite proxied to the production API.
+- **Steps:** `ServerCharts.tsx` + `.module.css` with `lightweight-charts` (already a dependency): CPU % on the left scale (0–100), memory and page file in GB on the right, local hours; a missing stretch longer than 2.5 samples becomes a whitespace point, so the line breaks instead of joining; crashes and unexpected shutdowns of the report's event list drawn over the chart as an HTML layer placed with `timeToCoordinate` (red or amber line where the samples stop, hatched gap up to the first sample after it, dashed green line at the restart, label with kind, code, time and minutes down), re-placed on resize; 24H / 7D switch; loading and "No samples yet" states. Shown as the first collapsible section of the tab. Added at the operator's request: a grip under the chart resizes it (140–600 px, keyboard arrows too), remembered per device.
+- **Operator check (2026-11-19):** chart with CPU, memory and page file since the backend deploy at 14:46 local; the resize grip works.
+- **Not seen yet:** a real gap and a crash marker — the history has no hole since the deploy and the XL+ has not crashed. The gap is checked in task 7 after the next backend restart; a crash marker can only be seen if one happens.
+- **Outcome:** ✅ (gap pending in task 7)
+- **Est vs Actual:** 2 SP · 1 SP.

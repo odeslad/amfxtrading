@@ -16,6 +16,7 @@ import { SymbolsPanel } from './SymbolsPanel';
 import { DataSyncTab } from './DataSyncTab';
 import { useCandleSync } from '../../lib/useCandleSync';
 import { ServerTab } from './ServerTab';
+import { ServerCharts } from './ServerCharts';
 import { useServerStatus } from '../../lib/useServerStatus';
 import { usePushDevices } from '../../lib/usePushDevices';
 import { EMPTY_VISIBILITY, isBrokerVisible, setVisibility as publishVisibility, useVisibility, type Visibility } from '../../lib/visibility';
@@ -285,7 +286,15 @@ export function SettingsPage() {
           onSync={candleSync.startSync}
         />
       )}
-      {tab === 'server' && <ServerTab report={server.report} lastOkAt={server.lastOkAt} checkedAt={server.checkedAt} failing={server.failing} />}
+      {tab === 'server' && (
+        <ServerTab
+          report={server.report}
+          lastOkAt={server.lastOkAt}
+          checkedAt={server.checkedAt}
+          failing={server.failing}
+          charts={<ServerCharts history={server.history} range={server.range} onRange={server.setRange} events={server.report?.events ?? null} />}
+        />
+      )}
       {tab === 'notifications' && (
         <NotificationsTab
           notifications={notifications}

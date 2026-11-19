@@ -62,6 +62,7 @@ Approved by the operator on 2026-11-19: https://claude.ai/artifact/UZjr1LBNPQeXd
 - **Crash in the charts**: a red line at the crash time with a label (kind, code, time, minutes down), the gap hatched, a dashed green line at the next start; series end with a dot before the gap and start again after it, never joined across it. An unexpected shutdown without a code is drawn the same in amber.
 - **Terminals**: all brokers always listed (no "… more"), problems first — stopped (red), then running without fresh ticks (amber), then healthy, then brokers without an EA (grey).
 - **Collapsible sections**: charts, services and backend, terminals and crashes each have a collapse button in their header; collapsed, the header keeps a one-line summary (`12 / 13 running`, `4 / 4 running`, `2 events`). The state is remembered per device (`localStorage`).
+- **Resizable chart** (asked by the operator during task 5, after the mockup was approved): a grip under the chart drags its height between 140 and 600 px (default 220; arrow keys move it 20 px), remembered per device.
 
 ## Files to touch
 

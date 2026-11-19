@@ -38,3 +38,12 @@
 - **Comprobación del operador (19-nov-2026):** `WIN-5SSFL41HHDI`, Windows Server 2025, 8 núcleos, 16 GB; último arranque 19 nov 11:31 hora local, encendido 3 h 31 m; CPU 28,1 %, memoria 3,1 / 16 GB, fichero de paginación 1,0 GB, disco 449 / 479 GB; servicios 4 / 4; backend 17 m, 183 MB, 0 reinicios (el contador de pm2 vuelve a cero con cada deploy, que borra y vuelve a crear el proceso); terminales 13 / 13, 12 conectadas a 0 s y `solidary isa` al final en gris como «no ticks»; cuelgues «None in the last 30 days».
 - **Resultado:** ✅
 - **Est vs Actual:** 3 SP · 1.5 SP.
+
+## Tarea 5 · [frontend] Gráficas
+
+- **Mecanismo:** `npm run build` + eslint; comprobación local con Vite y proxy al API de producción.
+- **Pasos:** `ServerCharts.tsx` + `.module.css` con `lightweight-charts` (ya era dependencia): % de CPU en la escala izquierda (0–100), memoria y fichero de paginación en GB a la derecha, horas locales; un tramo sin datos de más de 2,5 muestras se convierte en un punto vacío, así que la línea se corta en vez de unirse; los cuelgues y apagados inesperados de la lista de eventos se dibujan sobre la gráfica como una capa HTML colocada con `timeToCoordinate` (línea roja o ámbar donde terminan las muestras, hueco rayado hasta la primera muestra posterior, línea verde discontinua en el arranque, etiqueta con tipo, código, hora y minutos caído), recolocada al cambiar de tamaño; selector 24H / 7D; estados de carga y «No samples yet». Es la primera sección plegable de la pestaña. Añadido a petición del operador: un tirador bajo la gráfica cambia su altura (140–600 px, también con las flechas del teclado), recordada por dispositivo.
+- **Comprobación del operador (19-nov-2026):** gráfica con CPU, memoria y fichero de paginación desde el deploy del backend a las 14:46 hora local; el tirador funciona.
+- **Pendiente de ver:** un hueco real y una marca de cuelgue — el historial no tiene huecos desde el deploy y el XL+ no se ha colgado. El hueco se comprueba en la tarea 7 tras el próximo reinicio del backend; una marca de cuelgue solo se verá si ocurre uno.
+- **Resultado:** ✅ (hueco pendiente en la tarea 7)
+- **Est vs Actual:** 2 SP · 1 SP.
