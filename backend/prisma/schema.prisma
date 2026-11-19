@@ -39,6 +39,19 @@ model CandleSync {
   @@map("candle_syncs")
 }
 
+// Spec 051: the server's CPU and memory once a minute (Settings › Server), kept 7 days.
+// pageFileMb and terminals come from the slow probe and are null until its first run.
+model ServerSample {
+  time       DateTime @id
+  cpu        Float    @db.Real
+  memUsedMb  Int
+  memTotalMb Int
+  pageFileMb Int?
+  terminals  Int?     @db.SmallInt
+
+  @@map("server_samples")
+}
+
 model Trade {
   ticket     Int      @id
   broker     String
