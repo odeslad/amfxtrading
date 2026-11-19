@@ -139,3 +139,35 @@
 - **Changes:** only `infra/README.md` names the server: 13 terminals instead of 10, Autologon command with `$env:COMPUTERNAME` instead of the M+'s fixed host name, new section on `RAM-Log` and `PoolWatch`, and the RAM file in the checks. `.claude/CLAUDE.md` and `backend/docs/architecture.md` describe the server without naming the machine or its size: unchanged.
 - **Outcome:** ✅
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Task 9 · [infra] Switch
+
+- **When:** 2026-11-19, a Thursday with the market open, at the operator's request (not a weekend as planned). The XL+ was already on the pushed `master` (`c2c4730`); the local commits since then touch only `specs/` and `infra/README.md`.
+- **Timeline (local time):**
+
+| Time | Step |
+|---|---|
+| 12:46:55 | XL+: `AMFX-Watchdog` disabled, backend stopped |
+| 12:47:00 | M+: `AMFX-Watchdog` disabled, backend stopped, 13 terminals closed |
+| 12:47:06 | Final `pg_dump` on the M+ (8.3 s, 38.1 MB) → relay → `pg_restore` on the XL+ (22 s) |
+| 12:47:54 | XL+: `FEATURE_ALERTS` removed from `.env` (default on), backend started, watchdog enabled; local `/health` 12/13 connected |
+| 12:48:18 | M+: `run-switch-050.ps1 -TimeoutS 180` |
+| 12:48:44 | XL+: `Start-Service Cloudflared` |
+| 12:48:51 | Public `/health` 200; XL+ `Cloudflared` set to automatic |
+
+- **AC 2:** final row counts equal on both servers, table by table (19 tables; `candles` 3 127 469, `trades` 50 784, the rest as in task 4). Dump kept in `C:\backup\amfx050.dump` on both servers.
+- **AC 1, AC 3:** public `/health` reports the XL+'s backend (uptime matching its start) with the same 12 brokers `connected` and `solidary isa` `listening`.
+- **AC 8:** `ssh amfx-vps` first hung after the host-key check: the XL+ did not authorise the `github-actions` key used by the PC alias and by the pipelines (it had been reached with another key). Added to `administrators_authorized_keys`; `ssh amfx-vps hostname` → `WIN-5SSFL41HHDI`. The M+'s `switch050.log` could not be read afterwards (the M+ is only reachable through the tunnel); the public checks above show it took the `SWITCHED` branch.
+- **Interruption:** the public app was down about 2 minutes; ticks stopped for about 50 s.
+- **Outcome:** ✅
+- **Est vs Actual:** 2 SP · 1 SP.
+
+## Task 10 · [infra] Production validation
+
+- **Operator (2026-11-19):** session kept without logging in again; Accounts with the 12 brokers live; chart with live ticks; positions, history and balances; a price alert reached the phone (no need to enable the device again: same origin, subscriptions and VAPID keys); an order opened and closed on Demo; a candle sync of Demo M15 ran on the XL+ to `done` (AC 4).
+- **Pipelines run by hand (`workflow_dispatch`), one at a time (AC 5):** backend #201 green, the XL+ backend restarted and came back with 12/13 connected, new `dist` on `WIN-5SSFL41HHDI`; frontend green, new `dist\index.html` on the XL+ at 12:31 UTC; EA green, compiled and reloaded the 13 terminals ("Terminals running: 13/13 in 300 s"). During that reload the XL+ peaked at 5.2 GB of 16 GB (`RAM-Log`), with no incident — the reload that crashed the M+ on 18 Nov.
+- **Finding:** after the EA reload, the state EAs of `FTMO` and `solidary marquez` kept failing to open their pipe ("[PIPE] Connection failed", several times a second) although the backend listened on both; restarting the backend did not help, the operator reopening the two terminals did. EA-side reconnection issue, not tied to the server; if it repeats on later EA deploys it gets its own spec.
+- **Port 22:** Windows rule `OpenSSH-Server-In-TCP` disabled on the XL+; a direct SSH to its IP times out, `ssh amfx-vps` still works through the tunnel. The operator removed the port 22 rule in the IONOS firewall the same day.
+- **Resources in production (2026-11-19):** CPU 13 % average (13 terminals 11.6 %, backend 2.2 %, PostgreSQL 0.5 %); RAM 2.6–3.7 GB of 16 GB.
+- **Outcome:** ✅
+- **Est vs Actual:** 1 SP · 1.5 SP (deploy key, the two terminals).

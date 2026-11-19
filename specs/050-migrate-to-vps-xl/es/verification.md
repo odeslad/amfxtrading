@@ -139,3 +139,35 @@
 - **Cambios:** solo `infra/README.md` nombra el servidor: 13 terminales en vez de 10, comando de Autologon con `$env:COMPUTERNAME` en vez del nombre fijo del M+, sección nueva sobre `RAM-Log` y `PoolWatch`, y el fichero de RAM en las comprobaciones. `.claude/CLAUDE.md` y `backend/docs/architecture.md` describen el servidor sin nombrar la máquina ni su tamaño: sin cambios.
 - **Resultado:** ✅
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Tarea 9 · [infra] Cambio
+
+- **Cuándo:** 19-nov-2026, un jueves con el mercado abierto, a petición del operador (no en fin de semana como estaba previsto). El XL+ ya estaba en el `master` subido (`c2c4730`); los commits locales desde entonces solo tocan `specs/` e `infra/README.md`.
+- **Cronología (hora local):**
+
+| Hora | Paso |
+|---|---|
+| 12:46:55 | XL+: `AMFX-Watchdog` desactivada, backend parado |
+| 12:47:00 | M+: `AMFX-Watchdog` desactivada, backend parado, 13 terminales cerrados |
+| 12:47:06 | `pg_dump` final en el M+ (8,3 s, 38,1 MB) → paso por el PC → `pg_restore` en el XL+ (22 s) |
+| 12:47:54 | XL+: `FEATURE_ALERTS` quitado del `.env` (por defecto encendido), backend arrancado, watchdog activada; `/health` local 12/13 conectados |
+| 12:48:18 | M+: `run-switch-050.ps1 -TimeoutS 180` |
+| 12:48:44 | XL+: `Start-Service Cloudflared` |
+| 12:48:51 | `/health` público 200; `Cloudflared` del XL+ en automático |
+
+- **AC 2:** número de filas final igual en los dos servidores, tabla a tabla (19 tablas; `candles` 3 127 469, `trades` 50 784, el resto como en la tarea 4). Volcado guardado en `C:\backup\amfx050.dump` en los dos servidores.
+- **AC 1, AC 3:** el `/health` público muestra el backend del XL+ (tiempo encendido que cuadra con su arranque) con los mismos 12 brokers `connected` y `solidary isa` en `listening`.
+- **AC 8:** `ssh amfx-vps` se quedó colgado al principio tras comprobar la clave de host: el XL+ no autorizaba la clave `github-actions` que usan el alias del PC y los pipelines (se había entrado con otra clave). Añadida a `administrators_authorized_keys`; `ssh amfx-vps hostname` → `WIN-5SSFL41HHDI`. El `switch050.log` del M+ no se pudo leer después (al M+ solo se llega por el túnel); las comprobaciones públicas de arriba muestran que tomó la rama `SWITCHED`.
+- **Corte:** la app pública estuvo caída unos 2 minutos; los ticks se pararon unos 50 s.
+- **Resultado:** ✅
+- **Est vs Actual:** 2 SP · 1 SP.
+
+## Tarea 10 · [infra] Validación en producción
+
+- **Operador (19-nov-2026):** sesión mantenida sin volver a entrar; Accounts con los 12 brokers en vivo; gráfico con ticks en vivo; posiciones, historial y balances; una alerta de precio llegó al móvil (sin volver a activar el dispositivo: mismo origen, suscripciones y claves VAPID); una orden abierta y cerrada en Demo; una sincronización de velas de Demo M15 terminó en `done` en el XL+ (AC 4).
+- **Pipelines lanzados a mano (`workflow_dispatch`), de uno en uno (AC 5):** backend #201 en verde, el backend del XL+ se reinició y volvió con 12/13 conectados, `dist` nuevo en `WIN-5SSFL41HHDI`; frontend en verde, `dist\index.html` nuevo en el XL+ a las 12:31 UTC; EA en verde, compiló y recargó los 13 terminales («Terminals running: 13/13 in 300 s»). Durante esa recarga el XL+ llegó a 5,2 GB de 16 GB (`RAM-Log`), sin incidencias — la recarga que tumbó el M+ el 18 de noviembre.
+- **Hallazgo:** tras la recarga del EA, los EA de estado de `FTMO` y `solidary marquez` siguieron sin poder abrir su pipe («[PIPE] Connection failed», varias veces por segundo) aunque el backend escuchaba en los dos; reiniciar el backend no lo arregló, que el operador reabriera esos dos terminales sí. Problema de reconexión del lado del EA, no ligado al servidor; si se repite en próximos deploys del EA tendrá su propia spec.
+- **Puerto 22:** regla de Windows `OpenSSH-Server-In-TCP` desactivada en el XL+; un SSH directo a su IP da timeout, `ssh amfx-vps` sigue funcionando por el túnel. El operador quitó la regla del puerto 22 en el firewall de IONOS el mismo día.
+- **Recursos en producción (19-nov-2026):** CPU 13 % de media (13 terminales 11,6 %, backend 2,2 %, PostgreSQL 0,5 %); RAM 2,6–3,7 GB de 16 GB.
+- **Resultado:** ✅
+- **Est vs Actual:** 1 SP · 1.5 SP (clave de deploy, los dos terminales).
