@@ -30,3 +30,20 @@
 - **Pendiente:** una SMA en el gráfico solo se puede añadir cuando exista el editor de Settings — se comprueba en la tarea 5.
 - **Resultado:** ✅ (comprobación de SMA en la tarea 5)
 - **Est vs Actual:** 3 SP · 1.5 SP.
+
+## Tarea 4 · [frontend] Plantilla del broker desde el gráfico
+
+- **Mecanismo:** `npm run build` + eslint; comprobación local del operador contra producción.
+- **Pasos:** `IndicatorsPanel`: selector «Template for <broker>» (todas las plantillas, «Default (★ nombre)») que llama a `PUT /ma-templates/assignments`; las medias de la plantilla con mostrar/ocultar; enlace «Edit in Settings › Display» a `/settings?tab=display` (`SettingsPage` abre ahora la pestaña que dice la dirección). En el código la vista partida comparte un broker entre sus dos lados (solo cambia la temporalidad), así que el AC 8 (dos brokers lado a lado) no puede darse hoy; cada lado sigue resolviendo su plantilla.
+- **Comprobación del operador (19-nov-2026):** asignar una plantilla nueva a un broker desde el gráfico redibujó ese gráfico al momento; el enlace abre Settings › Display.
+- **Resultado:** ✅
+- **Est vs Actual:** 1.5 SP · 0.5 SP.
+
+## Tarea 5 · [frontend] Sección de plantillas en Settings › Display
+
+- **Mecanismo:** `npm run build` + eslint; comprobación local del operador contra producción (escribe plantillas reales).
+- **Pasos:** `MaTemplatesSection` al final de `DisplayTab`: lista (★ por defecto, número de medias, brokers que la usan), editor (EMA/SMA, periodo sin flechitas y en rojo si no es un entero ≥ 1, selector de color, estilo, grosor, quitar, añadir), *New template*, nombre, *★ Make default*, *Delete* con `ConfirmPanel` que nombra los brokers que pasan a la de por defecto, *Save template* (activo solo con cambios y periodos válidos); en móvil un selector de plantilla y tarjetas. La edición en curso se guarda por plantilla y si no se muestra la guardada (el lint de React prohíbe copiar props al estado en un efecto).
+- **Comprobación del operador (19-nov-2026):** una plantilla nueva con una SMA 50 y una EMA 9 guardada y asignada desde el gráfico; la SMA más suave que la EMA y moviéndose con la vela en curso sin saltar al cerrarse; un cambio guardado en Settings llegó a un gráfico abierto en otra pestaña sin recargar; borrar la plantilla en uso nombró el broker y devolvió su gráfico a las cuatro EMAs de la de por defecto.
+- **Cambio pedido tras esta comprobación:** una plantilla por broker **y temporalidad** (AC 12) — añadidas las tareas 6 a 8.
+- **Resultado:** ✅
+- **Est vs Actual:** 3 SP · 1.5 SP.

@@ -30,3 +30,20 @@
 - **Pending:** an SMA on the chart can only be added once the Settings editor exists — checked in task 5.
 - **Outcome:** ✅ (SMA check in task 5)
 - **Est vs Actual:** 3 SP · 1.5 SP.
+
+## Task 4 · [frontend] Template of the broker from the chart
+
+- **Mechanism:** `npm run build` + eslint; operator's local check against production.
+- **Steps:** `IndicatorsPanel`: "Template for <broker>" select (every template, "Default (★ name)") calling `PUT /ma-templates/assignments`; the template's averages with show/hide; link "Edit in Settings › Display" to `/settings?tab=display` (`SettingsPage` now opens the tab named in the address). In the code the split view shares one broker between its two sides (only the timeframe differs), so AC 8 (two brokers side by side) cannot occur today; each side still resolves its own template.
+- **Operator check (2026-11-19):** assigning a new template to a broker from the chart redrew that chart at once; the link opens Settings › Display.
+- **Outcome:** ✅
+- **Est vs Actual:** 1.5 SP · 0.5 SP.
+
+## Task 5 · [frontend] Templates section in Settings › Display
+
+- **Mechanism:** `npm run build` + eslint; operator's local check against production (writes real templates).
+- **Steps:** `MaTemplatesSection` at the end of `DisplayTab`: list (★ default, averages count, brokers using it), editor (EMA/SMA toggle, period without spinners and marked red when not a whole number ≥ 1, colour picker, style, width, remove, add), *New template*, name, *★ Make default*, *Delete* with `ConfirmPanel` naming the brokers that fall back to the default, *Save template* (enabled only with changes and valid periods); on a phone a template select and cards. The edit in progress is held per template and the saved template shown otherwise (React's lint forbids copying props into state in an effect).
+- **Operator check (2026-11-19):** a new template with an SMA 50 and an EMA 9 saved and assigned from the chart; the SMA drawn smoother than the EMA and moving with the live candle without jumping at its close; a change saved in Settings reached a chart open in another tab without reloading; deleting the template in use named the broker and returned its chart to the four EMAs of the default.
+- **Change asked after this check:** a template per broker **and timeframe** (AC 12) — tasks 6 to 8 added.
+- **Outcome:** ✅
+- **Est vs Actual:** 3 SP · 1.5 SP.

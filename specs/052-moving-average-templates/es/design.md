@@ -42,6 +42,13 @@ Tras cada escritura el backend envía `{ type: 'ma_templates' }` por el WebSocke
 - `src/features/settings/MaTemplatesSection.tsx` + `.module.css` (AC 4, 5, 11), al final de `DisplayTab`, como en la maqueta: lista de plantillas (nombre, estrella de por defecto, número de medias, brokers que la usan), las medias de la plantilla elegida (selector de tipo, periodo, color, estilo, grosor, borrar, añadir) con *Save template*, *New template*, *Rename*, *Make default*, *Delete* (panel de confirmación que nombra los brokers que pasan a la de por defecto). Sin tabla de brokers: las asignaciones se hacen desde el gráfico. Tablas en escritorio, tarjetas en móvil.
 - `DisplayTab.tsx`: muestra la sección. La sección guarda con su propio botón *Save template*; el *Save* de la barra de pestañas sigue guardando los demás ajustes de Display.
 
+## Asignación por broker y temporalidad (AC 3, 12; añadida tras la primera prueba local)
+
+- `ma_template_brokers` gana `timeframe` (texto, `''` = todas las temporalidades) y su clave pasa a ser `(userId, broker, timeframe)`; las filas existentes reciben `''`.
+- `GET /ma-templates` devuelve `assignments` como lista `[{ broker, timeframe: string | null, templateId }]`; `PUT /ma-templates/assignments` recibe `{ broker, timeframe?: string | null, templateId: number | null }` (`timeframe` M1…MN, ausente o `null` = todas; `templateId: null` borra esa fila).
+- `useMaTemplates.templateFor(broker, timeframe)`: broker + temporalidad → broker → por defecto, y `sourceOf` dice cuál se aplica.
+- El botón de indicadores: cada lado del gráfico lo abre con su propia temporalidad (en la vista partida los dos lados difieren). Bajo el selector de plantilla, «Only on <temporalidad>» (marcado cuando la plantilla actual viene de una asignación por temporalidad) y una línea «From FTMO · H1» / «From FTMO» / «Default». Elegir una plantilla escribe la fila de la temporalidad si está marcado y si no la del broker; desmarcar devuelve la elección a la fila del broker y borra la de la temporalidad.
+
 ## Flujo de datos
 
 ```

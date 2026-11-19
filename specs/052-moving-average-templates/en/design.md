@@ -42,6 +42,13 @@ After every write the backend broadcasts `{ type: 'ma_templates' }` over the Web
 - `src/features/settings/MaTemplatesSection.tsx` + `.module.css` (AC 4, 5, 11), rendered at the end of `DisplayTab`, as in the mockup: template list (name, default star, count of averages, brokers using it), the selected template's averages (type select, period, colour, style, width, delete, add) with *Save template*, *New template*, *Rename*, *Make default*, *Delete* (confirm panel naming the brokers that fall back to the default). No broker table: assignments are made from the chart. Tables on desktop, cards on mobile.
 - `DisplayTab.tsx`: renders the section. The section saves with its own *Save template* button; the tab bar's *Save* keeps saving the other Display settings.
 
+## Assignment per broker and timeframe (AC 3, 12; added after the first local test)
+
+- `ma_template_brokers` gains `timeframe` (text, `''` = every timeframe) and its key becomes `(userId, broker, timeframe)`; existing rows get `''`.
+- `GET /ma-templates` returns `assignments` as a list `[{ broker, timeframe: string | null, templateId }]`; `PUT /ma-templates/assignments` takes `{ broker, timeframe?: string | null, templateId: number | null }` (`timeframe` M1…MN, absent or `null` = every timeframe; `templateId: null` clears that row).
+- `useMaTemplates.templateFor(broker, timeframe)`: broker + timeframe → broker → default, and `sourceOf` says which applies.
+- The indicators button: each chart slot opens it with its own timeframe (in split view the two sides differ). Under the template select, "Only on <timeframe>" (ticked when the current template comes from a timeframe assignment) and a line "From FTMO · H1" / "From FTMO" / "Default". Choosing a template writes the timeframe row when ticked, else the broker row; unticking moves the choice back to the broker row and clears the timeframe row.
+
 ## Data flow
 
 ```

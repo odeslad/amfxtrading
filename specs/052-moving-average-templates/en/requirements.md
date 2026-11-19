@@ -23,14 +23,15 @@ The chart draws exponential moving averages (EMA) only. Each user has one list o
 
 - AC 1. WHEN the operator adds a moving average to a template THEN they choose its type (EMA or SMA), period, colour, line style and width.
 - AC 2. WHEN the chart shows a symbol THEN it draws the moving averages of the template assigned to that chart's broker, each computed with its own type over the chart's candles, including the candle in progress.
-- AC 3. WHEN a broker has no template assigned THEN its charts use the default template.
+- AC 3. WHEN a chart shows a broker and timeframe THEN it uses the template assigned to that broker on that timeframe; without one, the template assigned to the broker for every timeframe; without one, the default template.
 - AC 4. WHEN the operator opens Settings › Display THEN, in a "Moving average templates" section, they can create, rename, edit and delete templates and mark one as default; the list shows which brokers use each template.
 - AC 5. WHEN a template that is assigned to brokers is deleted THEN those brokers fall back to the default template, after the operator confirms; the default template cannot be deleted.
 - AC 6. WHEN the change is deployed THEN the operator's current EMA list becomes the default template, so the charts look the same as before until something is changed.
 - AC 7. WHEN a template or an assignment is saved THEN charts already open pick it up without reloading the page.
 - AC 8. WHEN the split view shows two charts of different brokers THEN each draws its own broker's template.
-- AC 9. WHEN the chart's indicators button is opened THEN it lets the operator choose the template of the chart's broker (any template, or the default), which applies to every chart of that broker; it lists that template's averages, lets each be shown or hidden on this device, and links to Settings › Display to edit them.
+- AC 9. WHEN the chart's indicators button is opened THEN it lets the operator choose the template of the chart's broker (any template, or the default), for every timeframe of that broker or, with "Only on <timeframe>" ticked, only for the chart's timeframe, and shows where the current template comes from (broker and timeframe, broker, or default); it lists that template's averages, lets each be shown or hidden on this device, and links to Settings › Display to edit them.
 - AC 10. WHEN templates are saved THEN each period is a whole number of 1 or more, the same rule as today's EMAs; there is no limit on the period or on the number of averages in a template.
+- AC 12. WHEN a template is assigned to a broker on one timeframe THEN that broker's other timeframes keep their own template, and clearing it returns that timeframe to the broker's template (or the default). Existing assignments are for every timeframe. (Added with the operator on 2026-11-19, after the first local test.)
 - AC 11. WHEN the page is on a phone THEN the templates section of Settings › Display is usable (cards on mobile, tables on desktop).
 ## Out of scope
 
