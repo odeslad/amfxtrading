@@ -41,14 +41,18 @@ const toChartTime = (ms: number): Time => (Math.floor(ms / 1000) + LOCAL_SHIFT_S
 
 type Point = LineData<Time> | WhitespaceData<Time>;
 
-// A missing stretch (backend or server down) becomes a whitespace point, so the line breaks
-// instead of joining across it.
+// lightweight-charts joins a line across whitespace points, but draws each segment in the
+// colour of the point it starts from: the last point before a missing stretch (backend or
+// server down) gets a transparent colour, so the segment over the hole is not drawn.
 function seriesOf(history: HistoryPoint[], step: number, pick: (p: HistoryPoint) => number | null): Point[] {
   const out: Point[] = [];
   let prev: number | null = null;
   for (const p of history) {
     const ms = Date.parse(p.t);
-    if (prev !== null && ms - prev > GAP_FACTOR * step * 1000) out.push({ time: toChartTime(prev + step * 1000) });
+    if (prev !== null && ms - prev > GAP_FACTOR * step * 1000) {
+      const last = out[out.length - 1];
+      if (last && 'value' in last) out[out.length - 1] = { ...last, color: 'transparent' };
+    }
     const value = pick(p);
     out.push(value === null ? { time: toChartTime(ms) } : { time: toChartTime(ms), value });
     prev = ms;
