@@ -39,7 +39,7 @@ Frontend ──POST /candle-sync──▶ bridge/sync-io.ts ──▶ <bridgePat
 
 Alerts run on the tick stream (`alerts/`): price alerts fire when the bid crosses the level between two ticks; EMA alerts fire at candle close (detected by a change of `<tf>_time` in the tick) when the fast and slow EMAs are converging within the threshold. A fired alert is updated in the DB, broadcast over the WebSocket to its owner and sent as a Web Push notification.
 
-Feature flags (`FEATURE_PIPE`, `FEATURE_WATCHER`, `FEATURE_ALERTS`, `FEATURE_WS_BROADCAST`) switch each stage off with the literal value `false`; this is how a local backend runs against the production database without touching the bridges.
+Feature flags (`FEATURE_PIPE`, `FEATURE_WATCHER`, `FEATURE_ALERTS`, `FEATURE_WS_BROADCAST`, `FEATURE_SERVER_MONITOR`) switch each stage off with the literal value `false`; this is how a local backend runs against the production database without touching the bridges.
 
 ## Project structure
 
@@ -50,7 +50,8 @@ backend/
 │   └── migrations/               # hand-written SQL, applied by `prisma migrate deploy`
 ├── scripts/
 │   ├── deploy.ps1                # run on the VPS by the GitHub Actions deploy
-│   └── db-tunnel.ps1             # local port → VPS PostgreSQL over SSH
+│   ├── db-tunnel.ps1             # local port → VPS PostgreSQL over SSH
+│   └── server-probe.ps1          # read-only snapshot of the server, run by the server monitor (spec 051)
 ├── src/
 │   ├── index.ts                  # entry point: DB connect, WS server, one PipeReader + FileWatcher per broker
 │   ├── app.ts                    # Express app: cors, json, cookies, routers, error handler
@@ -93,6 +94,7 @@ backend/
 │   │   ├── candles.ts            # closed candles createMany
 │   │   ├── chunk.ts              # chunked createMany helper
 │   │   ├── push.ts               # Web Push delivery (VAPID)
+│   │   ├── server-monitor.ts     # CPU, memory, probe and minute samples for Settings › Server (spec 051)
 │   │   ├── sizing.ts             # risk % → lots
 │   │   ├── stats.ts / stats-core.ts # account statistics
 │   │   └── trades.ts             # closed trades createMany
@@ -122,6 +124,7 @@ backend/
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | no | empty | Web Push keys; push is disabled when unset |
 | `VAPID_SUBJECT` | no | `mailto:info@amfxtrading.com` | Web Push contact |
 | `FEATURE_PIPE` / `FEATURE_WATCHER` / `FEATURE_ALERTS` / `FEATURE_WS_BROADCAST` | no | on | Only the literal value `false` disables a stage |
+| `FEATURE_SERVER_MONITOR` | no | on | Settings › Server (spec 051); set `false` on a local backend, or it reports the developer's PC and writes its samples to the database it points at |
 | `PRISMA_LOG` | no | empty | `query` logs every SQL statement |
 
 Copy `.env.example` to `.env` and fill in the values before starting.
@@ -150,6 +153,7 @@ Every router except `/auth` and `/health` sits behind `requireAuth`: the JWT tra
 | `/setup-levels` | `GET` | Levels of the last EMA cross setup of a symbol |
 | `/push` | `GET /vapid`, `GET /`, `POST /subscribe`, `POST /unsubscribe`, `DELETE /:id` | Web Push subscriptions; `GET /` lists the user's devices (label from the user agent, endpoint hash, since, last push) |
 | `/stats` | `GET` | Account statistics per broker and period |
+| `/server` | `GET`, `GET /history?range=24h\|7d` | Settings › Server (spec 051): the server's figures, services, terminals and crashes; CPU and memory history (below) |
 | `/book` | `GET /schemes?year&page&pageSize`, `POST /schemes`, `GET /schemes/:id`, `PUT /schemes/:id`, `DELETE /schemes/:id`, `POST /trades`, `PUT /trades/:id`, `DELETE /trades/:id`, `POST /preview` | Libro de esquemas: the operator's book of EURUSD schemes and operations (see below) |
 
 ### `GET /health`
@@ -234,6 +238,10 @@ The old `candles` table had damaged pages (a full read or `pg_dump` failed). Mig
 
 `POST /candle-sync { broker, timeframes }` answers `404` for an unknown broker, `503` when its pipe is not connected, `409` while it has a sync queued or running; otherwise the rows go `queued` with a new `requestId` and `sync-command.json` (`{ id, timeframes: [{ tf, target }] }`, temp + rename) is written, `202`. The commands EA (2.23+) works one symbol × timeframe per 1 s tick after any order: a symbol short of history is shown on a temporary chart sent to its beginning with the Home key (`PostMessageW`, needs *Allow DLL imports*), then the newest `target` closed bars go to `sync/<SYM>_<TF>.json`; it writes progress to `sync-status.json` (`running` / `complete` / `finished` / `error`) and waits on `complete` until the backend has taken the files. On `complete` the sync watcher, in one transaction, deletes the pair from `candles`, inserts the files and sets `done`, `candleCount` (the fewest candles of any symbol), `detail` and `lastSyncAt`; then the files are deleted. Any failure rolls back and leaves the previous history; 5 minutes without a status change turns a queued or running sync into `error` and withdraws the command.
 
+## Server monitor (spec 051)
+
+The backend reports on the machine it runs on. `services/server-monitor.ts` reads CPU (deltas of `os.cpus()`) and memory every 15 s, runs `scripts/server-probe.ps1` every 60 s (page file, C: disk, the services `postgresql-x64-17` / `nginx` / `Cloudflared` / `sshd`, each broker's `terminal.exe` resolved like `infra/scripts/startup.ps1`, last boot) and with `-Events` every 10 min (System event 41 of the last 30 days — a bugcheck code, or 0 for an unexpected shutdown — and the pm2 restart count). A failed probe keeps the previous figures. Once a minute one row goes to `server_samples` with the average CPU of the minute; rows older than 7 days are deleted daily. `GET /server` joins that snapshot with `store/liveness` (pipe state and tick age per broker) and answers `503` when `FEATURE_SERVER_MONITOR=false`; `GET /server/history` returns the minute rows for `24h` and 10-minute averages (`date_bin` in SQL) for `7d`. The probe costs about 0.5 s of one core a minute (1.2 s with events).
+
 ## Libro de esquemas (book)
 
 `src/book/` keeps the operator's hand-made backtest of the EURUSD H1 scheme system (454 schemes and 878 operations from 2015, imported once from `data/esquemas y operaciones EURUSD.html` with `npx tsx --env-file=.env scripts/import-book.ts "<path>"`, idempotent). It is informational and has no link to brokers, positions or trades. `book_schemes` holds number, start, end, result (`auto` by default, or a hand-typed `T1` / `T2` / `T3` / `RE` / `Pierde` / `Empate`) and note; `book_trades` the operations (ticket, slot, direction, lots, entry, SL, open / close time, close price, note) with their computed €, R and balance after. `calc.ts` reproduces the document's arithmetic: the account starts at 10 000; € = lots × pips × 10; the balance chains in **close order**; R = € ÷ 1 % of the balance before the close; the lots the app proposes are 1 % of the latest balance ÷ (SL pips × 10), but the operator's lots are kept and editable; an operation without close is open (lots only). `recomputeAll` rewrites €, R and balances after any write. A scheme's summary (trades line, tickets, net € and R) and the effective result (`Pendiente` while `auto` and no end / no operations / an open one; else derived: draw inside ±0.5 R, the last operation with R ≥ 1.5, else `Pierde`) and the totals of a selection are computed on read. Routes under `/book`: paginated schemes by year with totals and years, scheme and trade CRUD, and `POST /preview` for the figures a trade body would get.
@@ -245,6 +253,7 @@ Managed with **Prisma**; see `prisma/schema.prisma`. Migrations are hand-written
 | Table | Written by | Pattern |
 |-------|------------|---------|
 | `candles` | file watcher, sync watcher | `createMany({ skipDuplicates })` of closed bars; PK `(broker, symbol, timeframe, time)`; `time` is the bar open in broker time stored as UTC |
+| `server_samples` | server monitor | one row per minute: `cpu`, `memUsedMb`, `memTotalMb`, `pageFileMb`, `terminals`; kept 7 days (spec 051) |
 | `candle_syncs` | `/candle-sync`, sync watcher | one row per broker and timeframe: `target`, `candleCount`, `lastSyncAt`, `state`, `detail`, `requestId` (spec 049) |
 | `trades` | file watcher | `createMany({ skipDuplicates })` by ticket, never updated; indexes `(broker, closeTime)`, `(closeTime)`, `(broker, symbol)` |
 | `balance_operations` | file watcher | deposits/withdrawals from `history.json`, `createMany({ skipDuplicates })` by ticket |
@@ -275,7 +284,7 @@ npx prisma generate
 npm run dev           # tsx watch src/index.ts
 ```
 
-Against the production database: open the tunnel (`scripts/db-tunnel.ps1`), point `DATABASE_URL` at it and start with `FEATURE_PIPE=false FEATURE_WATCHER=false FEATURE_ALERTS=false` so the local process neither opens pipes nor writes to the DB.
+Against the production database: open the tunnel (`scripts/db-tunnel.ps1`), point `DATABASE_URL` at it and start with `FEATURE_PIPE=false FEATURE_WATCHER=false FEATURE_ALERTS=false FEATURE_SERVER_MONITOR=false` so the local process neither opens pipes nor writes to the DB. To look at Settings › Server locally, proxy Vite to the production API instead (`VITE_API_BASE=/__api`, `DEV_API_TARGET=https://api.amfxtrading.com`).
 
 Checks: `npm run lint`, `npm run typecheck`, `npm test` (Vitest, pure modules), `npm run build` (tsc → `dist/`).
 

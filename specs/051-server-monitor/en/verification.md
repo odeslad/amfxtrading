@@ -47,3 +47,10 @@
 - **Not seen yet:** a real gap and a crash marker — the history has no hole since the deploy and the XL+ has not crashed. The gap is checked in task 7 after the next backend restart; a crash marker can only be seen if one happens.
 - **Outcome:** ✅ (gap pending in task 7)
 - **Est vs Actual:** 2 SP · 1 SP.
+
+## Task 6 · [docs] Project guidelines and backend architecture
+
+- **Mechanism:** manual — both documents agree.
+- **Steps:** `backend/docs/architecture.md`: `FEATURE_SERVER_MONITOR` in the flags paragraph and the environment table (with the warning about a local backend), `scripts/server-probe.ps1` and `services/server-monitor.ts` in the project tree, router `/server`, section "Server monitor (spec 051)", table `server_samples`, and the local run (flag off; Vite proxied to the production API to look at the tab). `.claude/CLAUDE.md`: section "Monitor del servidor (spec 051)", 19 routers with `/server`, model `ServerSample`, the flag.
+- **Outcome:** ✅ both describe the same collectors, intervals, table, retention, routes and flag.
+- **Est vs Actual:** 0.5 SP · 0.25 SP.

@@ -47,3 +47,10 @@
 - **Pendiente de ver:** un hueco real y una marca de cuelgue — el historial no tiene huecos desde el deploy y el XL+ no se ha colgado. El hueco se comprueba en la tarea 7 tras el próximo reinicio del backend; una marca de cuelgue solo se verá si ocurre uno.
 - **Resultado:** ✅ (hueco pendiente en la tarea 7)
 - **Est vs Actual:** 2 SP · 1 SP.
+
+## Tarea 6 · [docs] Directrices del proyecto y arquitectura del backend
+
+- **Mecanismo:** manual — los dos documentos coinciden.
+- **Pasos:** `backend/docs/architecture.md`: `FEATURE_SERVER_MONITOR` en el párrafo de flags y en la tabla de entorno (con el aviso sobre un backend local), `scripts/server-probe.ps1` y `services/server-monitor.ts` en el árbol del proyecto, router `/server`, sección «Server monitor (spec 051)», tabla `server_samples` y la ejecución en local (flag apagado; Vite con proxy al API de producción para ver la pestaña). `.claude/CLAUDE.md`: sección «Monitor del servidor (spec 051)», 19 routers con `/server`, modelo `ServerSample`, el flag.
+- **Resultado:** ✅ los dos describen los mismos recolectores, intervalos, tabla, retención, rutas y flag.
+- **Est vs Actual:** 0.5 SP · 0.25 SP.

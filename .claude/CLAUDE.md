@@ -303,17 +303,21 @@ Las velas activas **no se persisten**: cada tick trae OHLC de todos los TF (`m5_
 
 La tabla `candles` antigua tenía páginas dañadas: se apartó, `candles` empezó vacía y, sincronizados todos los brokers con EA, la antigua se borró (un broker sin sincronizar empieza vacío). Settings › Data lista cada broker × M5/M15/H1/H4/D1 con velas, objetivo (100 … 50 000, por defecto 10 000), última sincronización y estado en vivo. `POST /candle-sync` deja el encargo al EA de órdenes (2.23+, necesita *Allow DLL imports* por la tecla Inicio que fuerza a MT4 a bajar histórico); el EA trabaja un símbolo × temporalidad por segundo sin retrasar órdenes, y al completar una temporalidad el backend sustituye esa pareja en una transacción (si falla, no se borra nada).
 
+### Monitor del servidor (spec 051)
+
+Settings › Server muestra la máquina en la que corre el backend: CPU, memoria, fichero de paginación, disco, servicios (PostgreSQL, nginx, túnel, SSH), backend, terminales por broker, cuelgues de los últimos 30 días (evento 41) y gráficas de CPU/memoria de 24 h o 7 días. `services/server-monitor.ts` lee `os` cada 15 s y ejecuta `backend/scripts/server-probe.ps1` cada minuto (eventos y reinicios de pm2 cada 10 min); una fila por minuto en `server_samples`, 7 días. Detrás de `FEATURE_SERVER_MONITOR`: apagarlo en un backend local, que si no informa del PC y escribe sus muestras en la BD a la que apunta.
+
 ### HTTP y auth
 
-Express con 18 routers (`/auth`, `/commands`, `/trades`, `/positions`, `/balances`, `/settings`, `/symbols`, `/candles`, `/candle-sync`, `/chart-indicators`, `/drawings`, `/alerts`, `/ema-alerts`, `/ema-notifications`, `/setup-levels`, `/push`, `/stats`, `/book`) más `GET /health` (sin auth, vitalidad por broker). JWT en cookie HttpOnly `token`; `requireAuth` en todo salvo `/auth` y `/health`. Parámetros validados (400), errores no controlados al handler final (500) sin tumbar el proceso.
+Express con 19 routers (`/auth`, `/commands`, `/trades`, `/positions`, `/balances`, `/settings`, `/symbols`, `/candles`, `/candle-sync`, `/server`, `/chart-indicators`, `/drawings`, `/alerts`, `/ema-alerts`, `/ema-notifications`, `/setup-levels`, `/push`, `/stats`, `/book`) más `GET /health` (sin auth, vitalidad por broker). JWT en cookie HttpOnly `token`; `requireAuth` en todo salvo `/auth` y `/health`. Parámetros validados (400), errores no controlados al handler final (500) sin tumbar el proceso.
 
 ### Modelos BD
 
-`Candle` · `CandleSync` (estado de la sincronización manual por broker y temporalidad, spec 049) · `Trade` · `Balance` (snapshot diario por broker y día UTC) · `BalanceOperation` · `MirrorPreset` (presets de mirror con nombre, configuración por broker en JSON, spec 033) · `SettingsDisplay` (display global + `hiddenBrokers` / `hiddenSymbols`: visibilidad solo visual del frontend, spec 024) · `PositionColor` · `User` · `PriceAlert` · `EmaCrossAlert` · `EmaNotification` · `EmaNotificationEvent` (reglas permanentes de cruce de EMAs configuradas en Settings, spec 023, y sus disparos) · `PushSubscription` · `Drawing` · `ChartIndicators` · `BookScheme` · `BookTrade` (libro de esquemas, spec 020: backtest manual del operador, sin vínculo con la operativa). Migraciones SQL escritas a mano en `backend/prisma/migrations/`; `prisma migrate diff` contra producción debe salir vacío.
+`Candle` · `CandleSync` (estado de la sincronización manual por broker y temporalidad, spec 049) · `ServerSample` (CPU y memoria del servidor por minuto, 7 días, spec 051) · `Trade` · `Balance` (snapshot diario por broker y día UTC) · `BalanceOperation` · `MirrorPreset` (presets de mirror con nombre, configuración por broker en JSON, spec 033) · `SettingsDisplay` (display global + `hiddenBrokers` / `hiddenSymbols`: visibilidad solo visual del frontend, spec 024) · `PositionColor` · `User` · `PriceAlert` · `EmaCrossAlert` · `EmaNotification` · `EmaNotificationEvent` (reglas permanentes de cruce de EMAs configuradas en Settings, spec 023, y sus disparos) · `PushSubscription` · `Drawing` · `ChartIndicators` · `BookScheme` · `BookTrade` (libro de esquemas, spec 020: backtest manual del operador, sin vínculo con la operativa). Migraciones SQL escritas a mano en `backend/prisma/migrations/`; `prisma migrate diff` contra producción debe salir vacío.
 
 ### Feature flags y entorno
 
-`FEATURE_PIPE` / `FEATURE_WATCHER` / `FEATURE_ALERTS` / `FEATURE_WS_BROADCAST` se apagan solo con el valor literal `false` (así corre un backend local contra la BD de producción sin tocar los bridges). Variables completas y comentadas en `backend/.env.example`.
+`FEATURE_PIPE` / `FEATURE_WATCHER` / `FEATURE_ALERTS` / `FEATURE_WS_BROADCAST` / `FEATURE_SERVER_MONITOR` se apagan solo con el valor literal `false` (así corre un backend local contra la BD de producción sin tocar los bridges). Variables completas y comentadas en `backend/.env.example`.
 
 ### Deploy backend
 
