@@ -132,3 +132,10 @@
 
 - **Outcome:** ✅
 - **Est vs Actual:** 1.5 SP · 1 SP.
+
+## Task 8 · [docs] Documentation
+
+- **Mechanism:** manual — search of `infra/README.md`, `.claude/CLAUDE.md`, `backend/docs/architecture.md` and `ea/docs/` for the server's name, size, number of terminals and memory logging.
+- **Changes:** only `infra/README.md` names the server: 13 terminals instead of 10, Autologon command with `$env:COMPUTERNAME` instead of the M+'s fixed host name, new section on `RAM-Log` and `PoolWatch`, and the RAM file in the checks. `.claude/CLAUDE.md` and `backend/docs/architecture.md` describe the server without naming the machine or its size: unchanged.
+- **Outcome:** ✅
+- **Est vs Actual:** 0.5 SP · 0.25 SP.

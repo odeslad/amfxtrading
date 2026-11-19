@@ -132,3 +132,10 @@
 
 - **Resultado:** ✅
 - **Est vs Actual:** 1.5 SP · 1 SP.
+
+## Tarea 8 · [docs] Documentación
+
+- **Mecanismo:** manual — búsqueda en `infra/README.md`, `.claude/CLAUDE.md`, `backend/docs/architecture.md` y `ea/docs/` del nombre del servidor, su tamaño, el número de terminales y el registro de memoria.
+- **Cambios:** solo `infra/README.md` nombra el servidor: 13 terminales en vez de 10, comando de Autologon con `$env:COMPUTERNAME` en vez del nombre fijo del M+, sección nueva sobre `RAM-Log` y `PoolWatch`, y el fichero de RAM en las comprobaciones. `.claude/CLAUDE.md` y `backend/docs/architecture.md` describen el servidor sin nombrar la máquina ni su tamaño: sin cambios.
+- **Resultado:** ✅
+- **Est vs Actual:** 0.5 SP · 0.25 SP.
