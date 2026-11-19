@@ -99,3 +99,27 @@
 - **Steps:** migration `20261119300000_drop_chart_indicators` (`DROP TABLE "chart_indicators"`); model `ChartIndicators` and the `User.chartIndicators` relation removed. Pushed together with task 11: the deploy applies the migration before starting the new code, which no longer reads the table.
 - **Outcome:** ✅ the diff from production is only the table and its foreign key, both removed by the `DROP TABLE`.
 - **Est vs Actual:** 0.5 SP · 0.15 SP.
+
+## Task 13 · [specs] Close
+
+- **Production after task 12 (2026-11-19):** migration `20261119300000_drop_chart_indicators` applied, `chart_indicators` gone, the operator's 2 templates intact.
+- **Est vs Actual:** 0.25 SP · 0.25 SP.
+
+## Est vs Actual
+
+| Task | Est | Actual |
+|---|---|---|
+| 1 | 1 | 0.75 |
+| 2 | 2.5 | 1.25 |
+| 3 | 3 | 1.5 |
+| 4 | 1.5 | 0.5 |
+| 5 | 3 | 1.5 |
+| 6 | 0.5 | 0.25 |
+| 7 | 0.75 | 0.5 |
+| 8 | 1.5 | 1 |
+| 9 | 0.5 | 0.25 |
+| 10 | 1 | 1 |
+| 11 | 0.25 | 0.1 |
+| 12 | 0.5 | 0.15 |
+| 13 | 0.25 | 0.25 |
+| **Total** | **16.25** | **9** |

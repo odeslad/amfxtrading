@@ -99,3 +99,27 @@
 - **Pasos:** migración `20261119300000_drop_chart_indicators` (`DROP TABLE "chart_indicators"`); quitados el modelo `ChartIndicators` y la relación `User.chartIndicators`. Subida junto con la tarea 11: el deploy aplica la migración antes de arrancar el código nuevo, que ya no lee la tabla.
 - **Resultado:** ✅ el diff desde producción es solo la tabla y su clave ajena, que el `DROP TABLE` quita.
 - **Est vs Actual:** 0.5 SP · 0.15 SP.
+
+## Tarea 13 · [specs] Cierre
+
+- **Producción tras la tarea 12 (19-nov-2026):** migración `20261119300000_drop_chart_indicators` aplicada, `chart_indicators` ya no existe, las 2 plantillas del operador intactas.
+- **Est vs Actual:** 0.25 SP · 0.25 SP.
+
+## Est vs Actual
+
+| Tarea | Est | Real |
+|---|---|---|
+| 1 | 1 | 0.75 |
+| 2 | 2.5 | 1.25 |
+| 3 | 3 | 1.5 |
+| 4 | 1.5 | 0.5 |
+| 5 | 3 | 1.5 |
+| 6 | 0.5 | 0.25 |
+| 7 | 0.75 | 0.5 |
+| 8 | 1.5 | 1 |
+| 9 | 0.5 | 0.25 |
+| 10 | 1 | 1 |
+| 11 | 0.25 | 0.1 |
+| 12 | 0.5 | 0.15 |
+| 13 | 0.25 | 0.25 |
+| **Total** | **16.25** | **9** |

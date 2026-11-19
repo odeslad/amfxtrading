@@ -14,6 +14,6 @@ Cada tarea es un commit convencional. El proyecto debe compilar tras cada tarea.
 - [x] 10. [infra] Push de db + backend solos, después el frontend; **validar en producción contra la spec**: gráficos iguales tras el despliegue (AC 6); una plantilla con EMA y SMA asignada a un broker desde el gráfico; el resto de brokers con la de por defecto; vista partida con dos brokers; editar una plantilla en Settings › Display con un gráfico abierto en otra pestaña; borrar una plantilla en uso; móvil · **Verificar:** manual (validación del operador) · **Est:** 1 SP
 - [x] 11. [backend] Quitar `routes/chart-indicators.ts` y su montaje, tras la validación · **Verificar:** lint + typecheck + tests + build; nada en `frontend/` llama a `/chart-indicators` · **Est:** 0.25 SP
 - [x] 12. [db] Migración que borra `chart_indicators` y el modelo `ChartIndicators`, tras desplegar la tarea 11 · **Verificar:** `prisma generate` + build; `prisma migrate diff` desde producción solo muestra el borrado; deploy del backend en verde · **Est:** 0.5 SP
-- [ ] 13. [specs] Registrar Est vs Actual en `verification.md` (los dos idiomas), marcar la spec como cerrada y archivarla en `archive/YYYY-MM/` · **Verificar:** manual · **Est:** 0.25 SP
+- [x] 13. [specs] Registrar Est vs Actual en `verification.md` (los dos idiomas), marcar la spec como cerrada y archivarla en `archive/YYYY-MM/` · **Verificar:** manual · **Est:** 0.25 SP
 
 **Estimación total**: 16.25 SP

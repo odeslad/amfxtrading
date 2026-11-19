@@ -1,6 +1,6 @@
 # 052 — Moving average templates per broker
 
-> Status: **approved**
+> Status: **closed**
 
 ## Context
 

@@ -1,6 +1,6 @@
 # 052 — Plantillas de medias móviles por broker
 
-> Status: **approved**
+> Status: **closed**
 
 ## Contexto
 

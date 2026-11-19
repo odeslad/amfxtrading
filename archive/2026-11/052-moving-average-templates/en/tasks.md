@@ -14,6 +14,6 @@ Each task is one conventional commit. The project must build after every task. T
 - [x] 10. [infra] Push db + backend alone, then the frontend; **validate on production against the spec**: charts unchanged after the deploy (AC 6); a template with EMA and SMA assigned to a broker from the chart; the other brokers on the default; split view with two brokers; edit a template in Settings › Display with a chart open in another tab; delete a template in use; phone · **Verify:** manual (operator validation) · **Est:** 1 SP
 - [x] 11. [backend] Remove `routes/chart-indicators.ts` and its mount, after the validation · **Verify:** lint + typecheck + tests + build; nothing in `frontend/` calls `/chart-indicators` · **Est:** 0.25 SP
 - [x] 12. [db] Migration dropping `chart_indicators` and the `ChartIndicators` model, after task 11 is deployed · **Verify:** `prisma generate` + build; `prisma migrate diff` from production shows only the drop; backend deploy green · **Est:** 0.5 SP
-- [ ] 13. [specs] Record Est vs Actual in `verification.md` (both languages), mark the spec closed and archive it under `archive/YYYY-MM/` · **Verify:** manual · **Est:** 0.25 SP
+- [x] 13. [specs] Record Est vs Actual in `verification.md` (both languages), mark the spec closed and archive it under `archive/YYYY-MM/` · **Verify:** manual · **Est:** 0.25 SP
 
 **Total estimate**: 16.25 SP
