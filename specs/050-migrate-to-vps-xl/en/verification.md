@@ -22,3 +22,23 @@
 - **Finding:** the RAM log the design relies on never existed on the M+ (only `PoolWatch`); task 6 creates it on the XL+.
 - **Outcome:** ✅
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Task 2 · [infra] Software on the XL+
+
+- **Mechanism:** official installers downloaded on the XL+ into `C:\deploy\installers`, run silently over SSH; versions and services read back with the same inventory script as task 1.
+- **Steps:** Node 24.16.0 (MSI), Git 2.54.0 (silent setup), cloudflared 2026.6.0 (MSI, lands in `C:\Program Files (x86)\cloudflared` as on the M+; no service created), nssm 2.24-101 in `C:\nssm`, `npm i -g pm2@7.0.1`, PostgreSQL 17.10 (EDB installer through a one-off `SYSTEM` scheduled task, 180 s, superuser password taken from the M+'s `DATABASE_URL`, port 5432, task deleted afterwards), `C:\nginx` copied from the M+ without `logs` and `temp` and registered with nssm with the M+'s settings (`AppDirectory C:\nginx`, `AppExit Restart`, automatic, LocalSystem).
+- **Result:**
+
+| Item | M+ | XL+ |
+|---|---|---|
+| Node / npm | 24.16.0 / 11.13.0 | 24.16.0 / 11.13.0 |
+| pm2 | 7.0.1 | 7.0.1 |
+| git | 2.54.0.windows.1 | 2.54.0.windows.1 |
+| PostgreSQL | 17.10, `postgresql-x64-17` running, automatic, NetworkService | same |
+| nginx | 1.26.2, `nginx` running, automatic, LocalSystem | same (nssm in `C:\nssm` instead of the WinGet link) |
+| nssm | 2.24-101-g897c7ad | 2.24-101-g897c7ad |
+| cloudflared | 2026.6.0 | 2026.6.0 |
+
+- **Note:** npm writes notices to stderr, which stopped the script under `ErrorActionPreference = Stop` after pm2 had installed; the rest was run on its own.
+- **Outcome:** ✅
+- **Est vs Actual:** 1.5 SP · 0.5 SP.
