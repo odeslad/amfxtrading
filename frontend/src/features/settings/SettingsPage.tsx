@@ -15,11 +15,13 @@ import { VisibilityTab } from './VisibilityTab';
 import { SymbolsPanel } from './SymbolsPanel';
 import { DataSyncTab } from './DataSyncTab';
 import { useCandleSync } from '../../lib/useCandleSync';
+import { ServerTab } from './ServerTab';
+import { useServerStatus } from '../../lib/useServerStatus';
 import { usePushDevices } from '../../lib/usePushDevices';
 import { EMPTY_VISIBILITY, isBrokerVisible, setVisibility as publishVisibility, useVisibility, type Visibility } from '../../lib/visibility';
 import styles from './SettingsPage.module.css';
 
-type Tab = 'mirror' | 'display' | 'notifications' | 'visibility' | 'data';
+type Tab = 'mirror' | 'display' | 'notifications' | 'visibility' | 'data' | 'server';
 
 interface SavedPreset {
   id: number;
@@ -76,6 +78,7 @@ export function SettingsPage() {
   const pushDevices = usePushDevices();
   const [devicesOpen, setDevicesOpen] = useState(false);
   const candleSync = useCandleSync(tab === 'data');
+  const server = useServerStatus(tab === 'server');
 
   useEffect(() => {
     const ac = new AbortController();
@@ -219,6 +222,7 @@ export function SettingsPage() {
           </button>
           <button type="button" className={`${styles.tab} ${tab === 'visibility' ? styles.tabActive : ''}`} onClick={() => setTab('visibility')}>Visibility</button>
           <button type="button" className={`${styles.tab} ${tab === 'data' ? styles.tabActive : ''}`} onClick={() => setTab('data')}>Data</button>
+          <button type="button" className={`${styles.tab} ${tab === 'server' ? styles.tabActive : ''}`} onClick={() => setTab('server')}>Server</button>
         </div>
 
         <div className={styles.tabBarRight}>
@@ -281,6 +285,7 @@ export function SettingsPage() {
           onSync={candleSync.startSync}
         />
       )}
+      {tab === 'server' && <ServerTab report={server.report} lastOkAt={server.lastOkAt} checkedAt={server.checkedAt} failing={server.failing} />}
       {tab === 'notifications' && (
         <NotificationsTab
           notifications={notifications}

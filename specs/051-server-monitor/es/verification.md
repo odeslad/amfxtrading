@@ -24,3 +24,17 @@
 - **Tests:** 9 nuevos en `server.test.ts` (lectura del rango, ventana de arranque tras cuelgue, 401 sin sesión en las dos rutas, 503 con el monitor apagado, el informe unido, el informe antes de la primera sonda, filas de 24h y su corte, consulta de tramos de 7d, 400 para otro rango). Una primera ejecución falló en la suite completa por una antigüedad de tick exacta (la suite va más lenta que el fichero solo); la comprobación usa ahora un límite. Suite completa 189 tests en verde; lint, typecheck y build limpios.
 - **Resultado:** ✅
 - **Est vs Actual:** 1.5 SP · 0.75 SP.
+
+## Deploy del backend (parte de la tarea 7, adelantado para que se acumule historial)
+
+- **19-nov-2026:** commits `8b2a10c`…`c7b9d05` subidos solos (solo `backend/` y `specs/`); pipeline del backend en verde. En el XL+: migración `20261119000000_server_samples` aplicada; una fila por minuto desde las 13:46:40 UTC (memoria total 16 374 MB, 13 terminales); sin errores `[MONITOR]` en el log de pm2.
+- **Comprobación de CPU:** el monitor marcaba 27–29 % donde el contador de Windows de la mañana había dado 13 %. Medidos a la vez: `% Processor Time` de Windows 31,9 % y `% Processor Utility` 32,2 % en 30 s, filas del monitor 26,4–27,6 % — el monitor acierta; los 13 terminales habían pasado del 11,6 % al 22 % (horario de mercado), el backend con el monitor 0,8 %.
+- **Lección para la comprobación local:** un backend local con el monitor encendido escribe las muestras de su propio PC en la tabla de producción por el túnel de la BD. Se paró dentro del primer minuto; todas las filas desde el deploy tienen los 16 374 MB del XL+ y el ritmo exacto de 60 s, así que ninguna vino del PC. Las comprobaciones locales de la pestaña usan Vite con proxy al API de producción (`DEV_API_TARGET=https://api.amfxtrading.com`).
+
+## Tarea 4 · [frontend] Pestaña Server
+
+- **Mecanismo:** `npm run build` + eslint; comprobación local en `https://local.amfxtrading.com:5174` con Vite y proxy al API de producción (datos reales del XL+, sin escribir nada).
+- **Pasos:** `src/lib/useServerStatus.ts` (pide `/server` cada 15 s y el historial cada minuto mientras la pestaña está abierta; mantiene el último informe si una consulta falla; historial asociado a su rango). `src/features/settings/ServerTab.tsx` + `.module.css`: cabecera de la máquina con punto de estado y marca de cuelgue, cuatro indicadores (verde < 70 %, dorado < 90 %, rojo), servicios y backend, terminales con los problemas primero (parados, en marcha sin ticks recientes, sanos, sin ticks), tabla en escritorio y tarjetas a ≤ 768 px, lista de cuelgues, secciones plegables recordadas en `localStorage` (`amfx.server.collapsed`), estados de carga y de datos antiguos. Pestaña `Server` en `SettingsPage`. Las reglas de lint de React prohíben `Date.now()` en el render y un `setState` síncrono en un efecto: el hook expone la hora de la última consulta y asocia el historial a su rango.
+- **Comprobación del operador (19-nov-2026):** `WIN-5SSFL41HHDI`, Windows Server 2025, 8 núcleos, 16 GB; último arranque 19 nov 11:31 hora local, encendido 3 h 31 m; CPU 28,1 %, memoria 3,1 / 16 GB, fichero de paginación 1,0 GB, disco 449 / 479 GB; servicios 4 / 4; backend 17 m, 183 MB, 0 reinicios (el contador de pm2 vuelve a cero con cada deploy, que borra y vuelve a crear el proceso); terminales 13 / 13, 12 conectadas a 0 s y `solidary isa` al final en gris como «no ticks»; cuelgues «None in the last 30 days».
+- **Resultado:** ✅
+- **Est vs Actual:** 3 SP · 1.5 SP.
