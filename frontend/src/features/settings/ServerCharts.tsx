@@ -18,7 +18,7 @@ interface Marker {
   x: number;
   gapEnd: number | null;
   label: string;
-  tone: 'error' | 'warn';
+  tone: 'error' | 'warn' | 'restart';
 }
 
 const STEP_S: Record<HistoryRange, number> = { '24h': 60, '7d': 600 };
@@ -138,26 +138,36 @@ export function ServerCharts({ history, range, onRange, events }: ServerChartsPr
     chart.timeScale().fitContent();
     chartRef.current = chart;
 
-    // A crash or unclean stop is drawn where the samples stop, up to the first sample after it.
-    const first = history.length > 0 ? Date.parse(history[0].t) : Infinity;
+    // Every hole in the samples is marked from the last sample before it to the first after
+    // it: a crash or unclean stop of Windows when the event log has one inside the hole,
+    // otherwise a restart of the backend (deploy, pm2 restart).
+    const gaps: { from: number; to: number }[] = [];
+    for (let i = 1; i < history.length; i++) {
+      const from = Date.parse(history[i - 1].t);
+      const to = Date.parse(history[i].t);
+      if (to - from > GAP_FACTOR * step * 1000) gaps.push({ from, to });
+    }
+    // timeToCoordinate counts from the plot area, which starts after the left (CPU) price scale.
     const placeMarkers = () => {
       const scale = chart.timeScale();
+      const left = chart.priceScale('left').width();
+      const toX = (ms: number): number | null => {
+        const x = scale.timeToCoordinate(toChartTime(ms));
+        return x === null ? null : x + left;
+      };
       const next: Marker[] = [];
-      for (const e of events ?? []) {
-        const at = Date.parse(e.at);
-        if (at < first) continue;
-        const before = [...history].reverse().find(p => Date.parse(p.t) < at);
-        const after = history.find(p => Date.parse(p.t) >= at);
-        const x = scale.timeToCoordinate(toChartTime(before ? Date.parse(before.t) : at));
+      for (const g of gaps) {
+        const x = toX(g.from);
         if (x === null) continue;
-        const end = after ? scale.timeToCoordinate(toChartTime(Date.parse(after.t))) : null;
-        const downMin = before && after ? Math.round((Date.parse(after.t) - Date.parse(before.t)) / 60_000) : null;
+        const event = (events ?? []).find(e => { const at = Date.parse(e.at); return at > g.from && at <= g.to + 15 * 60_000; });
+        const downMin = Math.max(1, Math.round((g.to - g.from) / 60_000));
+        const what = !event ? 'BACKEND RESTART' : event.kind === 'bugcheck' ? `CRASH ${event.code ?? ''}` : 'UNEXPECTED SHUTDOWN';
         next.push({
-          key: e.at,
+          key: String(g.from),
           x,
-          gapEnd: end,
-          tone: e.kind === 'bugcheck' ? 'error' : 'warn',
-          label: `${e.kind === 'bugcheck' ? `CRASH ${e.code ?? ''}` : 'UNEXPECTED SHUTDOWN'} · ${formatTime(before?.t ?? e.at)}${downMin ? ` · DOWN ${downMin} MIN` : ''}`,
+          gapEnd: toX(g.to),
+          tone: !event ? 'restart' : event.kind === 'bugcheck' ? 'error' : 'warn',
+          label: `${what} · ${formatTime(new Date(g.from).toISOString())} · ${downMin} MIN`,
         });
       }
       setMarkers(next);

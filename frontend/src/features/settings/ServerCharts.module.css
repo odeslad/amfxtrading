@@ -117,6 +117,7 @@
 
 .line_error { background: var(--red); }
 .line_warn { background: var(--gold); }
+.line_restart { background: var(--orange); }
 
 .gap {
   position: absolute;
@@ -127,6 +128,7 @@
 
 .gap_error { background: repeating-linear-gradient(45deg, rgba(224, 92, 92, 0.35) 0 2px, transparent 2px 6px); }
 .gap_warn { background: repeating-linear-gradient(45deg, rgba(200, 168, 64, 0.35) 0 2px, transparent 2px 6px); }
+.gap_restart { background: repeating-linear-gradient(45deg, rgba(245, 166, 35, 0.3) 0 2px, transparent 2px 6px); }
 
 .restart {
   position: absolute;
@@ -149,6 +151,7 @@
 
 .tag_error { color: var(--red); border: 1px solid var(--red); }
 .tag_warn { color: var(--gold); border: 1px solid var(--gold); }
+.tag_restart { color: var(--orange); border: 1px solid var(--orange); }
 
 @media (max-width: 768px) {
   .resizer { height: 24px; margin-top: -12px; }
