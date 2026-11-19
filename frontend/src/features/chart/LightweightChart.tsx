@@ -6,7 +6,7 @@ import {
   type IChartApi, type ISeriesApi, type CandlestickData, type Time, type IPriceLine,
   type SeriesMarker, type ISeriesMarkersPluginApi,
 } from 'lightweight-charts';
-import type { Ema } from './chart.types';
+import type { MovingAverage } from './chart.types';
 import type { Position } from '../journal/utils/position';
 import { DrawingManager, type PersistedDrawing, type TrendlineAppearance, type DrawingKind, type MarkerDirection, type SymbolVariant } from './DrawingTools';
 import type { EmaCrossTrade } from './useEmaCrossTrades';
@@ -77,7 +77,7 @@ interface LightweightChartProps {
   timeframe: string;
   ref?: Ref<ChartHandle>;
   onLoadMore?: () => void;
-  emas: Ema[];
+  emas: MovingAverage[];
 }
 
 function fmtLots(lots: number): string {
@@ -153,10 +153,24 @@ function getPricePrecision(symbol: string): number {
   return symbol.toUpperCase().includes('JPY') ? 3 : 5;
 }
 
-function calcEma(candles: Candle[], period: number): { time: Time; value: number }[] {
-  // Only feed candles with a finite close; a single NaN/null close otherwise
-  // poisons the whole EMA and lightweight-charts throws "Value is null" on hitTest.
-  const valid = candles.filter(c => Number.isFinite(c.close) && Number.isFinite(c.time));
+// Only candles with a finite close: a single NaN/null close otherwise poisons the whole
+// average and lightweight-charts throws "Value is null" on hitTest.
+const validCandles = (candles: Candle[]): Candle[] =>
+  candles.filter(c => Number.isFinite(c.close) && Number.isFinite(c.time));
+
+function calcSma(valid: Candle[], period: number): { time: Time; value: number }[] {
+  if (valid.length < period) return [];
+  let sum = 0;
+  const result: { time: Time; value: number }[] = [];
+  for (let i = 0; i < valid.length; i++) {
+    sum += valid[i].close;
+    if (i >= period) sum -= valid[i - period].close;
+    if (i >= period - 1) result.push({ time: valid[i].time as Time, value: sum / period });
+  }
+  return result;
+}
+
+function calcEma(valid: Candle[], period: number): { time: Time; value: number }[] {
   if (valid.length < period) return [];
   const k = 2 / (period + 1);
   let ema = valid.slice(0, period).reduce((s, c) => s + c.close, 0) / period;
@@ -295,13 +309,13 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const emaSeriesRef = useRef<Map<string, ISeriesApi<'Line'>>>(new Map());
   // Last closed point per EMA, the base of the provisional point on the live candle (spec 025).
-  const emaLastRef = useRef<Map<string, { time: number; value: number }>>(new Map());
+  const emaLastRef = useRef<Map<string, { time: number; value: number; closes: number[] }>>(new Map());
   const candlesRef = useRef<Candle[]>([]);
   const showSpreadRef = useRef(showSpread);
   const quoteRef = useRef<{ bid: number | null; ask: number | null }>({ bid: null, ask: null });
   const bidLineRef = useRef<IPriceLine | null>(null);
   const askLineRef = useRef<IPriceLine | null>(null);
-  const emasRef = useRef<Ema[]>(emas);
+  const emasRef = useRef<MovingAverage[]>(emas);
   const timeframeRef = useRef<string>(timeframe);
   const symbolRef = useRef<string>(symbol);
   const brokerRef = useRef<string>(broker);
@@ -791,24 +805,34 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
       })
       .sort((a, b) => a.time - b.time);
     emaLastRef.current.clear();
+    const valid = validCandles(filteredCandles);
     for (const ema of currentEmas) {
       const series = emaSeriesRef.current.get(ema.id)!;
-      const points = calcEma(filteredCandles, ema.period);
+      const points = ema.type === 'sma' ? calcSma(valid, ema.period) : calcEma(valid, ema.period);
       series.setData(points);
       const last = points[points.length - 1];
-      if (last) emaLastRef.current.set(ema.id, { time: last.time as number, value: last.value });
+      // An SMA on the live candle needs the closes it shares with the last window.
+      const closes = ema.type === 'sma' && ema.period > 1 ? valid.slice(-(ema.period - 1)).map(c => c.close) : [];
+      if (last) emaLastRef.current.set(ema.id, { time: last.time as number, value: last.value, closes });
     }
   }, []);
 
-  // Extends every EMA to the live candle: one EMA step from the last closed value and the live close.
+  // Extends every average to the live candle: one EMA step from the last closed value, or
+  // the SMA of the last period − 1 closed closes plus the live close.
   const updateLiveEmas = useCallback((liveTime: number, close: number) => {
     for (const ema of emasRef.current) {
       const series = emaSeriesRef.current.get(ema.id);
       const last = emaLastRef.current.get(ema.id);
       if (!series || !last || liveTime <= last.time) continue;
-      const k = 2 / (ema.period + 1);
+      let value: number;
+      if (ema.type === 'sma') {
+        value = (last.closes.reduce((s, c) => s + c, 0) + close) / ema.period;
+      } else {
+        const k = 2 / (ema.period + 1);
+        value = close * k + last.value * (1 - k);
+      }
       try {
-        series.update({ time: liveTime as Time, value: close * k + last.value * (1 - k) });
+        series.update({ time: liveTime as Time, value });
       } catch {
         // skip silently, as the candle update does
       }

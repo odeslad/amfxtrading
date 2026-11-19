@@ -1,0 +1,57 @@
+.wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 2px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: block;
+  padding: 0;
+  transition: border-color 0.12s;
+}
+
+.swatch:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 10;
+  background: var(--surface2);
+  border: 1px solid var(--border-bright);
+  padding: 6px;
+  display: grid;
+  grid-template-columns: repeat(4, 20px);
+  gap: 4px;
+}
+
+.cell {
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.12s;
+}
+
+.cell:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.cellActive {
+  border-color: #fff;
+}
+
+@media (max-width: 768px) {
+  .swatch {
+    width: 44px;
+    height: 44px;
+  }
+}

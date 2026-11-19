@@ -17,3 +17,16 @@
 - **Tests:** 10 new in `ma-templates.test.ts` (validation of every field incl. period 1 and 5 000 accepted and 0 / 2.5 refused, name rules, 401, list with the default created, create + notify, update scoped to the user + 404 + 400 with nothing to change, default moved in one transaction, default not deletable + delete, assignment set / cleared / 404). Full suite 201 tests green. `pipe-reader.test.ts` (real named pipe, timing) failed once in the full run and passed 3 of 3 alone and in the next full run: intermittent, not touched by this task.
 - **Outcome:** ✅
 - **Est vs Actual:** 2.5 SP · 1.25 SP.
+
+## Backend deploy (part of task 7, done early so the chart can be checked against real data)
+
+- **2026-11-19:** `7b335a4`, `9511462`, `3acb4a7` pushed alone (`backend/` and `specs/`); backend pipeline green, restarted. On production: migration `20261119100000_ma_templates` applied; `ma_templates` holds template 1 "Default", default, 4 averages, the first of type `ema`. The deployed frontend keeps using `/chart-indicators`, untouched.
+
+## Task 3 · [frontend] Templates and SMA in the chart
+
+- **Mechanism:** `npm run build` + eslint; local check at `https://local.amfxtrading.com:5174` with Vite proxied to the production API.
+- **Steps:** `chart.types.ts`: `MovingAverage` with `type: 'ema' | 'sma'` (replaces `Ema`). `LightweightChart.tsx`: `calcSma` (rolling sum) beside `calcEma`, both over the same valid candles; the live candle takes one EMA step, or for an SMA the last `period − 1` closed closes plus the live close, so the point does not jump when the candle closes. `src/lib/useMaTemplates.ts`: loads `/ma-templates`, reloads on the WS `ma_templates`, `templateFor(broker)` (assigned, else default), `averagesFor(broker)` without the averages hidden on the device (`localStorage` `chart.maHidden`). `ChartPage` / `ChartSlot`: each slot draws `averagesFor(its broker)`; the `/chart-indicators` load and save removed. `IndicatorsPanel`: the broker's template with a show/hide checkbox per average (the template select and the Settings link come in task 4). The colour picker and palette moved to `ColorPicker.tsx` and `movingAverages.ts` (with `maLabel`, "EMA 24") for the Settings editor.
+- **Operator check (2026-11-19):** charts show the same four EMAs (24, 48, 288, 576) with their colours and styles; the panel lists "Default" and the four averages; hiding one removes it and it stays hidden after a reload; split view fine.
+- **Pending:** an SMA on the chart can only be added once the Settings editor exists — checked in task 5.
+- **Outcome:** ✅ (SMA check in task 5)
+- **Est vs Actual:** 3 SP · 1.5 SP.

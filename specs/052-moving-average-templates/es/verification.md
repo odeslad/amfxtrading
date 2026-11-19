@@ -17,3 +17,16 @@
 - **Tests:** 10 nuevos en `ma-templates.test.ts` (validación de cada campo incluido periodo 1 y 5 000 aceptados y 0 / 2,5 rechazados, reglas del nombre, 401, lista con la de por defecto creada, crear + aviso, actualizar limitado al usuario + 404 + 400 sin nada que cambiar, cambio de la de por defecto en una transacción, la de por defecto no se borra + borrado, asignación puesta / quitada / 404). Suite completa 201 tests en verde. `pipe-reader.test.ts` (pipe real, tiempos) falló una vez en la suite completa y pasó 3 de 3 solo y en la siguiente suite completa: intermitente, no lo toca esta tarea.
 - **Resultado:** ✅
 - **Est vs Actual:** 2.5 SP · 1.25 SP.
+
+## Deploy del backend (parte de la tarea 7, adelantado para comprobar el gráfico con datos reales)
+
+- **19-nov-2026:** `7b335a4`, `9511462`, `3acb4a7` subidos solos (`backend/` y `specs/`); pipeline del backend en verde, reiniciado. En producción: migración `20261119100000_ma_templates` aplicada; `ma_templates` tiene la plantilla 1 «Default», por defecto, 4 medias, la primera de tipo `ema`. El frontend desplegado sigue usando `/chart-indicators`, sin tocar.
+
+## Tarea 3 · [frontend] Plantillas y SMA en el gráfico
+
+- **Mecanismo:** `npm run build` + eslint; comprobación local en `https://local.amfxtrading.com:5174` con Vite y proxy al API de producción.
+- **Pasos:** `chart.types.ts`: `MovingAverage` con `type: 'ema' | 'sma'` (sustituye a `Ema`). `LightweightChart.tsx`: `calcSma` (suma móvil) junto a `calcEma`, las dos sobre las mismas velas válidas; la vela en curso da un paso de EMA, o para una SMA los últimos `period − 1` cierres cerrados más el cierre en vivo, así que el punto no salta al cerrar la vela. `src/lib/useMaTemplates.ts`: carga `/ma-templates`, recarga con el WS `ma_templates`, `templateFor(broker)` (la asignada, si no la de por defecto), `averagesFor(broker)` sin las medias ocultas en el dispositivo (`localStorage` `chart.maHidden`). `ChartPage` / `ChartSlot`: cada lado dibuja `averagesFor(su broker)`; fuera la carga y el guardado de `/chart-indicators`. `IndicatorsPanel`: la plantilla del broker con una casilla de mostrar/ocultar por media (el selector de plantilla y el enlace a Settings llegan en la tarea 4). El selector de color y la paleta pasan a `ColorPicker.tsx` y `movingAverages.ts` (con `maLabel`, «EMA 24») para el editor de Settings.
+- **Comprobación del operador (19-nov-2026):** los gráficos muestran las mismas cuatro EMAs (24, 48, 288, 576) con sus colores y estilos; el panel muestra «Default» y las cuatro medias; ocultar una la quita y sigue oculta al recargar; vista partida bien.
+- **Pendiente:** una SMA en el gráfico solo se puede añadir cuando exista el editor de Settings — se comprueba en la tarea 5.
+- **Resultado:** ✅ (comprobación de SMA en la tarea 5)
+- **Est vs Actual:** 3 SP · 1.5 SP.

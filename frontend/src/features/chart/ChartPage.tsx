@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type MouseEvent as ReactMouseEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { apiFetch, apiSend, errorMessage } from '../../lib/api';
+import { apiFetch, errorMessage } from '../../lib/api';
 import { modifyCommand, sendCommand } from '../../lib/commands';
 import { addToast } from '../../lib/toast';
 import { useWs } from '../../lib/useWs';
@@ -18,11 +18,11 @@ import { useMediaQuery } from '../../lib/useMediaQuery';
 import { isBrokerVisible, isSymbolVisible, useVisibility } from '../../lib/visibility';
 import type { TrendlineAppearance } from './DrawingTools';
 import { IndicatorsPanel } from './IndicatorsPanel';
+import { useMaTemplates } from '../../lib/useMaTemplates';
 import { ChartSlot, type ChartSide } from './ChartSlot';
 import { BulkEditPanel } from '../journal/BulkEditPanel';
 import { ClosePositionPanel } from '../journal/ClosePositionPanel';
 import { NewTradePanel } from '../journal/NewTradePanel';
-import type { Ema } from './chart.types';
 import type { Position } from '../journal/utils/position';
 import styles from './ChartPage.module.css';
 
@@ -160,7 +160,6 @@ export function ChartPage() {
   const [closePosition, setClosePosition] = useState<Position | null>(null);
   const [showSpread, setShowSpread] = useState(false);
   const [trendlineAppearance, setTrendlineAppearance] = useState<TrendlineAppearance>({ color: '#8c8c8c', style: 'dashed', width: 1 });
-  const [emas, setEmas] = useState<Ema[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   // Which chart fills the page while fullscreen in split view; both show otherwise.
   const [fullscreenSide, setFullscreenSide] = useState<ChartSide>('left');
@@ -238,9 +237,7 @@ export function ChartPage() {
     observer.observe(area);
     return () => observer.disconnect();
   }, [splitLayoutActive, setSplit]);
-  const emasRef = useRef<Ema[]>([]);
-
-  useEffect(() => { emasRef.current = emas; }, [emas]);
+  const maTemplates = useMaTemplates();
 
   // iOS Safari (iPhone) has no Fullscreen API for arbitrary elements, so keep our
   // own state and fall back to a CSS fullscreen when the native API is missing.
@@ -283,12 +280,6 @@ export function ChartPage() {
   }, [isFullscreen, nativeFullscreen]);
 
   useEffect(() => {
-    apiFetch<{ emas: Ema[] }>('/chart-indicators')
-      .then(data => setEmas(data.emas ?? []))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
     apiFetch<{ display: { trendlineColor?: string; trendlineStyle?: string; trendlineWidth?: number; rectLabels?: boolean; showSpread?: boolean; fibLevels?: number[] } }>('/settings')
       .then(data => {
         setShowSpread(data.display?.showSpread ?? false);
@@ -308,14 +299,6 @@ export function ChartPage() {
         }
       })
       .catch(() => {});
-  }, []);
-
-  const saveEmas = useCallback(async () => {
-    try {
-      await apiSend('/chart-indicators', 'PUT', { emas: emasRef.current });
-    } catch (err) {
-      addToast(errorMessage(err, 'Network error saving indicators'), 'error');
-    }
   }, []);
 
   const [balances, setBalances] = useState<Record<string, number>>({});
@@ -518,7 +501,7 @@ export function ChartPage() {
     onSymbolChange: setSymbol,
     positions,
     balance: balances[broker],
-    emas,
+    averagesFor: maTemplates.averagesFor,
     trendlineAppearance,
     showSpread,
     pnlMode,
@@ -619,9 +602,9 @@ export function ChartPage() {
       <IndicatorsPanel
         open={indicatorsOpen}
         onClose={closeIndicators}
-        emas={emas}
-        onEmasChange={setEmas}
-        onSave={saveEmas}
+        template={maTemplates.templateFor(broker)}
+        hidden={maTemplates.hidden}
+        onToggleHidden={maTemplates.toggleHidden}
       />
       <NewTradePanel open={newTradeOpen} onClose={closeNewTrade} initialBroker={broker} initialSymbol={symbol} initialTimeframe={newTradeTimeframe} />
 

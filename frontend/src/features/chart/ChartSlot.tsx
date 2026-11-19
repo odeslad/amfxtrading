@@ -9,7 +9,7 @@ import { AlertActionBar } from './AlertActionBar';
 import { LightweightChart, type ChartHandle, type DrawMode } from './LightweightChart';
 import { ChartErrorBoundary } from './ChartErrorBoundary';
 import type { PersistedDrawing, TrendlineAppearance } from './DrawingTools';
-import type { Ema } from './chart.types';
+import type { MovingAverage } from './chart.types';
 import type { EmaTradesSettings } from './emaTrades';
 import { useEmaCrossTrades } from './useEmaCrossTrades';
 import { useChartToolState, type ChartSide } from './useChartToolState';
@@ -32,7 +32,8 @@ interface ChartSlotProps {
   onTimeframeChange: (v: string) => void;
   positions: Position[];
   balance?: number;
-  emas: Ema[];
+  // Spec 052: the moving averages of a broker's template, minus those hidden on this device.
+  averagesFor: (broker: string) => MovingAverage[];
   trendlineAppearance: TrendlineAppearance;
   showSpread: boolean;
   pnlMode: PnlMode;
@@ -123,12 +124,13 @@ const mergeLatest = (prev: Candle[], latest: Candle[]): Candle[] => {
 // drawings, draw mode, lock, positions mode and the selected alert (spec 036).
 export function ChartSlot({
   side, brokers, symbols, broker, symbol, brokerHidden, symbolHidden, onBrokerChange, onSymbolChange,
-  timeframe, onTimeframeChange, positions, balance, emas, trendlineAppearance, showSpread, pnlMode, emaTradesSettings,
+  timeframe, onTimeframeChange, positions, balance, averagesFor, trendlineAppearance, showSpread, pnlMode, emaTradesSettings,
   alerts, onMoveAlert, onEditAlertPrice, onToggleAlert, onDeleteAlert,
   onIndicators, onFilters, onAlerts, alertsActive, alertsFlashing,
   onNewTrade, onEditPosition, onClosePosition, onModifyPosition, onFullscreen, isFullscreen,
   splitAvailable, splitActive, onSplit,
 }: ChartSlotProps) {
+  const emas = useMemo(() => averagesFor(broker), [averagesFor, broker]);
   const [candles, setCandles] = useState<Candle[]>([]);
   // Live candle: pushed into the chart through its handle, never slot state (spec 019).
   const chartRef = useRef<ChartHandle>(null);
