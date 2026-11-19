@@ -12,6 +12,8 @@ import { bodyRecord, integer, nonEmptyString, oneOf } from '../middleware/parse'
 
 export const MA_TYPES = ['ema', 'sma'] as const;
 export const LINE_STYLES = ['solid', 'dashed', 'dotted'] as const;
+// A template can be assigned to one timeframe of a broker; without one it covers them all.
+export const TIMEFRAMES = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'W1', 'MN'] as const;
 const NAME_MAX = 40;
 const COLOR = /^#[0-9a-fA-F]{6}$/;
 
@@ -80,10 +82,10 @@ router.get('/', asyncRoute<AuthRequest>(async (req, res) => {
     await db.maTemplate.create({ data: { userId, name: 'Default', isDefault: true, averages: [] } });
     templates = await db.maTemplate.findMany({ where: { userId }, orderBy: { id: 'asc' } });
   }
-  const rows = await db.maTemplateBroker.findMany({ where: { userId } });
+  const rows = await db.maTemplateBroker.findMany({ where: { userId }, orderBy: [{ broker: 'asc' }, { timeframe: 'asc' }] });
   res.json({
     templates: templates.map((t) => ({ id: t.id, name: t.name, isDefault: t.isDefault, averages: t.averages })),
-    assignments: Object.fromEntries(rows.map((r) => [r.broker, r.templateId])),
+    assignments: rows.map((r) => ({ broker: r.broker, timeframe: r.timeframe || null, templateId: r.templateId })),
   });
 }));
 
@@ -100,20 +102,21 @@ router.put('/assignments', asyncRoute<AuthRequest>(async (req, res) => {
   const userId = req.userId!;
   const body = bodyRecord(req.body);
   const broker = nonEmptyString(body['broker'], 'broker');
+  const tf = body['timeframe'] == null ? '' : oneOf(body['timeframe'], 'timeframe', TIMEFRAMES);
   const raw = body['templateId'];
   if (raw === null) {
-    await db.maTemplateBroker.deleteMany({ where: { userId, broker } });
+    await db.maTemplateBroker.deleteMany({ where: { userId, broker, timeframe: tf } });
   } else {
     const id = integer(raw, 'templateId', { min: 1 });
     await ownTemplate(userId, id);
     await db.maTemplateBroker.upsert({
-      where: { userId_broker: { userId, broker } },
-      create: { userId, broker, templateId: id },
+      where: { userId_broker_timeframe: { userId, broker, timeframe: tf } },
+      create: { userId, broker, timeframe: tf, templateId: id },
       update: { templateId: id },
     });
   }
   notify(userId);
-  res.json({ broker, templateId: raw === null ? null : raw });
+  res.json({ broker, timeframe: tf || null, templateId: raw === null ? null : raw });
 }));
 
 router.put('/:id', asyncRoute<AuthRequest>(async (req, res) => {

@@ -86,12 +86,18 @@ describe('routes', () => {
 
   it('lists the templates and assignments, creating the default when the user has none', async () => {
     db.maTemplate.findMany.mockResolvedValueOnce([tpl(2)]).mockResolvedValueOnce([tpl(1, true), tpl(2)]);
-    db.maTemplateBroker.findMany.mockResolvedValue([{ userId: USER, broker: 'FTMO', templateId: 2 }]);
+    db.maTemplateBroker.findMany.mockResolvedValue([
+      { userId: USER, broker: 'FTMO', timeframe: '', templateId: 2 },
+      { userId: USER, broker: 'FTMO', timeframe: 'H1', templateId: 1 },
+    ]);
     const res = await call('GET', '');
-    const body = await res.json() as { templates: { id: number; isDefault: boolean }[]; assignments: Record<string, number> };
+    const body = await res.json() as { templates: { id: number; isDefault: boolean }[]; assignments: unknown[] };
     expect(db.maTemplate.create).toHaveBeenCalledWith({ data: { userId: USER, name: 'Default', isDefault: true, averages: [] } });
     expect(body.templates.map((t) => [t.id, t.isDefault])).toEqual([[1, true], [2, false]]);
-    expect(body.assignments).toEqual({ FTMO: 2 });
+    expect(body.assignments).toEqual([
+      { broker: 'FTMO', timeframe: null, templateId: 2 },
+      { broker: 'FTMO', timeframe: 'H1', templateId: 1 },
+    ]);
     expect(db.maTemplate.findMany).toHaveBeenCalledWith({ where: { userId: USER }, orderBy: { id: 'asc' } });
   });
 
@@ -133,17 +139,29 @@ describe('routes', () => {
     expect(notified).toHaveBeenCalledTimes(1);
   });
 
-  it('assigns a template to a broker and clears it back to the default', async () => {
+  it('assigns a template to a broker for every timeframe and clears it back to the default', async () => {
     db.maTemplate.findFirst.mockResolvedValue(tpl(2));
     expect((await call('PUT', '/assignments', { broker: 'FTMO', templateId: 2 })).status).toBe(200);
     expect(db.maTemplateBroker.upsert).toHaveBeenCalledWith({
-      where: { userId_broker: { userId: USER, broker: 'FTMO' } },
-      create: { userId: USER, broker: 'FTMO', templateId: 2 },
+      where: { userId_broker_timeframe: { userId: USER, broker: 'FTMO', timeframe: '' } },
+      create: { userId: USER, broker: 'FTMO', timeframe: '', templateId: 2 },
       update: { templateId: 2 },
     });
-    expect((await call('PUT', '/assignments', { broker: 'FTMO', templateId: null })).status).toBe(200);
-    expect(db.maTemplateBroker.deleteMany).toHaveBeenCalledWith({ where: { userId: USER, broker: 'FTMO' } });
+    expect((await call('PUT', '/assignments', { broker: 'FTMO', timeframe: null, templateId: null })).status).toBe(200);
+    expect(db.maTemplateBroker.deleteMany).toHaveBeenCalledWith({ where: { userId: USER, broker: 'FTMO', timeframe: '' } });
     db.maTemplate.findFirst.mockResolvedValueOnce(null);
     expect((await call('PUT', '/assignments', { broker: 'FTMO', templateId: 99 })).status).toBe(404);
+  });
+
+  it('assigns and clears a template on one timeframe of a broker', async () => {
+    db.maTemplate.findFirst.mockResolvedValue(tpl(2));
+    const res = await call('PUT', '/assignments', { broker: 'FTMO', timeframe: 'H1', templateId: 2 });
+    expect(await res.json()).toEqual({ broker: 'FTMO', timeframe: 'H1', templateId: 2 });
+    expect(db.maTemplateBroker.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId_broker_timeframe: { userId: USER, broker: 'FTMO', timeframe: 'H1' } },
+    }));
+    await call('PUT', '/assignments', { broker: 'FTMO', timeframe: 'H1', templateId: null });
+    expect(db.maTemplateBroker.deleteMany).toHaveBeenCalledWith({ where: { userId: USER, broker: 'FTMO', timeframe: 'H1' } });
+    expect((await call('PUT', '/assignments', { broker: 'FTMO', timeframe: 'H2', templateId: 2 })).status).toBe(400);
   });
 });
