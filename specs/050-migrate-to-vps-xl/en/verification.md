@@ -105,3 +105,30 @@
 - **Reboot test (2026-11-19):** `shutdown /r` over SSH at 10:31; booted 10:31:59; with nobody touching it, 13 terminals running about 5 minutes later, `startup.log` `13/13 running (13 started now)` and `run end: OK`, services `postgresql-x64-17`, `nginx` and `sshd` running, `/health` with the same 12 brokers `connected` (tick age 0) and `solidary isa` `listening`, RAM file growing every minute (5.2 GB used, 13 terminals).
 - **Outcome:** ✅
 - **Est vs Actual:** 1 SP · 0.5 SP.
+
+## Task 7 · [infra] Tunnel and SSH identity ready on the XL+; switch runbook
+
+- **Tunnel:** `C:\Users\Administrator\.cloudflared\` copied from the M+ (credentials of tunnel `fb1c65c3…`, `config.yml`, `cert.pem`, old backups) through the PC, the copy on the PC deleted afterwards. Service `Cloudflared` created on the XL+ with the M+'s command line (`--config C:\Users\Administrator\.cloudflared\config.yml tunnel run`, LocalSystem), **stopped and manual**.
+- **SSH identity:** the M+'s `ssh_host_*` keys copied to `C:\ProgramData\ssh` on the XL+ (its own keys kept in `orig050`), ACLs SYSTEM + Administrators, `sshd` restarted. The XL+ now presents `ED25519 SHA256:hbHZ3E1OqDTNfpcPzfWo9KNO6Dh7+SHhLOlZWYLY2yE`, the same as the M+ (also ECDSA `PhgdidOQ…` and RSA `nNqM9UpR…`).
+- **Public site unaffected:** `ssh amfx-vps` still lands on `WIN-16ESVKMCVCR`; `https://api.amfxtrading.com/health` 200.
+- **Switch script** `C:\deploy\switch-out-050.ps1` on the M+, launched by `C:\deploy\run-switch-050.ps1 -TimeoutS <s>` as the `SYSTEM` task `Switch-050` (so it survives the SSH session dropping): disables and stops the M+'s `Cloudflared`, then for `TimeoutS` seconds checks `https://api.amfxtrading.com/health`; a 200 means the other connector serves it (`SWITCHED`); otherwise it sets the M+'s service back to automatic and starts it (`ROLLBACK`). Log in `C:\monitoring\switch050.log`.
+- **Rollback branch tried (2026-11-19 11:00, operator's go-ahead, XL+ tunnel left stopped, `-TimeoutS 60`):** log `11:00:53 start` → `11:01:23 cloudflared stopped and disabled` (stopping the service took 30 s) → `11:02:24 no answer in 60s: ROLLBACK`; public API down from +6 s to +97 s, then 200 again; `Cloudflared` on the M+ back to `AUTO_START`, `RUNNING`; `ssh amfx-vps` → `WIN-16ESVKMCVCR`. EAs and terminals unaffected (they do not use the tunnel).
+
+### Switch runbook (task 9)
+
+1. XL+ to the current `master`: `git pull`, backend `npm install`, `prisma generate`, `prisma migrate deploy`, build; frontend build — the steps of task 3.
+2. Stop the XL+ backend (`pm2 stop amfxtrading-backend`) and its watchdog (`Disable-ScheduledTask AMFX-Watchdog`).
+3. On the M+: `Disable-ScheduledTask AMFX-Watchdog`, `pm2 stop amfxtrading-backend`, close the 13 terminals.
+4. Final copy: `dbcount050.ps1 dump` on the M+ → relay → `dbcount050.ps1 restore` on the XL+; compare the two count lists (AC 2). Keep `amfx050.dump`.
+5. XL+: `FEATURE_ALERTS` removed from `.env` (default on) with node; `pm2 start`, `pm2 save`; `Enable-ScheduledTask AMFX-Watchdog`; `/health` local.
+6. M+: `run-switch-050.ps1 -TimeoutS 180` (over `ssh amfx-vps`; the session drops). Right after, over the XL+'s direct SSH: `Start-Service Cloudflared`, then `Set-Service Cloudflared -StartupType Automatic` once the public `/health` answers.
+7. Checks: `switch050.log` on the M+ says `SWITCHED`; `ssh amfx-vps hostname` → `WIN-5SSFL41HHDI`; public `/health` with the same brokers connected.
+
+### Rollback procedure (until the M+ is cancelled)
+
+1. XL+: `Stop-Service Cloudflared`, `Set-Service Cloudflared -StartupType Manual`; `pm2 stop amfxtrading-backend`; `Disable-ScheduledTask AMFX-Watchdog`; close its terminals.
+2. M+ (by its own RDP, or by `ssh amfx-vps` once the tunnel is back): `Set-Service Cloudflared -StartupType Automatic`, `Start-Service Cloudflared`; `Enable-ScheduledTask AMFX-Watchdog` (it starts the backend and the 13 terminals within 5 minutes).
+3. Data created on the XL+ after the switch: dump of `price_alerts`, `ema_cross_alerts`, `ema_notifications`, `drawings`, `settings_display`, `chart_indicators`, `mirror_presets`, `position_colors`, `book_schemes`, `book_trades`, `push_subscriptions`, `candle_syncs`, restored on the M+ with those tables emptied first. Candles, trades and balances come back from the terminals.
+
+- **Outcome:** ✅
+- **Est vs Actual:** 1.5 SP · 1 SP.

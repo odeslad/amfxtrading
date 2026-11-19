@@ -105,3 +105,30 @@
 - **Prueba de reinicio (19-nov-2026):** `shutdown /r` por SSH a las 10:31; arrancó a las 10:31:59; sin que nadie tocara nada, 13 terminales en marcha unos 5 minutos después, `startup.log` con `13/13 running (13 started now)` y `run end: OK`, servicios `postgresql-x64-17`, `nginx` y `sshd` en marcha, `/health` con los mismos 12 brokers `connected` (antigüedad 0) y `solidary isa` en `listening`, fichero de RAM creciendo cada minuto (5,2 GB usados, 13 terminales).
 - **Resultado:** ✅
 - **Est vs Actual:** 1 SP · 0.5 SP.
+
+## Tarea 7 · [infra] Túnel e identidad SSH listos en el XL+; guion del cambio
+
+- **Túnel:** `C:\Users\Administrator\.cloudflared\` copiado del M+ (credenciales del túnel `fb1c65c3…`, `config.yml`, `cert.pem`, copias antiguas) pasando por el PC, y la copia del PC borrada después. Servicio `Cloudflared` creado en el XL+ con la línea de comandos del M+ (`--config C:\Users\Administrator\.cloudflared\config.yml tunnel run`, LocalSystem), **parado y en manual**.
+- **Identidad SSH:** claves `ssh_host_*` del M+ copiadas a `C:\ProgramData\ssh` en el XL+ (las suyas guardadas en `orig050`), permisos SYSTEM + Administrators, `sshd` reiniciado. El XL+ presenta ahora `ED25519 SHA256:hbHZ3E1OqDTNfpcPzfWo9KNO6Dh7+SHhLOlZWYLY2yE`, la misma que el M+ (también ECDSA `PhgdidOQ…` y RSA `nNqM9UpR…`).
+- **Web pública sin afectar:** `ssh amfx-vps` sigue llegando a `WIN-16ESVKMCVCR`; `https://api.amfxtrading.com/health` 200.
+- **Script del cambio** `C:\deploy\switch-out-050.ps1` en el M+, lanzado por `C:\deploy\run-switch-050.ps1 -TimeoutS <s>` como la tarea `Switch-050` de `SYSTEM` (para que sobreviva al corte de la sesión SSH): desactiva y para el `Cloudflared` del M+ y durante `TimeoutS` segundos comprueba `https://api.amfxtrading.com/health`; un 200 significa que lo sirve el otro conector (`SWITCHED`); si no, vuelve a poner el servicio del M+ en automático y lo arranca (`ROLLBACK`). Registro en `C:\monitoring\switch050.log`.
+- **Rama de vuelta atrás probada (19-nov-2026 11:00, con el visto bueno del operador, túnel del XL+ parado, `-TimeoutS 60`):** registro `11:00:53 start` → `11:01:23 cloudflared stopped and disabled` (parar el servicio tardó 30 s) → `11:02:24 no answer in 60s: ROLLBACK`; API pública caída de +6 s a +97 s y luego 200 otra vez; `Cloudflared` del M+ de nuevo en `AUTO_START`, `RUNNING`; `ssh amfx-vps` → `WIN-16ESVKMCVCR`. EA y terminales sin afectar (no usan el túnel).
+
+### Guion del cambio (tarea 9)
+
+1. XL+ al `master` actual: `git pull`, backend `npm install`, `prisma generate`, `prisma migrate deploy`, build; build del frontend — los pasos de la tarea 3.
+2. Parar el backend del XL+ (`pm2 stop amfxtrading-backend`) y su watchdog (`Disable-ScheduledTask AMFX-Watchdog`).
+3. En el M+: `Disable-ScheduledTask AMFX-Watchdog`, `pm2 stop amfxtrading-backend`, cerrar los 13 terminales.
+4. Copia final: `dbcount050.ps1 dump` en el M+ → paso por el PC → `dbcount050.ps1 restore` en el XL+; comparar las dos listas de filas (AC 2). Guardar `amfx050.dump`.
+5. XL+: quitar `FEATURE_ALERTS` del `.env` (por defecto encendido) con node; `pm2 start`, `pm2 save`; `Enable-ScheduledTask AMFX-Watchdog`; `/health` en local.
+6. M+: `run-switch-050.ps1 -TimeoutS 180` (por `ssh amfx-vps`; la sesión se corta). Justo después, por el SSH directo del XL+: `Start-Service Cloudflared` y, cuando el `/health` público responda, `Set-Service Cloudflared -StartupType Automatic`.
+7. Comprobaciones: `switch050.log` del M+ dice `SWITCHED`; `ssh amfx-vps hostname` → `WIN-5SSFL41HHDI`; `/health` público con los mismos brokers conectados.
+
+### Procedimiento de vuelta atrás (hasta dar de baja el M+)
+
+1. XL+: `Stop-Service Cloudflared`, `Set-Service Cloudflared -StartupType Manual`; `pm2 stop amfxtrading-backend`; `Disable-ScheduledTask AMFX-Watchdog`; cerrar sus terminales.
+2. M+ (por su RDP, o por `ssh amfx-vps` cuando vuelva el túnel): `Set-Service Cloudflared -StartupType Automatic`, `Start-Service Cloudflared`; `Enable-ScheduledTask AMFX-Watchdog` (arranca el backend y los 13 terminales en menos de 5 minutos).
+3. Datos creados en el XL+ tras el cambio: volcado de `price_alerts`, `ema_cross_alerts`, `ema_notifications`, `drawings`, `settings_display`, `chart_indicators`, `mirror_presets`, `position_colors`, `book_schemes`, `book_trades`, `push_subscriptions`, `candle_syncs`, restaurado en el M+ vaciando antes esas tablas. Velas, operaciones y balances vuelven desde los terminales.
+
+- **Resultado:** ✅
+- **Est vs Actual:** 1.5 SP · 1 SP.
