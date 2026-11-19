@@ -602,9 +602,13 @@ export function ChartPage() {
       <IndicatorsPanel
         open={indicatorsOpen}
         onClose={closeIndicators}
+        broker={broker}
+        templates={maTemplates.templates}
+        assignedId={maTemplates.assignments[broker] ?? null}
         template={maTemplates.templateFor(broker)}
         hidden={maTemplates.hidden}
         onToggleHidden={maTemplates.toggleHidden}
+        onAssign={maTemplates.assign}
       />
       <NewTradePanel open={newTradeOpen} onClose={closeNewTrade} initialBroker={broker} initialSymbol={symbol} initialTimeframe={newTradeTimeframe} />
 

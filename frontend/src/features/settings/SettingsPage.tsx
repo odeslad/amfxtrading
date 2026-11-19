@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { apiFetch, apiSend, errorMessage } from '../../lib/api';
 import { addToast } from '../../lib/toast';
 import { useEmaNotifications, type EmaNotification, type NotificationInput } from '../../lib/useEmaNotifications';
@@ -22,7 +23,8 @@ import { usePushDevices } from '../../lib/usePushDevices';
 import { EMPTY_VISIBILITY, isBrokerVisible, setVisibility as publishVisibility, useVisibility, type Visibility } from '../../lib/visibility';
 import styles from './SettingsPage.module.css';
 
-type Tab = 'mirror' | 'display' | 'notifications' | 'visibility' | 'data' | 'server';
+const TABS = ['mirror', 'display', 'notifications', 'visibility', 'data', 'server'] as const;
+type Tab = (typeof TABS)[number];
 
 interface SavedPreset {
   id: number;
@@ -60,7 +62,12 @@ const toFormPreset = (preset: SavedPreset, brokerNames: string[]): MirrorPreset 
 const DEFAULT_DISPLAY: DisplaySettingsForm = { pnlMode: 'net', trendlineColor: '#8c8c8c', trendlineStyle: 'dashed', trendlineWidth: 1, rectLabels: true, showSpread: false, setupLevels: [...SETUP_LEVEL_KEYS], fibLevels: DEFAULT_FIB_LEVELS, emaTrades: DEFAULT_EMA_TRADES };
 
 export function SettingsPage() {
-  const [tab, setTab] = useState<Tab>('mirror');
+  // A link can open a given tab, e.g. the chart's indicators button → /settings?tab=display.
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => {
+    const requested = searchParams.get('tab');
+    return TABS.includes(requested as Tab) ? (requested as Tab) : 'mirror';
+  });
   const [brokerNames, setBrokerNames] = useState<string[]>([]);
   const [presets, setPresets] = useState<MirrorPreset[]>([]);
   const [selectedPresetKey, setSelectedPresetKey] = useState('');
