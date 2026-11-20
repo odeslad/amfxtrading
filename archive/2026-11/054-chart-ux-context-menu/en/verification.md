@@ -71,3 +71,35 @@
 - **Steps:** `backend/docs/architecture.md` (`/settings` and `settings_display` with `quickOrders`); `.claude/CLAUDE.md` (`SettingsDisplay.quickOrders` and a "Menú contextual del gráfico" section).
 - **Outcome:** ✅ both documents agree.
 - **Est vs Actual:** 0.25 SP · 0.15 SP.
+
+## Task 11 · [infra] Deploy and production validation
+
+- **Pushes (2026-11-20), one layer at a time:** backend + db `30c5ffb` + `2a29a1c` (tasks 1–2, with the 053 close and the 054 spec docs); frontend `8fbd6f5`…`a0083b8` alone (tasks 3–9); docs `152a02f` (backend pipeline, no code change).
+- **Operator validation on `amfxtrading.com`, desktop and iPhone:** menu by right click and long press, its closing rules and items; Buy/Sell at with the right type and price; price alert; position and drawing actions; floating buttons gone; quick orders configured, confirmed and cancelled; New Trade docked with the chart fully visible and as a bottom sheet on the phone; gestures and the other panels unchanged.
+- **Found during the check:** the quick orders did not show at first because that chart was locked (the lock is remembered per browser and side), which hides them by design (AC 12); no change.
+- **Outcome:** ✅ AC 1–16. The pending 🕐 items of tasks 7, 8 and 9 are confirmed.
+- **Est vs Actual:** 1.5 SP · 0.75 SP.
+
+## Task 12 · [specs] Close
+
+- **Est vs Actual:** 0.25 SP · 0.25 SP.
+
+## Est vs Actual
+
+| Task | Est | Actual |
+|---|---|---|
+| 1 | 0.5 | 0.2 |
+| 2 | 1 | 0.5 |
+| 3 | 1.5 | 0.75 |
+| 4 | 0.75 | 0.5 |
+| 5 | 2.5 | 1 |
+| 6 | 2 | 1 |
+| 7 | 1.5 | 0.75 |
+| 8 | 1.5 | 0.5 |
+| 9 | 2.5 | 0.75 |
+| 10 | 0.25 | 0.15 |
+| 11 | 1.5 | 0.75 |
+| 12 | 0.25 | 0.25 |
+| **Total** | **15.75** | **7.1** |
+
+Calibration: the frontend tasks reused existing pieces (hit tests, panels, commands, confirmations) and ran at about 40 % of the estimate; most of the real time went into touch gestures, as the design's risks expected.

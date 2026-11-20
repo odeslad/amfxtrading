@@ -71,3 +71,35 @@
 - **Pasos:** `backend/docs/architecture.md` (`/settings` y `settings_display` con `quickOrders`); `.claude/CLAUDE.md` (`SettingsDisplay.quickOrders` y una sección "Menú contextual del gráfico").
 - **Resultado:** ✅ los dos documentos coinciden.
 - **Est vs Real:** 0.25 SP · 0.15 SP.
+
+## Tarea 11 · [infra] Despliegue y validación en producción
+
+- **Pushes (20-nov-2026), una capa cada vez:** backend + db `30c5ffb` + `2a29a1c` (tareas 1–2, con el cierre de la 053 y los documentos de la 054); frontend `8fbd6f5`…`a0083b8` solo (tareas 3–9); documentación `152a02f` (pipeline del backend, sin cambios de código).
+- **Validación del operador en `amfxtrading.com`, escritorio e iPhone:** menú con clic derecho y pulsación larga, sus reglas de cierre y sus opciones; Buy/Sell at con el tipo y el precio correctos; alerta de precio; acciones de posición y de dibujo; botones flotantes quitados; órdenes rápidas configuradas, confirmadas y canceladas; New Trade acoplado con el gráfico entero y como hoja inferior en el móvil; gestos y resto de paneles sin cambios.
+- **Visto en la prueba:** al principio no salían las órdenes rápidas porque ese gráfico estaba bloqueado (el candado se recuerda por navegador y lado), lo que las oculta a propósito (AC 12); sin cambios.
+- **Resultado:** ✅ AC 1–16. Quedan confirmados los 🕐 pendientes de las tareas 7, 8 y 9.
+- **Est vs Real:** 1.5 SP · 0.75 SP.
+
+## Tarea 12 · [specs] Cierre
+
+- **Est vs Real:** 0.25 SP · 0.25 SP.
+
+## Est vs Real
+
+| Tarea | Est | Real |
+|---|---|---|
+| 1 | 0.5 | 0.2 |
+| 2 | 1 | 0.5 |
+| 3 | 1.5 | 0.75 |
+| 4 | 0.75 | 0.5 |
+| 5 | 2.5 | 1 |
+| 6 | 2 | 1 |
+| 7 | 1.5 | 0.75 |
+| 8 | 1.5 | 0.5 |
+| 9 | 2.5 | 0.75 |
+| 10 | 0.25 | 0.15 |
+| 11 | 1.5 | 0.75 |
+| 12 | 0.25 | 0.25 |
+| **Total** | **15.75** | **7.1** |
+
+Calibración: las tareas de frontend reutilizaron piezas existentes (hit tests, paneles, comandos, confirmaciones) y costaron cerca del 40 % de lo estimado; la mayor parte del tiempo real fue a los gestos táctiles, como preveían los riesgos del diseño.

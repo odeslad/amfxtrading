@@ -1,6 +1,6 @@
 # 054 — UX del gráfico: menú contextual, órdenes rápidas y paneles laterales
 
-> Estado: **aprobado**
+> Estado: **cerrado**
 
 ## Contexto
 Meter una orden desde el gráfico obliga a abrir New Trade con el botón "+ New Trade" y escribir todos los precios a mano. Los paneles de la derecha (New Trade, edición de posición, alertas, indicadores, filtros) son capas fijas con un velo oscuro que tapan la parte derecha del gráfico, incluidas las últimas velas y la escala de precios. Encima del gráfico, arriba a la derecha, hay tres botones flotantes ("+ New Trade", "Delete" para el dibujo seleccionado, "Clear all" para los dibujos). No hay menú contextual, clic derecho ni pulsación larga en ningún sitio del gráfico.

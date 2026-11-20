@@ -1,6 +1,6 @@
 # 054 — Chart UX: context menu, quick orders and side panels
 
-> Status: **approved**
+> Status: **closed**
 
 ## Context
 Placing an order from the chart means opening New Trade with the "+ New Trade" button and typing every price by hand. The right-side panels (New Trade, position edit, alerts, indicators, filters) are fixed overlays with a dark backdrop that cover the right part of the chart, including the latest candles and the price scale. Over the chart, top right, there are three floating buttons ("+ New Trade", "Delete" for the selected drawing, "Clear all" drawings). There is no context menu, right click or long press anywhere in the chart.
