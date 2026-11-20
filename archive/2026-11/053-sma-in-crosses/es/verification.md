@@ -62,3 +62,33 @@
 - **Pasos:** `.claude/CLAUDE.md` y `backend/docs/architecture.md` describen EMA/SMA por lado en alertas, notificaciones, overlay y setup levels; quitadas las entradas antiguas del router `/chart-indicators` y de `chart_indicators`/`ChartIndicators` (19 routers).
 - **Resultado:** ✅ los dos documentos coinciden.
 - **Est vs Real:** 0.25 SP · 0.15 SP.
+
+## Tarea 10 · [infra] Despliegue y validación en producción
+
+- **Pushes (20-nov-2026), una capa cada vez:** backend + db `403486f`…`3a2794b` (tareas 1–5); frontend `31d8c7c`…`b7dd272` solo (build 286); documentación `06cd8e3` (pipeline del backend, sin cambios de código).
+- **Validación del operador en `amfxtrading.com`:** alertas, reglas y overlay existentes iguales como EMA/EMA (AC 7); una alerta y una regla con una media SMA creadas y disparadas con el texto correcto (AC 1–4); overlay con una media SMA coincidiendo con el gráfico (AC 5–6); móvil.
+- **Resultado:** ✅ AC 1–8.
+- **Est vs Real:** 1 SP · 0.5 SP.
+
+## Tarea 11 · [specs] Cierre
+
+- **Est vs Real:** 0.25 SP · 0.25 SP.
+
+## Est vs Real
+
+| Tarea | Est | Real |
+|---|---|---|
+| 1 | 0.5 | 0.25 |
+| 2 | 0.5 | 0.25 |
+| 3 | 0.75 | 0.25 |
+| 4 | 1.5 | 0.5 |
+| 5 | 0.25 | 0.25 |
+| 6 | 1.25 | 0.5 |
+| 7 | 1 | 0.5 |
+| 8 | 0.75 | 0.5 |
+| 9 | 0.25 | 0.15 |
+| 10 | 1 | 0.5 |
+| 11 | 0.25 | 0.25 |
+| **Total** | **8** | **3.9** |
+
+Calibración: pasar un tipo nuevo por evaluadores y formularios existentes costó cerca de la mitad de lo estimado.

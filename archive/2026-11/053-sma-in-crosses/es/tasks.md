@@ -11,7 +11,7 @@ Cada tarea es un commit convencional. El proyecto debe compilar tras cada tarea.
 - [x] 7. [frontend] Notificaciones: `useEmaNotifications`, `NotificationPanel`, tabla/cards y confirmación de borrado · **Verificar:** `npm run build` + prueba local · **Est:** 1 SP
 - [x] 8. [frontend] Overlay: `useEmaTradesSettings`, `DisplayTab`, `useEmaCrossTrades` enviando los tipos a `/setup-levels` · **Verificar:** `npm run build` + prueba local · **Est:** 0.75 SP
 - [x] 9. [docs] `backend/docs/architecture.md` y `.claude/CLAUDE.md` (y quitar el router `/chart-indicators` que sobra) · **Verificar:** manual · **Est:** 0.25 SP
-- [ ] 10. [infra] Push del backend (tareas 1–5) solo, luego frontend cuando lo pida el usuario; **validar en producción**: alertas/reglas/overlay existentes iguales (AC 7); una alerta y una regla con SMA creadas y disparadas con el texto correcto; overlay con SMA coincidiendo con el gráfico; móvil · **Verificar:** manual (validación del usuario) · **Est:** 1 SP
-- [ ] 11. [specs] Est vs Real en `verification.md` (ambos idiomas), cerrar y archivar en `archive/2026-11/` · **Verificar:** manual · **Est:** 0.25 SP
+- [x] 10. [infra] Push del backend (tareas 1–5) solo, luego frontend cuando lo pida el usuario; **validar en producción**: alertas/reglas/overlay existentes iguales (AC 7); una alerta y una regla con SMA creadas y disparadas con el texto correcto; overlay con SMA coincidiendo con el gráfico; móvil · **Verificar:** manual (validación del usuario) · **Est:** 1 SP
+- [x] 11. [specs] Est vs Real en `verification.md` (ambos idiomas), cerrar y archivar en `archive/2026-11/` · **Verificar:** manual · **Est:** 0.25 SP
 
 **Estimación total**: 8 SP

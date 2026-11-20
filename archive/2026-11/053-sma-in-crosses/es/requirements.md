@@ -1,7 +1,7 @@
 # 053 — SMA en cruces, notificaciones, overlay y setup levels
 
-> Estado: **aprobado**
-> Padre: [052 — Plantillas de medias móviles](../../../archive/2026-11/052-moving-average-templates/es/requirements.md)
+> Estado: **cerrado**
+> Padre: [052 — Plantillas de medias móviles](../../052-moving-average-templates/es/requirements.md)
 
 ## Contexto
 La spec 052 añadió las medias simples (SMA) al gráfico, pero todo lo que evalúa un cruce sigue funcionando solo con EMAs: las alertas de cruce (`ema_cross_alerts`), las reglas de notificación (`ema_notifications`), el overlay de operaciones por cruce (`settings_display.emaTrades*`) y los setup levels (`/setup-levels`). El operador quiere las mismas prestaciones con SMAs.

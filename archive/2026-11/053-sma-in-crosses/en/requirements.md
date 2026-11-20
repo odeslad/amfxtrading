@@ -1,7 +1,7 @@
 # 053 — SMA in crosses, notifications, overlay and setup levels
 
-> Status: **approved**
-> Parent: [052 — Moving average templates](../../../archive/2026-11/052-moving-average-templates/en/requirements.md)
+> Status: **closed**
+> Parent: [052 — Moving average templates](../../052-moving-average-templates/en/requirements.md)
 
 ## Context
 Spec 052 added simple moving averages (SMA) to the chart, but everything that evaluates a cross still works only with EMAs: cross alerts (`ema_cross_alerts`), standing notification rules (`ema_notifications`), the cross trades overlay (`settings_display.emaTrades*`) and the setup levels (`/setup-levels`). The operator wants the same capabilities with SMAs.
