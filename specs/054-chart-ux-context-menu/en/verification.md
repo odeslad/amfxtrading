@@ -28,3 +28,10 @@
 - **Checked (EURUSD bid 1.0830 / ask 1.0831, SL 15 p, TP 2R):** buy market → buy, SL 1.0816, TP 1.0861; sell market → SL 1.0845, TP 1.0800; buy at 1.0800 → buylimit; sell at 1.0800 → sellstop; buy at 1.0900 → buystop; USDJPY sell, TP 30 p → SL 150.25, TP 149.80; preset → two commands with each broker's size, disabled broker left out; risk % without SL → refused.
 - **Outcome:** ✅ build and lint clean, every case as New Trade would compute it.
 - **Est vs Actual:** 0.75 SP · 0.5 SP.
+
+## Task 5 · [frontend] Context menu by right click
+
+- **Mechanism:** `npm run build` + eslint; local check on desktop (Vite 5174 against the production API).
+- **Steps:** `ChartContextMenu` (sections of items, rendered inside the chart, clamped to it; closes on Esc, outside pointer down, wheel, resize, blur and on choosing); `LightweightChart` reports right clicks in the pane (`ChartContextRequest`: position, price at the pointer, bid/ask) and blocks the browser menu, ignoring the price scale and interactive labels; `chartMenu.ts` builds Buy at / Sell at (type from `orderTypeAt`), New trade and Price alert at; `ChartSlot` holds the menu; `NewTradePanel.initialOrder` applies the chosen action and price once per request; `ChartPage` passes the order and `createAlert`.
+- **Outcome:** ✅ build and lint clean; the operator checked every item and the closing rules.
+- **Est vs Actual:** 2.5 SP · 1 SP.

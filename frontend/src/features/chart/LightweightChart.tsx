@@ -230,6 +230,15 @@ function getMonthStartTimes(candles: Candle[]): Set<number> {
   return new Set(firstOfMonth.values());
 }
 
+// Spec 054: where the context menu was asked for, in the chart container's pixels, and the price there.
+export interface ChartContextRequest {
+  x: number;
+  y: number;
+  price: number;
+  bid: number | null;
+  ask: number | null;
+}
+
 interface LightweightChartExtendedProps extends LightweightChartProps {
   drawMode?: DrawMode | null;
   onDrawDone?: () => void;
@@ -251,9 +260,10 @@ interface LightweightChartExtendedProps extends LightweightChartProps {
   locked?: boolean;
   // EMA cross trades overlay (spec 039), painted on the overlay canvas; never a drawing.
   emaCrossTrades?: EmaCrossTrade[];
+  onContextMenu?: (request: ChartContextRequest) => void;
 }
 
-export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLoadMore, emas, drawMode, onDrawDone, positions, onEditPosition, onModifyPosition, initialDrawings, onDrawingsChange, trendlineAppearance, accountBalance, pnlMode = 'net', showSpread = false, alerts, onMoveAlert, onSelectAlert, showNewTrade, onNewTrade, onClosePosition, locked = false, emaCrossTrades }: LightweightChartExtendedProps) {
+export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLoadMore, emas, drawMode, onDrawDone, positions, onEditPosition, onModifyPosition, initialDrawings, onDrawingsChange, trendlineAppearance, accountBalance, pnlMode = 'net', showSpread = false, alerts, onMoveAlert, onSelectAlert, showNewTrade, onNewTrade, onClosePosition, locked = false, emaCrossTrades, onContextMenu }: LightweightChartExtendedProps) {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -1585,10 +1595,25 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     trendlineManagerRef.current?.setLocked(locked);
   }, [locked]);
 
+  const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const series = seriesRef.current;
+    if (!series || !onContextMenu || (e.target as HTMLElement).closest('[data-chart-interactive]')) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    if (x >= rect.width - series.priceScale().width()) return;
+    const raw = series.coordinateToPrice(y);
+    if (raw === null) return;
+    const last = candlesRef.current[candlesRef.current.length - 1]?.close ?? null;
+    const { bid, ask } = quoteRef.current;
+    onContextMenu({ x, y, price: Number(raw.toFixed(getPricePrecision(symbol))), bid: bid ?? last, ask: ask ?? bid ?? last });
+  };
+
   const legendPrecision = getPricePrecision(symbol);
 
   return (
-    <div ref={containerRef} className={styles.chart} onDoubleClick={handleDoubleClick}>
+    <div ref={containerRef} className={styles.chart} onDoubleClick={handleDoubleClick} onContextMenu={handleContextMenu}>
       <canvas ref={overlayRef} className={styles.overlay} />
       <canvas ref={trendlineCanvasRef} className={styles.trendlineCanvas} />
       {symbol && (

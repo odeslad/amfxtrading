@@ -28,3 +28,10 @@
 - **Comprobado (EURUSD bid 1.0830 / ask 1.0831, SL 15 p, TP 2R):** compra a mercado → buy, SL 1.0816, TP 1.0861; venta a mercado → SL 1.0845, TP 1.0800; compra en 1.0800 → buylimit; venta en 1.0800 → sellstop; compra en 1.0900 → buystop; USDJPY venta, TP 30 p → SL 150.25, TP 149.80; preset → dos comandos con el tamaño de cada broker, el desactivado fuera; % de riesgo sin SL → rechazado.
 - **Resultado:** ✅ build y lint limpios, cada caso como lo calcularía New Trade.
 - **Est vs Real:** 0.75 SP · 0.5 SP.
+
+## Tarea 5 · [frontend] Menú contextual con clic derecho
+
+- **Mecanismo:** `npm run build` + eslint; prueba local en escritorio (Vite 5174 contra el API de producción).
+- **Pasos:** `ChartContextMenu` (secciones de opciones, dentro del gráfico y ajustado a él; se cierra con Esc, al pulsar fuera, con la rueda, al redimensionar, al perder el foco y al elegir); `LightweightChart` informa del clic derecho en el área (`ChartContextRequest`: posición, precio en el puntero, bid/ask) y bloquea el menú del navegador, ignorando la escala de precios y las etiquetas interactivas; `chartMenu.ts` arma Buy at / Sell at (tipo con `orderTypeAt`), New trade y Price alert at; `ChartSlot` guarda el menú; `NewTradePanel.initialOrder` aplica la acción y el precio elegidos una vez por petición; `ChartPage` pasa la orden y `createAlert`.
+- **Resultado:** ✅ build y lint limpios; el operador comprobó cada opción y las reglas de cierre.
+- **Est vs Real:** 2.5 SP · 1 SP.

@@ -22,7 +22,8 @@ import { useMaTemplates } from '../../lib/useMaTemplates';
 import { ChartSlot, type ChartSide } from './ChartSlot';
 import { BulkEditPanel } from '../journal/BulkEditPanel';
 import { ClosePositionPanel } from '../journal/ClosePositionPanel';
-import { NewTradePanel } from '../journal/NewTradePanel';
+import { NewTradePanel, type NewTradeOrder } from '../journal/NewTradePanel';
+import type { CommandAction } from '../../lib/commands';
 import type { Position } from '../journal/utils/position';
 import styles from './ChartPage.module.css';
 
@@ -457,8 +458,11 @@ export function ChartPage() {
   const closeAlerts = useCallback(() => setAlertsOpen(false), []);
   // New Trade carries the timeframe of the chart it was opened from (AC 7).
   const [newTradeTimeframe, setNewTradeTimeframe] = useState(timeframe);
-  const openNewTrade = useCallback((tf: string) => {
+  // Spec 054: the order type and price chosen in the chart menu; the key makes each request apply once.
+  const [newTradeOrder, setNewTradeOrder] = useState<NewTradeOrder | undefined>(undefined);
+  const openNewTrade = useCallback((tf: string, order?: { action: CommandAction; price: number }) => {
     setNewTradeTimeframe(tf);
+    setNewTradeOrder(order ? { ...order, key: Date.now() } : undefined);
     setNewTradeOpen(true);
   }, []);
   const closeNewTrade = useCallback(() => setNewTradeOpen(false), []);
@@ -518,6 +522,7 @@ export function ChartPage() {
     alertsActive: alertsOpen,
     alertsFlashing: alertFlash,
     onNewTrade: openNewTrade,
+    onCreateAlert: createAlert,
     onEditPosition: handleEditPosition,
     onClosePosition: handleClosePosition,
     onModifyPosition: handleModifyPosition,
@@ -613,7 +618,7 @@ export function ChartPage() {
         onToggleHidden={maTemplates.toggleHidden}
         onAssign={maTemplates.assign}
       />
-      <NewTradePanel open={newTradeOpen} onClose={closeNewTrade} initialBroker={broker} initialSymbol={symbol} initialTimeframe={newTradeTimeframe} />
+      <NewTradePanel open={newTradeOpen} onClose={closeNewTrade} initialBroker={broker} initialSymbol={symbol} initialTimeframe={newTradeTimeframe} initialOrder={newTradeOrder} />
 
       <BulkEditPanel
         open={!!editPosition}

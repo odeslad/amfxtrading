@@ -16,6 +16,14 @@ interface NewTradePanelProps {
   initialBroker?: string;
   initialSymbol?: string;
   initialTimeframe?: string;
+  // Spec 054: order type and price chosen from the chart menu; `key` changes on every request.
+  initialOrder?: NewTradeOrder;
+}
+
+export interface NewTradeOrder {
+  key: number;
+  action: CommandAction;
+  price?: number;
 }
 
 interface MirrorBroker {
@@ -67,7 +75,7 @@ interface SetupLevels {
 }
 
 
-export const NewTradePanel = memo(function NewTradePanel({ open, onClose, initialBroker, initialSymbol, initialTimeframe }: NewTradePanelProps) {
+export const NewTradePanel = memo(function NewTradePanel({ open, onClose, initialBroker, initialSymbol, initialTimeframe, initialOrder }: NewTradePanelProps) {
   const [mode, setMode] = useState<Mode>('manual');
   const [presets, setPresets] = useState<MirrorPreset[]>([]);
   const [presetId, setPresetId] = useState<number | null>(null);
@@ -170,6 +178,14 @@ export const NewTradePanel = memo(function NewTradePanel({ open, onClose, initia
       setAsk(null);
       setSubmitting(false);
     }
+  }
+
+  const [appliedOrderKey, setAppliedOrderKey] = useState<number | null>(null);
+  if (open && initialOrder && initialOrder.key !== appliedOrderKey) {
+    setAppliedOrderKey(initialOrder.key);
+    setMode('manual');
+    setAction(initialOrder.action);
+    setPrice(initialOrder.price !== undefined ? String(initialOrder.price) : '');
   }
 
   // The selected symbol follows the visible list: kept while listed, else the default.

@@ -6,7 +6,13 @@ import { useTickSubscription } from '../../lib/useTickSubscription';
 import type { PriceAlert } from '../../lib/useAlerts';
 import { ChartToolbar, type PositionsMode } from './ChartToolbar';
 import { AlertActionBar } from './AlertActionBar';
-import { LightweightChart, type ChartHandle, type DrawMode } from './LightweightChart';
+import { LightweightChart, type ChartContextRequest, type ChartHandle, type DrawMode } from './LightweightChart';
+import { ChartContextMenu } from './ChartContextMenu';
+import { buildChartMenu } from './chartMenu';
+import type { CommandAction } from '../../lib/commands';
+import type { NewAlert } from '../../lib/useAlerts';
+import { addToast } from '../../lib/toast';
+import { errorMessage } from '../../lib/api';
 import { ChartErrorBoundary } from './ChartErrorBoundary';
 import type { PersistedDrawing, TrendlineAppearance } from './DrawingTools';
 import type { MovingAverage } from './chart.types';
@@ -49,7 +55,8 @@ interface ChartSlotProps {
   onAlerts: () => void;
   alertsActive: boolean;
   alertsFlashing: boolean;
-  onNewTrade: (timeframe: string) => void;
+  onNewTrade: (timeframe: string, order?: { action: CommandAction; price: number }) => void;
+  onCreateAlert: (alert: NewAlert) => Promise<unknown>;
   onEditPosition: (ticket: number) => void;
   onClosePosition: (ticket: number) => void;
   onModifyPosition: (ticket: number, sl: number, tp: number) => void;
@@ -128,7 +135,7 @@ export function ChartSlot({
   timeframe, onTimeframeChange, positions, balance, averagesFor, trendlineAppearance, showSpread, pnlMode, emaTradesSettings,
   alerts, onMoveAlert, onEditAlertPrice, onToggleAlert, onDeleteAlert,
   onIndicators, onFilters, onAlerts, alertsActive, alertsFlashing,
-  onNewTrade, onEditPosition, onClosePosition, onModifyPosition, onFullscreen, isFullscreen,
+  onNewTrade, onCreateAlert, onEditPosition, onClosePosition, onModifyPosition, onFullscreen, isFullscreen,
   splitAvailable, splitActive, onSplit,
 }: ChartSlotProps) {
   const emas = useMemo(() => averagesFor(broker, timeframe), [averagesFor, broker, timeframe]);
@@ -141,6 +148,8 @@ export function ChartSlot({
   // Lock, EMA cross trades overlay and Positions mode: remembered per side (spec 040).
   const { locked, setLocked, emaTradesOn, setEmaTradesOn, positionsMode, setPositionsMode } = useChartToolState(side);
   const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
+  const [menu, setMenu] = useState<ChartContextRequest | null>(null);
+  const closeMenu = useCallback(() => setMenu(null), []);
   const [drawings, setDrawings] = useState<PersistedDrawing[] | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [chartLoading, setChartLoading] = useState(() => Boolean(broker && symbol));
@@ -309,6 +318,13 @@ export function ChartSlot({
   const cyclePositions = useCallback(() => setPositionsMode(prev => POSITIONS_MODE_CYCLE[prev] ?? 'all'), [setPositionsMode]);
   // New Trade preselects the timeframe of the chart it was opened from (AC 7).
   const openNewTrade = useCallback(() => onNewTrade(timeframe), [onNewTrade, timeframe]);
+  const menuSections = menu ? buildChartMenu(symbol, menu, {
+    onOrderAt: (action, price) => onNewTrade(timeframe, { action, price }),
+    onNewTrade: openNewTrade,
+    onAlertAt: (price, direction) => {
+      onCreateAlert({ broker, symbol, price, direction }).catch(err => addToast(errorMessage(err, 'Failed to create alert'), 'error'));
+    },
+  }) : [];
 
   return (
     <div className={styles.slot}>
@@ -345,7 +361,8 @@ export function ChartSlot({
       <div className={styles.slotChart}>
         {broker && symbol
           ? <ChartErrorBoundary resetKey={`${broker}-${symbol}-${timeframe}`}>
-              <LightweightChart ref={chartRef} candles={candles} broker={broker} symbol={symbol} timeframe={timeframe} onLoadMore={hasMore ? loadMoreCandles : undefined} emas={emas} drawMode={drawMode} onDrawDone={clearDrawMode} positions={chartPositions} onEditPosition={onEditPosition} onClosePosition={onClosePosition} onModifyPosition={onModifyPosition} initialDrawings={drawings ?? undefined} onDrawingsChange={handleDrawingsChange} trendlineAppearance={trendlineAppearance} accountBalance={balance} pnlMode={pnlMode} showSpread={showSpread} alerts={chartAlerts} onMoveAlert={onMoveAlert} onSelectAlert={setSelectedAlertId} showNewTrade={positionsMode !== 'none'} onNewTrade={openNewTrade} locked={locked} emaCrossTrades={emaCrossTrades} />
+              <LightweightChart ref={chartRef} candles={candles} broker={broker} symbol={symbol} timeframe={timeframe} onLoadMore={hasMore ? loadMoreCandles : undefined} emas={emas} drawMode={drawMode} onDrawDone={clearDrawMode} positions={chartPositions} onEditPosition={onEditPosition} onClosePosition={onClosePosition} onModifyPosition={onModifyPosition} initialDrawings={drawings ?? undefined} onDrawingsChange={handleDrawingsChange} trendlineAppearance={trendlineAppearance} accountBalance={balance} pnlMode={pnlMode} showSpread={showSpread} alerts={chartAlerts} onMoveAlert={onMoveAlert} onSelectAlert={setSelectedAlertId} showNewTrade={positionsMode !== 'none'} onNewTrade={openNewTrade} locked={locked} emaCrossTrades={emaCrossTrades} onContextMenu={setMenu} />
+              {menu && <ChartContextMenu x={menu.x} y={menu.y} sections={menuSections} onClose={closeMenu} />}
               {chartLoading && <div className={styles.chartLoadingOverlay} />}
               {selectedAlert && (
                 <AlertActionBar alert={selectedAlert} onEditPrice={onEditAlertPrice} onToggle={onToggleAlert} onDelete={onDeleteAlert} />
