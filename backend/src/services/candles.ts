@@ -13,7 +13,8 @@ export async function upsertCandles(
   data: BridgeCandles,
 ) {
   // The last bar is still forming; only closed bars are stored.
-  const closed = data.candles.slice(0, -1);
+  // Spec 056: a pair just turned on has no history loaded yet and MT4 reports bars at time 0.
+  const closed = data.candles.slice(0, -1).filter((c) => c.time > 0);
 
   for (const batch of chunks(closed)) {
     await db.candle.createMany({

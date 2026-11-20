@@ -159,7 +159,7 @@ export class SyncWatcher {
       const files = this.readTimeframeFiles(timeframe);
       if (files.length === 0) throw new Error('The EA delivered no candles');
 
-      const rows = files.flatMap(({ symbol, candles }) => candles.map((c) => ({
+      const rows = files.flatMap(({ symbol, candles }) => candles.filter((c) => c.time > 0).map((c) => ({
         broker: this.broker, symbol, timeframe,
         time: new Date(c.time * 1000), open: c.open, high: c.high, low: c.low, close: c.close,
       })));

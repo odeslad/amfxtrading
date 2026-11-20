@@ -43,7 +43,8 @@ export function trackCandleCloses(state: CandleCloseState, broker: string, batch
       if (!Number.isFinite(time)) continue;
       const key = `${broker}:${tick.symbol}:${f.tf}`;
       const prev = state.get(key);
-      if (prev && prev.time !== time) {
+      // A bar at time 0 is MT4 before the history of a just-added pair is loaded (spec 056).
+      if (prev && prev.time !== time && prev.time > 0) {
         closed.push({ symbol: tick.symbol, timeframe: f.tf, time: prev.time, open: prev.open, high: prev.high, low: prev.low, close: prev.bid });
       }
       state.set(key, { time, open: tick[f.open], high: tick[f.high], low: tick[f.low], bid: tick.bid });

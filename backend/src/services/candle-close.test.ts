@@ -22,6 +22,13 @@ function tick(symbol: string, hourMs: number, minute: number, bid: number, over:
 const hour = Date.UTC(2026, 9, 23, 10);
 
 describe('trackCandleCloses', () => {
+  it('never closes a bar at time 0 (a pair just turned on, history not loaded yet; spec 056)', () => {
+    const state = createCandleCloseState();
+    const empty = { m5_time: 0, m15_time: 0, h1_time: 0, h4_time: 0, d1_time: 0 };
+    trackCandleCloses(state, 'ftmo', [tick('NZDUSD', hour, 1, 0.59, empty)]);
+    expect(trackCandleCloses(state, 'ftmo', [tick('NZDUSD', hour, 2, 0.59)])).toEqual([]);
+  });
+
   it('seeds on the first tick and reports nothing while the candle times hold', () => {
     const state = createCandleCloseState();
     expect(trackCandleCloses(state, 'ftmo', [tick('EURUSD', hour, 0, 1.1010)])).toEqual([]);
