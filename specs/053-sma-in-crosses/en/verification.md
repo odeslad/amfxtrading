@@ -41,3 +41,10 @@
 - **Steps:** shared `MaTypeToggle` (EMA | SMA); `useEmaAlerts` carries `fastType`/`slowType`; `AlertsPanel` has a toggle before each period, threshold on its own row, tab "MA cross", list rows labelled with `maLabel` ("EMA 24 / SMA 48 ≤2p").
 - **Outcome:** ✅ build and lint clean; the operator created an EMA 24 / SMA 48 alert on FTMO EURUSD H1 and saw it listed with the right label.
 - **Est vs Actual:** 1.25 SP · 0.5 SP.
+
+## Task 7 · [frontend] Average types in the notification rules
+
+- **Mechanism:** `npm run build` + eslint; local check (Vite 5174 against the production API).
+- **Steps:** `useEmaNotifications` carries `fastType`/`slowType` and adds `averagesLabel`; `NotificationPanel` has a `MaTypeToggle` before each period; the table (column "Averages"), the phone cards and the delete confirmation show "SMA 20 / EMA 48". Also fixed a pre-existing layout bug seen while testing: the panel's fields stretched over the whole height (shared `.field { flex: 1 }`); the panel now keeps them at their own height without touching the journal panel.
+- **Outcome:** ✅ build and lint clean; the operator checked the form and the layout fix.
+- **Est vs Actual:** 1 SP · 0.5 SP.

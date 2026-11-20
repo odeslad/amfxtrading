@@ -8,7 +8,7 @@ Cada tarea es un commit convencional. El proyecto debe compilar tras cada tarea.
 - [x] 4. [backend] Alertas y notificaciones: las rutas validan los tipos, los evaluadores usan `calculateMa`, textos del push con las etiquetas · **Verificar:** lint + typecheck + test · **Est:** 1.5 SP
 - [x] 5. [backend] Campos de tipo del overlay en `/settings` · **Verificar:** lint + typecheck + test · **Est:** 0.25 SP
 - [x] 6. [frontend] `MaTypeToggle` + tipos en `useEmaAlerts` y `AlertsPanel` (escritorio y móvil) · **Verificar:** `npm run build` + prueba local contra el API de producción · **Est:** 1.25 SP
-- [ ] 7. [frontend] Notificaciones: `useEmaNotifications`, `NotificationPanel`, tabla/cards y confirmación de borrado · **Verificar:** `npm run build` + prueba local · **Est:** 1 SP
+- [x] 7. [frontend] Notificaciones: `useEmaNotifications`, `NotificationPanel`, tabla/cards y confirmación de borrado · **Verificar:** `npm run build` + prueba local · **Est:** 1 SP
 - [ ] 8. [frontend] Overlay: `useEmaTradesSettings`, `DisplayTab`, `useEmaCrossTrades` enviando los tipos a `/setup-levels` · **Verificar:** `npm run build` + prueba local · **Est:** 0.75 SP
 - [ ] 9. [docs] `backend/docs/architecture.md` y `.claude/CLAUDE.md` (y quitar el router `/chart-indicators` que sobra) · **Verificar:** manual · **Est:** 0.25 SP
 - [ ] 10. [infra] Push del backend (tareas 1–5) solo, luego frontend cuando lo pida el usuario; **validar en producción**: alertas/reglas/overlay existentes iguales (AC 7); una alerta y una regla con SMA creadas y disparadas con el texto correcto; overlay con SMA coincidiendo con el gráfico; móvil · **Verificar:** manual (validación del usuario) · **Est:** 1 SP

@@ -98,3 +98,13 @@
     font-size: var(--text-lg);
   }
 }
+
+.maInput {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.form > * {
+  flex: 0 0 auto;
+}

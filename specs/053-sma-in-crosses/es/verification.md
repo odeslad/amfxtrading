@@ -41,3 +41,10 @@
 - **Pasos:** componente compartido `MaTypeToggle` (EMA | SMA); `useEmaAlerts` lleva `fastType`/`slowType`; `AlertsPanel` tiene un selector delante de cada periodo, el umbral en su propia fila, pestaña "MA cross", filas de la lista con `maLabel` ("EMA 24 / SMA 48 ≤2p").
 - **Resultado:** ✅ build y lint limpios; el operador creó una alerta EMA 24 / SMA 48 en FTMO EURUSD H1 y la vio en la lista con la etiqueta correcta.
 - **Est vs Real:** 1.25 SP · 0.5 SP.
+
+## Tarea 7 · [frontend] Tipos de media en las reglas de notificación
+
+- **Mecanismo:** `npm run build` + eslint; prueba local (Vite 5174 contra el API de producción).
+- **Pasos:** `useEmaNotifications` lleva `fastType`/`slowType` y añade `averagesLabel`; `NotificationPanel` tiene un `MaTypeToggle` delante de cada periodo; la tabla (columna "Averages"), las tarjetas del móvil y la confirmación de borrado muestran "SMA 20 / EMA 48". Arreglado además un fallo de maquetación previo visto en la prueba: los campos del panel se estiraban a todo el alto (`.field { flex: 1 }` compartido); el panel ahora los deja a su altura sin tocar el panel del diario.
+- **Resultado:** ✅ build y lint limpios; el operador revisó el formulario y el arreglo.
+- **Est vs Real:** 1 SP · 0.5 SP.

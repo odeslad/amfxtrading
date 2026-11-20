@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { apiFetch, apiSend, errorMessage } from '../../lib/api';
 import { addToast } from '../../lib/toast';
-import { useEmaNotifications, type EmaNotification, type NotificationInput } from '../../lib/useEmaNotifications';
+import { averagesLabel, useEmaNotifications, type EmaNotification, type NotificationInput } from '../../lib/useEmaNotifications';
 import { ConfirmPanel } from '../journal/ConfirmPanel';
 import { SETUP_LEVEL_KEYS } from '../journal/utils/position';
 import { DEFAULT_FIB_LEVELS } from '../chart/DrawingTools';
@@ -342,7 +342,7 @@ export function SettingsPage() {
       <ConfirmPanel
         open={deleting !== null}
         title="Delete notification?"
-        description={deleting ? `${deleting.symbols.length === 0 ? 'All symbols' : deleting.symbols.join(' · ')} · ${deleting.timeframe} · EMA ${deleting.emaFast}/${deleting.emaSlow}` : ''}
+        description={deleting ? `${deleting.symbols.length === 0 ? 'All symbols' : deleting.symbols.join(' · ')} · ${deleting.timeframe} · ${averagesLabel(deleting)}` : ''}
         detail={deleting?.broker}
         confirmLabel="Delete"
         confirmingLabel="Deleting…"

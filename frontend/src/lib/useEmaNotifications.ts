@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { apiSend } from './api';
 import { useRemoteList } from './useRemoteList';
+import type { MaType } from '../features/chart/chart.types';
+import { maLabel } from '../features/chart/movingAverages';
 
 export type NotificationEvent = 'cross' | 'approach' | 'both';
 export type NotificationDirection = 'buy' | 'sell' | 'both';
@@ -14,6 +16,8 @@ export interface EmaNotification {
   timeframe: string;
   emaFast: number;
   emaSlow: number;
+  fastType: MaType;
+  slowType: MaType;
   event: NotificationEvent;
   thresholdPips: number;
   direction: NotificationDirection;
@@ -32,6 +36,8 @@ export interface NotificationInput {
   timeframe: string;
   emaFast: number;
   emaSlow: number;
+  fastType: MaType;
+  slowType: MaType;
   event: NotificationEvent;
   thresholdPips: number;
   direction: NotificationDirection;
@@ -50,6 +56,9 @@ export const directionLabel = (d: NotificationDirection): string =>
 
 export const repeatLabel = (m: number | null): string =>
   m === null ? 'Once per event' : `Every ${m} min`;
+
+export const averagesLabel = (n: Pick<EmaNotification, 'fastType' | 'emaFast' | 'slowType' | 'emaSlow'>): string =>
+  `${maLabel({ type: n.fastType, period: n.emaFast })} / ${maLabel({ type: n.slowType, period: n.emaSlow })}`;
 
 export const symbolsLabel = (symbols: string[]): string =>
   symbols.length === 0 ? 'All symbols' : symbols.join(' · ');

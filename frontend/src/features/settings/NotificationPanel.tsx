@@ -4,6 +4,8 @@ import { addToast } from '../../lib/toast';
 import { TIMEFRAMES, type EmaNotification, type NotificationDirection, type NotificationEvent, type NotificationInput } from '../../lib/useEmaNotifications';
 import { useVisibility, visibleSymbols } from '../../lib/visibility';
 import { DateField } from '../../shared/ui/DateField';
+import type { MaType } from '../chart/chart.types';
+import { MaTypeToggle } from '../chart/MaTypeToggle';
 import styles from '../journal/BulkEditPanel.module.css';
 import own from './NotificationPanel.module.css';
 
@@ -23,6 +25,8 @@ interface Fields {
   timeframe: string;
   emaFast: string;
   emaSlow: string;
+  fastType: MaType;
+  slowType: MaType;
   event: NotificationEvent;
   thresholdPips: string;
   direction: NotificationDirection;
@@ -55,6 +59,8 @@ const fieldsOf = (n: EmaNotification | null, brokers: string[]): Fields => ({
   timeframe: n?.timeframe ?? 'H1',
   emaFast: String(n?.emaFast ?? 24),
   emaSlow: String(n?.emaSlow ?? 48),
+  fastType: n?.fastType ?? 'ema',
+  slowType: n?.slowType ?? 'ema',
   event: n?.event ?? 'both',
   thresholdPips: String(n?.thresholdPips ?? 3),
   direction: n?.direction ?? 'both',
@@ -103,7 +109,7 @@ export function NotificationPanel({ open, brokers, notification, nonce, onSave, 
     const endsAt = fields.endsAt.trim() === '' ? null : parseLocalInput(fields.endsAt);
     if (!fields.broker) { addToast('Choose a broker', 'error'); return; }
     if (!fields.all && fields.symbols.length === 0) { addToast('Pick at least one symbol or all symbols', 'error'); return; }
-    if (!Number.isInteger(emaFast) || !Number.isInteger(emaSlow) || emaFast < 1 || emaSlow < 1 || emaFast === emaSlow) { addToast('EMA periods must be positive and different', 'error'); return; }
+    if (!Number.isInteger(emaFast) || !Number.isInteger(emaSlow) || emaFast < 1 || emaSlow < 1 || (emaFast === emaSlow && fields.fastType === fields.slowType)) { addToast('Periods must be positive, and different for the same type', 'error'); return; }
     if (fields.event !== 'cross' && !(threshold > 0)) { addToast('The approach threshold must be a positive number of pips', 'error'); return; }
     if (fields.repeat === 'every' && !(Number.isInteger(minutes) && minutes >= 1)) { addToast('Repeat every N minutes needs a whole number ≥ 1', 'error'); return; }
     if (fields.endsAt.trim() !== '' && endsAt === null) { addToast('Ends must be DD/MM/YYYY HH:MM', 'error'); return; }
@@ -111,6 +117,7 @@ export function NotificationPanel({ open, brokers, notification, nonce, onSave, 
     try {
       await onSave({
         broker: fields.broker, symbols: fields.all ? [] : fields.symbols, timeframe: fields.timeframe, emaFast, emaSlow,
+        fastType: fields.fastType, slowType: fields.slowType,
         event: fields.event, thresholdPips: fields.event === 'cross' ? (threshold > 0 ? threshold : 2) : threshold,
         direction: fields.direction, repeatMinutes: fields.repeat === 'every' ? minutes : null, endsAt, note: fields.note.trim() || null,
       }, notification?.id ?? null);
@@ -135,7 +142,7 @@ export function NotificationPanel({ open, brokers, notification, nonce, onSave, 
           <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">✕</button>
         </div>
 
-        <div className={styles.form}>
+        <div className={`${styles.form} ${own.form}`}>
           <div className={own.grid2}>
             <div className={styles.field}>
               <label className={styles.label}>Broker · candles</label>
@@ -167,12 +174,18 @@ export function NotificationPanel({ open, brokers, notification, nonce, onSave, 
 
           <div className={own.grid2}>
             <div className={styles.field}>
-              <label className={styles.label}>EMA fast</label>
-              <input type="text" inputMode="numeric" className={styles.input} value={fields.emaFast} onChange={e => set('emaFast')(e.target.value)} />
+              <label className={styles.label}>Fast average</label>
+              <div className={own.maInput}>
+                <MaTypeToggle value={fields.fastType} onChange={set('fastType')} label="Fast average type" />
+                <input type="text" inputMode="numeric" className={styles.input} aria-label="Fast period" value={fields.emaFast} onChange={e => set('emaFast')(e.target.value)} />
+              </div>
             </div>
             <div className={styles.field}>
-              <label className={styles.label}>EMA slow</label>
-              <input type="text" inputMode="numeric" className={styles.input} value={fields.emaSlow} onChange={e => set('emaSlow')(e.target.value)} />
+              <label className={styles.label}>Slow average</label>
+              <div className={own.maInput}>
+                <MaTypeToggle value={fields.slowType} onChange={set('slowType')} label="Slow average type" />
+                <input type="text" inputMode="numeric" className={styles.input} aria-label="Slow period" value={fields.emaSlow} onChange={e => set('emaSlow')(e.target.value)} />
+              </div>
             </div>
           </div>
 

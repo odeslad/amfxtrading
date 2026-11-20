@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { directionLabel, eventLabel, repeatLabel, symbolsLabel, type EmaNotification } from '../../lib/useEmaNotifications';
+import { averagesLabel, directionLabel, eventLabel, repeatLabel, symbolsLabel, type EmaNotification } from '../../lib/useEmaNotifications';
 import page from './SettingsPage.module.css';
 import styles from './NotificationsTab.module.css';
 
@@ -44,7 +44,7 @@ function Card({ n, onToggle, onEdit, onDelete }: { n: EmaNotification } & Omit<N
       </button>
       {expanded && (
         <div className={styles.details}>
-          <div className={styles.field}><span className={styles.label}>Timeframe · EMAs</span><span>{n.timeframe} · {n.emaFast} / {n.emaSlow}</span></div>
+          <div className={styles.field}><span className={styles.label}>Timeframe · Averages</span><span>{n.timeframe} · {averagesLabel(n)}</span></div>
           <div className={styles.field}><span className={styles.label}>Event</span><span>{eventLabel(n)}</span></div>
           <div className={styles.field}><span className={styles.label}>Direction</span><span className={n.direction === 'buy' ? styles.buy : n.direction === 'sell' ? styles.sell : ''}>{directionLabel(n.direction)}</span></div>
           <div className={styles.field}><span className={styles.label}>Repeat</span><span>{repeatLabel(n.repeatMinutes)}</span></div>
@@ -71,7 +71,7 @@ export function NotificationsTab({ notifications, onToggle, onEdit, onDelete }: 
         <table className={page.table}>
           <thead>
             <tr>
-              <th>On</th><th>Symbols</th><th>TF</th><th>EMAs</th><th>Event</th><th>Direction</th><th>Repeat</th><th>Ends</th><th>State</th><th>Last fired</th><th aria-label="Actions"></th>
+              <th>On</th><th>Symbols</th><th>TF</th><th>Averages</th><th>Event</th><th>Direction</th><th>Repeat</th><th>Ends</th><th>State</th><th>Last fired</th><th aria-label="Actions"></th>
             </tr>
           </thead>
           <tbody>
@@ -80,7 +80,7 @@ export function NotificationsTab({ notifications, onToggle, onEdit, onDelete }: 
                 <td><Toggle n={n} onToggle={onToggle} /></td>
                 <td>{symbolsLabel(n.symbols)}<span className={styles.brokerLine}>{n.broker}</span></td>
                 <td>{n.timeframe}</td>
-                <td>{n.emaFast} / {n.emaSlow}</td>
+                <td>{averagesLabel(n)}</td>
                 <td className={page.sans}>{eventLabel(n)}</td>
                 <td className={`${page.sans} ${n.direction === 'buy' ? styles.buy : n.direction === 'sell' ? styles.sell : ''}`}>{directionLabel(n.direction)}</td>
                 <td className={page.sans}>{repeatLabel(n.repeatMinutes)}</td>
