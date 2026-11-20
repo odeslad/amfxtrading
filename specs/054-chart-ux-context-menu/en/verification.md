@@ -20,3 +20,11 @@
 - **Steps:** `lib/quickOrders.ts` (type, default, `quickOrdersError` with the backend rules); `QuickOrdersSection` at the end of Settings › Mirror ("Quick market / orders": size Lots / Risk %, SL pips, TP pips / R, mirror preset, Set up / Clear), saved with the display settings; Save refuses an invalid configuration with a toast. Agreed during the check: the size is disabled when a preset is chosen (each preset broker uses its own size), and the title and hint say market vs pending. `useQuickOrders` (read from the chart) moved to task 8, where it is used.
 - **Outcome:** ✅ build and lint clean; the operator checked the section.
 - **Est vs Actual:** 1.5 SP · 0.75 SP.
+
+## Task 4 · [frontend] Order type and quick order plan
+
+- **Mechanism:** `npm run build` + eslint; the two modules run with `tsx` on sample prices (a throwaway script outside the repo, `commands.ts` stubbed because `api.ts` needs Vite).
+- **Steps:** `lib/orderType.ts` (`orderTypeAt`); `buildQuickOrder` in `lib/quickOrders.ts` (entry = clicked price or ask/bid, SL from pips, TP from pips or R, one command per enabled preset broker with its own size, refuses risk % without SL and a preset with no enabled broker).
+- **Checked (EURUSD bid 1.0830 / ask 1.0831, SL 15 p, TP 2R):** buy market → buy, SL 1.0816, TP 1.0861; sell market → SL 1.0845, TP 1.0800; buy at 1.0800 → buylimit; sell at 1.0800 → sellstop; buy at 1.0900 → buystop; USDJPY sell, TP 30 p → SL 150.25, TP 149.80; preset → two commands with each broker's size, disabled broker left out; risk % without SL → refused.
+- **Outcome:** ✅ build and lint clean, every case as New Trade would compute it.
+- **Est vs Actual:** 0.75 SP · 0.5 SP.
