@@ -20,3 +20,10 @@
 - **Steps:** `ColorBadge.tsx` exports `ColorSwatchButton` (the dot, `nextColor`, optimistic change, rollback and toast; a double click on it no longer reaches the row) and keeps `ColorBadge` for positions/orders on top of it; `Accounts` keeps `color` from `/balances` (also across the live `account` messages), saves with `PATCH /balances/color`, and shows the dot in the second column, beside the account name, as Positions does beside the symbol and beside the summary on the phone card. Spacing adjusted with the operator.
 - **Outcome:** ✅ build and lint clean; the operator checked the colour cycle, the reload and the layout.
 - **Est vs Actual:** 1 SP · 0.5 SP.
+
+## Task 4 · [frontend] Trades / Orders per account
+
+- **Mechanism:** `npm run build` + eslint; local check against the production API.
+- **Steps:** `Accounts` counts, from `useLivePositions()`, the market positions and the pending orders of each broker, skipping hidden symbols (`isVisible`); desktop column "Trades / Orders" after Number, sortable by positions, header shortened to "Tr. / Or." at the operator's request; `AccountCard` shows it in place of Number, and Number opens the expanded details.
+- **Outcome:** ✅ build and lint clean; the operator checked the counts against Positions and Orders.
+- **Est vs Actual:** 1 SP · 0.35 SP.

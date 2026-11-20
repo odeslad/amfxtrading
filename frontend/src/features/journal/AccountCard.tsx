@@ -24,11 +24,12 @@ interface Balance {
 interface AccountCardProps {
   balance: Balance;
   dayPnl?: number;
+  counts: string;
   onSelect?: () => void;
   colorBadge?: ReactNode;
 }
 
-export function AccountCard({ balance: b, dayPnl, onSelect, colorBadge }: AccountCardProps) {
+export function AccountCard({ balance: b, dayPnl, counts, onSelect, colorBadge }: AccountCardProps) {
   const [expanded, setExpanded] = useState(false);
   const lastTapTime = useRef(0);
 
@@ -55,11 +56,11 @@ export function AccountCard({ balance: b, dayPnl, onSelect, colorBadge }: Accoun
         aria-expanded={expanded}
       >
         <span className={accountStyles.label}>Broker</span>
-        <span className={accountStyles.label}>Number</span>
+        <span className={accountStyles.label}>Tr. / Or.</span>
         <span className={`${accountStyles.label} ${accountStyles.right}`}>P&amp;L</span>
 
         <span className={accountStyles.accountName}>{b.broker}</span>
-        <span className={accountStyles.accountName}>#{b.number}</span>
+        <span className={accountStyles.accountName}>{counts}</span>
         <span className={`${b.profit >= 0 ? styles.profit : styles.loss} ${accountStyles.pnl} ${accountStyles.right}`}>
           {b.profit >= 0 ? '+' : ''}{fmt(b.profit, 2)} {currencySymbol(b.currency)}
         </span>
@@ -67,6 +68,10 @@ export function AccountCard({ balance: b, dayPnl, onSelect, colorBadge }: Accoun
 
       {expanded && (
         <div className={accountStyles.details}>
+          <div className={accountStyles.field}>
+            <span className={accountStyles.label}>Number</span>
+            <span className={accountStyles.fieldValue}>#{b.number}</span>
+          </div>
           <div className={accountStyles.field}>
             <span className={accountStyles.label}>Balance</span>
             <span className={accountStyles.fieldValue}>{fmt(b.balance, 2)} {currencySymbol(b.currency)}</span>

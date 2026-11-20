@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { apiFetch, errorMessage } from '../../lib/api';
 import { useWs } from '../../lib/useWs';
 import { useSort, type SortColumn } from '../../lib/useSort';
-import { useVisibility, visibleBrokers } from '../../lib/visibility';
-import { fmt, currencySymbol } from './utils/position';
+import { isVisible, useVisibility, visibleBrokers } from '../../lib/visibility';
+import { useLivePositions } from './useLivePositions';
+import { fmt, currencySymbol, isPending } from './utils/position';
 import { AccountCard } from './AccountCard';
 import { ColorSwatchButton } from './ColorBadge';
 import { apiSend } from '../../lib/api';
@@ -27,17 +28,28 @@ interface Balance {
 
 const DAY_PNL_POLL_MS = 5000;
 
+const countsLabel = (c: AccountCounts): string => `${c.trades} / ${c.orders}`;
+
 const dayPnlClass = (value: number): string =>
   value === 0 ? styles.muted : value > 0 ? styles.profit : styles.loss;
 
 type ColumnKey =
-  | 'broker' | 'name' | 'number' | 'balance' | 'equity' | 'profit'
+  | 'broker' | 'name' | 'number' | 'trades' | 'balance' | 'equity' | 'profit'
   | 'dayPnl' | 'margin' | 'freeMargin' | 'leverage' | 'currency';
 
-const buildColumns = (dayPnl: Record<string, number>): SortColumn<Balance, ColumnKey>[] => [
+// Spec 055: open positions and pending orders per broker, from the live feed.
+export interface AccountCounts {
+  trades: number;
+  orders: number;
+}
+
+const NO_COUNTS: AccountCounts = { trades: 0, orders: 0 };
+
+const buildColumns = (dayPnl: Record<string, number>, counts: Map<string, AccountCounts>): SortColumn<Balance, ColumnKey>[] => [
   { key: 'broker', label: 'Broker', value: b => b.broker },
   { key: 'name', label: 'Account', value: b => b.name },
   { key: 'number', label: 'Number', value: b => b.number },
+  { key: 'trades', label: 'Tr. / Or.', value: b => counts.get(b.broker)?.trades ?? 0 },
   { key: 'balance', label: 'Balance', value: b => b.balance },
   { key: 'equity', label: 'Equity', value: b => b.equity },
   { key: 'profit', label: 'Profit', value: b => b.profit },
@@ -103,7 +115,18 @@ export function Accounts({ onSelectBroker }: AccountsProps) {
 
   const visibility = useVisibility();
   const visible = useMemo(() => visibleBrokers(visibility, balances), [visibility, balances]);
-  const columns = useMemo(() => buildColumns(dayPnl), [dayPnl]);
+  const { positions } = useLivePositions();
+  const counts = useMemo(() => {
+    const map = new Map<string, AccountCounts>();
+    for (const p of positions) {
+      if (!p.broker || !isVisible(visibility, p.broker, p.symbol)) continue;
+      const c = map.get(p.broker) ?? { trades: 0, orders: 0 };
+      if (isPending(p.type)) c.orders += 1; else c.trades += 1;
+      map.set(p.broker, c);
+    }
+    return map;
+  }, [positions, visibility]);
+  const columns = useMemo(() => buildColumns(dayPnl, counts), [dayPnl, counts]);
   const { sorted, sort, toggle } = useSort(visible, columns, { key: 'broker', dir: 'asc' });
 
   if (loading) return <div className={styles.empty}>Loading...</div>;
@@ -148,6 +171,7 @@ export function Accounts({ onSelectBroker }: AccountsProps) {
                   </span>
                 </td>
                 <td>{b.number}</td>
+                <td>{countsLabel(counts.get(b.broker) ?? NO_COUNTS)}</td>
                 <td>{fmt(b.balance, 2)} {currencySymbol(b.currency)}</td>
                 <td>{fmt(b.equity, 2)} {currencySymbol(b.currency)}</td>
                 <td className={b.profit >= 0 ? styles.profit : styles.loss}>
@@ -170,7 +194,7 @@ export function Accounts({ onSelectBroker }: AccountsProps) {
 
       <div className={styles.cards}>
         {sorted.map(b => (
-          <AccountCard key={b.broker} balance={b} dayPnl={dayPnl[b.broker]} colorBadge={<ColorSwatchButton color={b.color} label={`${b.broker} colour`} onChange={c => setColor(b.broker, c)} onCycle={saveColor(b.broker)} />} onSelect={onSelectBroker ? () => onSelectBroker(b.broker) : undefined} />
+          <AccountCard key={b.broker} balance={b} dayPnl={dayPnl[b.broker]} counts={countsLabel(counts.get(b.broker) ?? NO_COUNTS)} colorBadge={<ColorSwatchButton color={b.color} label={`${b.broker} colour`} onChange={c => setColor(b.broker, c)} onCycle={saveColor(b.broker)} />} onSelect={onSelectBroker ? () => onSelectBroker(b.broker) : undefined} />
         ))}
       </div>
     </>

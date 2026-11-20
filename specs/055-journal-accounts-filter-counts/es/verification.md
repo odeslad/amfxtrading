@@ -20,3 +20,10 @@
 - **Pasos:** `ColorBadge.tsx` exporta `ColorSwatchButton` (el círculo, `nextColor`, cambio optimista, vuelta atrás y aviso; un doble clic sobre él ya no llega a la fila) y mantiene `ColorBadge` para posiciones/órdenes encima de él; `Accounts` conserva `color` de `/balances` (también con los mensajes `account` en vivo), guarda con `PATCH /balances/color` y muestra el círculo en la segunda columna, junto al nombre de la cuenta, como Positions junto al símbolo y junto al resumen en la tarjeta del móvil. Espaciado ajustado con el operador.
 - **Resultado:** ✅ build y lint limpios; el operador comprobó el cambio de color, la recarga y la maquetación.
 - **Est vs Real:** 1 SP · 0.5 SP.
+
+## Tarea 4 · [frontend] Trades / Orders por cuenta
+
+- **Mecanismo:** `npm run build` + eslint; prueba local contra el API de producción.
+- **Pasos:** `Accounts` cuenta, con `useLivePositions()`, las posiciones de mercado y las órdenes pendientes de cada broker, sin los símbolos ocultos (`isVisible`); columna "Trades / Orders" en escritorio tras Number, ordenable por posiciones, con la cabecera acortada a "Tr. / Or." a petición del operador; `AccountCard` la muestra en lugar de Number, y Number abre los detalles desplegados.
+- **Resultado:** ✅ build y lint limpios; el operador comprobó los contadores contra Positions y Orders.
+- **Est vs Real:** 1 SP · 0.35 SP.
