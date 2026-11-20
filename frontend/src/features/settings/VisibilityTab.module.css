@@ -1,9 +1,15 @@
 .summary {
-  font-family: var(--font-sans);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
   color: var(--muted);
+}
+
+.onCount {
+  color: var(--green);
+}
+
+.offCount {
+  color: var(--text);
 }
 
 .summaryAttention {
@@ -14,11 +20,13 @@
   text-align: right;
 }
 
+.pairsBtn,
 .symbolsBtnAttention {
   color: var(--orange);
   border-color: var(--orange);
 }
 
+.pairsBtn:hover,
 .symbolsBtnAttention:hover {
   color: var(--orange);
   border-color: var(--orange);
@@ -47,6 +55,10 @@
 .syncNote,
 .syncError {
   display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   margin-top: 4px;
   padding: 0;
   background: none;
@@ -65,4 +77,16 @@
 
 .syncError {
   color: var(--red);
+}
+
+/* The sync note changes at every step: a fixed column keeps the table from reflowing. */
+.symbolsCell {
+  width: 300px;
+  max-width: 300px;
+}
+
+.pairsBtn:disabled {
+  color: var(--muted);
+  border-color: var(--border-bright);
+  background: transparent;
 }

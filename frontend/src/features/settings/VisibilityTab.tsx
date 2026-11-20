@@ -35,17 +35,22 @@ function SyncNote({ sync, onOpenData }: { sync: SyncBroker | undefined; onOpenDa
   const note = syncNote(sync);
   if (!note) return null;
   return (
-    <button type="button" className={note.error ? own.syncError : own.syncNote} onClick={onOpenData} title="Open Settings › Data">
+    <button type="button" className={note.error ? own.syncError : own.syncNote} onClick={onOpenData} title={`${note.text} · open Settings › Data`}>
       {note.text} ›
     </button>
   );
 }
 
-const summary = (row: BrokerRow): string => {
-  if (!row.visible) return 'Hidden everywhere';
-  if (row.on === null) return '…';
-  return row.off === null ? `${row.on} on · list pending` : `${row.on} on · ${row.off} off`;
-};
+function Summary({ row }: { row: BrokerRow }) {
+  if (!row.visible) return <>Hidden everywhere</>;
+  if (row.on === null) return <>…</>;
+  return (
+    <>
+      <span className={own.onCount}>{row.on} on</span>
+      <span className={own.offCount}>{row.off === null ? ' · list pending' : ` · ${row.off} off`}</span>
+    </>
+  );
+}
 
 function Toggle({ row, onChange, className }: { row: BrokerRow; onChange: (visible: boolean) => void; className?: string }) {
   return (
@@ -60,7 +65,7 @@ function SymbolsButton({ row, onClick, className }: { row: BrokerRow; onClick: (
   return (
     <button
       type="button"
-      className={`${styles.barBtn} ${className ?? ''}`}
+      className={`${styles.barBtn} ${own.pairsBtn} ${className ?? ''}`}
       onClick={onClick}
       disabled={!row.visible || row.on === null}
     >
@@ -98,8 +103,8 @@ export function VisibilityTab({ brokers, accounts, brokerSymbols, syncs, onOpenD
                 <td className={styles.broker}>{row.broker}</td>
                 <td><Toggle row={row} onChange={visible => onToggleBroker(row.broker, visible)} /></td>
                 <td className={styles.sans}>{accounts[row.broker]?.name ?? '—'}</td>
-                <td className={`${own.summary}`}>
-                  {summary(row)}
+                <td className={`${own.summary} ${own.symbolsCell}`}>
+                  <Summary row={row} />
                   <SyncNote sync={syncs.find(s => s.broker === row.broker)} onOpenData={onOpenData} />
                 </td>
                 <td className={own.actions}><SymbolsButton row={row} onClick={() => onOpenSymbols(row.broker)} /></td>
@@ -114,7 +119,7 @@ export function VisibilityTab({ brokers, accounts, brokerSymbols, syncs, onOpenD
           <div key={row.broker} className={`${styles.card} ${own.card} ${row.visible ? '' : styles.dim}`}>
             <span className={own.cardMain}>
               <span className={styles.cardName}>{row.broker}</span>
-              <span className={`${own.summary}`}>{summary(row)}</span>
+              <span className={`${own.summary}`}><Summary row={row} /></span>
               <SyncNote sync={syncs.find(s => s.broker === row.broker)} onOpenData={onOpenData} />
             </span>
             {row.visible && <SymbolsButton row={row} onClick={() => onOpenSymbols(row.broker)} />}
