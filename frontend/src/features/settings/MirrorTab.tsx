@@ -1,3 +1,5 @@
+import type { QuickOrders } from '../../lib/quickOrders';
+import { QuickOrdersSection } from './QuickOrdersSection';
 import styles from './SettingsPage.module.css';
 
 export interface MirrorBroker {
@@ -25,6 +27,8 @@ interface MirrorTabProps {
   presets: MirrorPreset[];
   selectedKey: string;
   accounts: Record<string, AccountInfo>;
+  quickOrders: QuickOrders | null;
+  onQuickOrdersChange: (value: QuickOrders | null) => void;
   onSelect: (key: string) => void;
   onAdd: () => void;
   onRename: (name: string) => void;
@@ -116,7 +120,7 @@ function PresetBar({ presets, selected, onSelect, onAdd, onRename, onDelete }: {
   );
 }
 
-export function MirrorTab({ presets, selectedKey, accounts, onSelect, onAdd, onRename, onDelete, onChange }: MirrorTabProps) {
+export function MirrorTab({ presets, selectedKey, accounts, quickOrders, onQuickOrdersChange, onSelect, onAdd, onRename, onDelete, onChange }: MirrorTabProps) {
   const selected = presets.find(p => p.key === selectedKey) ?? presets[0];
   if (!selected) return null;
   const mirror = selected.brokers;
@@ -158,6 +162,8 @@ export function MirrorTab({ presets, selectedKey, accounts, onSelect, onAdd, onR
           </div>
         ))}
       </div>
+
+      <QuickOrdersSection value={quickOrders} presets={presets} onChange={onQuickOrdersChange} />
     </>
   );
 }

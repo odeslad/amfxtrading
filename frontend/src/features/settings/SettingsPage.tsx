@@ -7,6 +7,7 @@ import { ConfirmPanel } from '../journal/ConfirmPanel';
 import { SETUP_LEVEL_KEYS } from '../journal/utils/position';
 import { DEFAULT_FIB_LEVELS } from '../chart/DrawingTools';
 import { DEFAULT_EMA_TRADES } from '../chart/emaTrades';
+import { quickOrdersError } from '../../lib/quickOrders';
 import { MirrorTab, type AccountInfo, type MirrorBroker, type MirrorPreset } from './MirrorTab';
 import { DisplayTab, type DisplaySettingsForm } from './DisplayTab';
 import { NotificationsTab } from './NotificationsTab';
@@ -59,7 +60,7 @@ const toFormPreset = (preset: SavedPreset, brokerNames: string[]): MirrorPreset 
   };
 };
 
-const DEFAULT_DISPLAY: DisplaySettingsForm = { pnlMode: 'net', trendlineColor: '#8c8c8c', trendlineStyle: 'dashed', trendlineWidth: 1, rectLabels: true, showSpread: false, setupLevels: [...SETUP_LEVEL_KEYS], fibLevels: DEFAULT_FIB_LEVELS, emaTrades: DEFAULT_EMA_TRADES };
+const DEFAULT_DISPLAY: DisplaySettingsForm = { pnlMode: 'net', trendlineColor: '#8c8c8c', trendlineStyle: 'dashed', trendlineWidth: 1, rectLabels: true, showSpread: false, setupLevels: [...SETUP_LEVEL_KEYS], fibLevels: DEFAULT_FIB_LEVELS, emaTrades: DEFAULT_EMA_TRADES, quickOrders: null };
 
 export function SettingsPage() {
   // A link can open a given tab, e.g. the chart's indicators button → /settings?tab=display.
@@ -175,6 +176,8 @@ export function SettingsPage() {
   }, []);
 
   const handleSave = async () => {
+    const quickError = quickOrdersError(display.quickOrders);
+    if (quickError) { addToast(quickError, 'error'); return; }
     setSaving(true);
     try {
       const body = { presets: presets.map(p => ({ id: p.id, name: p.name.trim(), brokers: p.brokers })), display, visibility };
@@ -267,6 +270,8 @@ export function SettingsPage() {
           presets={presets}
           selectedKey={selectedPresetKey}
           accounts={accounts}
+          quickOrders={display.quickOrders}
+          onQuickOrdersChange={quickOrders => updateDisplay({ quickOrders })}
           onSelect={setSelectedPresetKey}
           onAdd={addPreset}
           onRename={renamePreset}

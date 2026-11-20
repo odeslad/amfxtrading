@@ -4,6 +4,7 @@ import { EMA_TRADES_LABEL_KEYS, EMA_TRADES_LABEL_NAMES, EMA_TRADES_LIMITS, type 
 import type { MaType } from '../chart/chart.types';
 import { MaTypeToggle } from '../chart/MaTypeToggle';
 import { MaTemplatesSection } from './MaTemplatesSection';
+import type { QuickOrders } from '../../lib/quickOrders';
 import styles from './SettingsPage.module.css';
 
 export interface DisplaySettingsForm {
@@ -16,6 +17,7 @@ export interface DisplaySettingsForm {
   setupLevels: SetupLevelKey[];
   fibLevels: number[];
   emaTrades: EmaTradesSettings;
+  quickOrders: QuickOrders | null;
 }
 
 interface EmaTradesField {

@@ -13,3 +13,10 @@
 - **Pasos:** `routes/quick-orders.ts` (`parseQuickOrders`: undefined conserva, null borra; tamaño > 0, SL/TP > 0, tpMode y tp juntos, R y % de riesgo exigen SL; `readQuickOrders`: un preset borrado se lee como ninguno, un valor roto como sin configurar); `/settings` lee y escribe `display.quickOrders` y rechaza un preset que no existe; `quick-orders.test.ts`.
 - **Resultado:** ✅ 212 tests en verde, typecheck, build y lint limpios.
 - **Est vs Real:** 1 SP · 0.5 SP.
+
+## Tarea 3 · [frontend] Configuración de Quick market / orders
+
+- **Mecanismo:** `npm run build` + eslint; prueba local (Vite 5174 contra el API de producción).
+- **Pasos:** `lib/quickOrders.ts` (tipo, valor por defecto, `quickOrdersError` con las reglas del backend); `QuickOrdersSection` al final de Settings › Mirror ("Quick market / orders": tamaño Lots / Risk %, SL en pips, TP en pips / R, mirror preset, Set up / Clear), guardada con los ajustes de display; Save rechaza una configuración no válida con un aviso. Acordado en la prueba: el tamaño se desactiva al elegir un preset (cada broker del preset usa su propio tamaño), y el título y la ayuda distinguen mercado y pendiente. `useQuickOrders` (lectura desde el gráfico) pasa a la tarea 8, donde se usa.
+- **Resultado:** ✅ build y lint limpios; el operador revisó la sección.
+- **Est vs Real:** 1.5 SP · 0.75 SP.
