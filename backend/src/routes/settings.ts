@@ -6,6 +6,7 @@ import { BadRequest } from '../middleware/errors';
 import {
   bodyRecord, nonEmptyString, finiteNumber, integer, oneOf, optionalOneOf, optionalString, optionalInteger, optionalBoolean,
 } from '../middleware/parse';
+import { MA_TYPES, type MaType } from '../indicators/moving-average';
 
 const LOTS_MODES = ['fixed', 'risk_pct'] as const;
 const PNL_MODES = ['net', 'gross', 'pips', 'pct'] as const;
@@ -24,13 +25,15 @@ export type EmaTradesLabel = (typeof EMA_TRADES_LABEL_KEYS)[number];
 export interface EmaTradesSettings {
   fast: number;
   slow: number;
+  fastType: MaType;
+  slowType: MaType;
   entryPips: number;
   candles: number;
   count: number;
   tpRatio: number;
   labels: EmaTradesLabel[];
 }
-export const DEFAULT_EMA_TRADES: EmaTradesSettings = { fast: 24, slow: 48, entryPips: 5, candles: 24, count: 3, tpRatio: 2, labels: [...EMA_TRADES_LABEL_KEYS] };
+export const DEFAULT_EMA_TRADES: EmaTradesSettings = { fast: 24, slow: 48, fastType: 'ema', slowType: 'ema', entryPips: 5, candles: 24, count: 3, tpRatio: 2, labels: [...EMA_TRADES_LABEL_KEYS] };
 const EMA_TRADES_MAX_CANDLES = 50;
 const EMA_TRADES_MAX_COUNT = 10;
 const EMA_TRADES_TP_RATIO = { min: 0.5, max: 10 };
@@ -76,6 +79,8 @@ interface DisplayRow {
   fibLevels: number[];
   emaTradesFast: number;
   emaTradesSlow: number;
+  emaTradesFastType: string;
+  emaTradesSlowType: string;
   emaTradesEntryPips: number;
   emaTradesCandles: number;
   emaTradesCount: number;
@@ -146,7 +151,9 @@ function parseEmaTrades(value: unknown): EmaTradesSettings | undefined {
   const row = bodyRecord(value);
   const fast = integer(row.fast, 'display.emaTrades.fast', { min: 1 });
   const slow = integer(row.slow, 'display.emaTrades.slow', { min: 1 });
-  if (fast === slow) throw new BadRequest('display.emaTrades.fast and slow must differ');
+  const fastType = optionalOneOf(row.fastType, 'display.emaTrades.fastType', MA_TYPES) ?? 'ema';
+  const slowType = optionalOneOf(row.slowType, 'display.emaTrades.slowType', MA_TYPES) ?? 'ema';
+  if (fast === slow && fastType === slowType) throw new BadRequest('display.emaTrades.fast and slow must differ for the same type');
   const candles = integer(row.candles, 'display.emaTrades.candles', { min: 1 });
   if (candles > EMA_TRADES_MAX_CANDLES) throw new BadRequest(`display.emaTrades.candles must be <= ${EMA_TRADES_MAX_CANDLES}`);
   const count = integer(row.count, 'display.emaTrades.count', { min: 1 });
@@ -154,7 +161,7 @@ function parseEmaTrades(value: unknown): EmaTradesSettings | undefined {
   const tpRatio = finiteNumber(row.tpRatio, 'display.emaTrades.tpRatio', { min: EMA_TRADES_TP_RATIO.min });
   if (tpRatio > EMA_TRADES_TP_RATIO.max) throw new BadRequest(`display.emaTrades.tpRatio must be <= ${EMA_TRADES_TP_RATIO.max}`);
   return {
-    fast, slow, entryPips: finiteNumber(row.entryPips, 'display.emaTrades.entryPips', { min: 0 }), candles, count, tpRatio,
+    fast, slow, fastType, slowType, entryPips: finiteNumber(row.entryPips, 'display.emaTrades.entryPips', { min: 0 }), candles, count, tpRatio,
     labels: parseEmaTradesLabels(row.labels),
   };
 }
@@ -176,6 +183,8 @@ function emaTradesOf(display: DisplayRow | null): EmaTradesSettings {
   return {
     fast: display.emaTradesFast,
     slow: display.emaTradesSlow,
+    fastType: display.emaTradesFastType as MaType,
+    slowType: display.emaTradesSlowType as MaType,
     entryPips: display.emaTradesEntryPips,
     candles: display.emaTradesCandles,
     count: display.emaTradesCount,
@@ -188,6 +197,8 @@ function emaTradesColumns(value: EmaTradesSettings) {
   return {
     emaTradesFast: value.fast,
     emaTradesSlow: value.slow,
+    emaTradesFastType: value.fastType,
+    emaTradesSlowType: value.slowType,
     emaTradesEntryPips: value.entryPips,
     emaTradesCandles: value.candles,
     emaTradesCount: value.count,

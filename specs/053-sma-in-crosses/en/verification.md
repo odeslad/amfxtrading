@@ -27,3 +27,10 @@
 - **Steps:** `/ema-alerts` and `/ema-notifications` accept and validate `fastType`/`slowType` (ema|sma, default ema; equal periods only rejected for the same type); stores load the types; evaluators use `calculateMa`; pushes read "EMA 24 / SMA 50" (alert title "MA cross"); the WS notification payload carries the types.
 - **Outcome:** ✅ 207 tests green (the known flaky `pipe-reader` test failed once and passed on rerun), typecheck, build and lint clean.
 - **Est vs Actual:** 1.5 SP · 0.5 SP.
+
+## Task 5 · [backend] Overlay average types in `/settings`
+
+- **Mechanism:** lint + typecheck + test + build.
+- **Steps:** `EmaTradesSettings` gains `fastType`/`slowType` (optional on input, default ema; equal periods only rejected for the same type), read from and written to `emaTradesFastType`/`emaTradesSlowType`; tests for the types, the default and the equal-period rule.
+- **Outcome:** ✅ 207 tests green (flaky `pipe-reader` again passed on rerun), typecheck, build and lint clean.
+- **Est vs Actual:** 0.25 SP · 0.25 SP.

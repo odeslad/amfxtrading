@@ -27,3 +27,10 @@
 - **Pasos:** `/ema-alerts` y `/ema-notifications` aceptan y validan `fastType`/`slowType` (ema|sma, por defecto ema; periodos iguales solo se rechazan con el mismo tipo); los stores cargan los tipos; los evaluadores usan `calculateMa`; los push dicen "EMA 24 / SMA 50" (título de la alerta "MA cross"); el payload WS de la notificación lleva los tipos.
 - **Resultado:** ✅ 207 tests en verde (el test inestable conocido de `pipe-reader` falló una vez y pasó al repetir), typecheck, build y lint limpios.
 - **Est vs Real:** 1.5 SP · 0.5 SP.
+
+## Tarea 5 · [backend] Tipos de las medias del overlay en `/settings`
+
+- **Mecanismo:** lint + typecheck + test + build.
+- **Pasos:** `EmaTradesSettings` añade `fastType`/`slowType` (opcionales al recibir, por defecto ema; periodos iguales solo se rechazan con el mismo tipo), leídos y escritos en `emaTradesFastType`/`emaTradesSlowType`; tests de los tipos, el valor por defecto y la regla de periodos iguales.
+- **Resultado:** ✅ 207 tests en verde (el inestable `pipe-reader` pasó de nuevo al repetir), typecheck, build y lint limpios.
+- **Est vs Real:** 0.25 SP · 0.25 SP.
