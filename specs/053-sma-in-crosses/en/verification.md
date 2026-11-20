@@ -55,3 +55,10 @@
 - **Steps:** `EmaTradesSettings` carries `fastType`/`slowType` (default ema); Settings › Display shows a `MaTypeToggle` before the fast and slow periods; `useEmaCrossTrades` sends the types to `/setup-levels` and refetches when they change.
 - **Outcome:** ✅ build and lint clean; the operator checked the overlay with an SMA side and back to EMA.
 - **Est vs Actual:** 0.75 SP · 0.5 SP.
+
+## Task 9 · [docs] Architecture docs
+
+- **Mechanism:** manual review of the diff.
+- **Steps:** `.claude/CLAUDE.md` and `backend/docs/architecture.md` describe EMA/SMA per side in alerts, notifications, overlay and setup levels; the stale `/chart-indicators` router and `chart_indicators`/`ChartIndicators` entries removed (19 routers).
+- **Outcome:** ✅ both documents agree.
+- **Est vs Actual:** 0.25 SP · 0.15 SP.
