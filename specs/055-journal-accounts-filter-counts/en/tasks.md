@@ -2,7 +2,7 @@
 
 Each task is one conventional commit. The project must build after every task. Tasks of different layers never share a commit. Deploy order: db + backend → frontend.
 
-- [ ] 1. [db] Migration adding `account_colors (broker PK, color)` and the `AccountColor` model · **Verify:** `prisma validate` + `prisma generate` + build; `prisma migrate diff` from production shows only this table · **Est:** 0.25 SP
+- [x] 1. [db] Migration adding `account_colors (broker PK, color)` and the `AccountColor` model · **Verify:** `prisma validate` + `prisma generate` + build; `prisma migrate diff` from production shows only this table · **Est:** 0.25 SP
 - [ ] 2. [backend] `GET /balances` with `color`; `PATCH /balances/color` (upsert, empty clears) with tests · **Verify:** lint + typecheck + test + build · **Est:** 0.75 SP
 - [ ] 3. [frontend] `ColorBadge` with its own save function (positions and orders unchanged); colour badge on accounts (table and cards) · **Verify:** build + eslint; local: account colour cycles and survives a reload; position and order badges still work · **Est:** 1 SP
 - [ ] 4. [frontend] "Trades / Orders" per account from the live positions (desktop column, sortable; phone card in place of Number, Number in the details) · **Verify:** build + eslint; local: counts match the Positions and Orders tabs and change live · **Est:** 1 SP

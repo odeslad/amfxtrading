@@ -148,6 +148,14 @@ model SettingsDisplay {
   @@map("settings_display")
 }
 
+// Spec 055: the colour of a broker account in Journal › Accounts, unrelated to position colours.
+model AccountColor {
+  broker String @id
+  color  String
+
+  @@map("account_colors")
+}
+
 model PositionColor {
   id      Int    @id @default(autoincrement())
   broker  String
