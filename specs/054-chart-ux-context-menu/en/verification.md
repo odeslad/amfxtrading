@@ -57,3 +57,10 @@
 - **Steps:** `lib/useQuickOrders.ts` reads the configuration and the presets; `chartMenu.ts` adds Quick buy / Quick sell (market, with the size or preset name) and Quick buy / sell at the clicked price (limit or stop), hidden when not configured, locked or without a quote; `ChartSlot` builds the plan with `buildQuickOrder` (errors as toasts); `QuickOrderConfirm` (on `ConfirmPanel`, detail on several lines) shows type, price, each broker with its size, preset, SL and TP, and sends one command per broker on Confirm; the result toast comes from `AppLayout`. The confirmation is the existing right-side `ConfirmPanel` rather than the centred card of the mockup, to reuse the pattern of the other confirmations.
 - **Outcome:** ✅ build and lint clean; the operator checked the menu and the confirmation. 🕐 Sending pending until task 11.
 - **Est vs Actual:** 1.5 SP · 0.5 SP.
+
+## Task 9 · [frontend] Docked New Trade and position edit panels
+
+- **Mechanism:** `npm run build` + eslint; local check on desktop.
+- **Steps:** `shared/ui/DockedPanel.module.css` (`docked`: in the flow, 320 px, no transform; `hidden` when closed; on the phone 50dvh at full width); `NewTradePanel` and `BulkEditPanel` take `docked` (no backdrop); `ChartPage` lays out `.workspace` = chart area + the two docked panels (a column on the phone), and opening one closes the other. The Journal keeps the overlay. The charts resize through their own `ResizeObserver`.
+- **Outcome:** ✅ build and lint clean; the operator checked it on desktop (single and split view). 🕐 Phone bottom sheet pending until task 11.
+- **Est vs Actual:** 2.5 SP · 0.75 SP.

@@ -4,14 +4,17 @@ import { errorMessage } from '../../lib/api';
 import { modifyCommand, sendCommands } from '../../lib/commands';
 import { addToast } from '../../lib/toast';
 import styles from './BulkEditPanel.module.css';
+import dockedStyles from '../../shared/ui/DockedPanel.module.css';
 
 interface BulkEditPanelProps {
   open: boolean;
   positions: Position[];
   onClose: () => void;
+  // Spec 054: laid out next to the chart (no backdrop) instead of over it.
+  docked?: boolean;
 }
 
-export const BulkEditPanel = memo(function BulkEditPanel({ open, positions, onClose }: BulkEditPanelProps) {
+export const BulkEditPanel = memo(function BulkEditPanel({ open, positions, onClose, docked = false }: BulkEditPanelProps) {
   const [sl, setSl] = useState('');
   const [tp, setTp] = useState('');
   const [ratio, setRatio] = useState<TpRatio | null>(null);
@@ -57,8 +60,8 @@ export const BulkEditPanel = memo(function BulkEditPanel({ open, positions, onCl
 
   return (
     <>
-      {open && <div className={styles.backdrop} onClick={onClose} />}
-      <div className={`${styles.panel} ${open ? styles.panelOpen : ''}`}>
+      {open && !docked && <div className={styles.backdrop} onClick={onClose} />}
+      <div className={docked ? `${styles.panel} ${dockedStyles.docked} ${open ? '' : dockedStyles.hidden}` : `${styles.panel} ${open ? styles.panelOpen : ''}`}>
         <div className={styles.header}>
           <div className={styles.title}>Edit group</div>
           <button type="button" className={styles.closeBtn} onClick={onClose}>✕</button>

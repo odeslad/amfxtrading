@@ -8,6 +8,7 @@ import { addToast } from '../../lib/toast';
 import { useVisibility, visibleSymbols, isSymbolVisible } from '../../lib/visibility';
 import { SETUP_LEVEL_KEYS, TP_RATIOS, pricePrecision, tpForRatio, type SetupLevelKey, type TpRatio } from './utils/position';
 import styles from './NewTradePanel.module.css';
+import dockedStyles from '../../shared/ui/DockedPanel.module.css';
 
 interface NewTradePanelProps {
   open: boolean;
@@ -18,6 +19,8 @@ interface NewTradePanelProps {
   initialTimeframe?: string;
   // Spec 054: order type and price chosen from the chart menu; `key` changes on every request.
   initialOrder?: NewTradeOrder;
+  // Spec 054: laid out next to the chart (no backdrop) instead of over it.
+  docked?: boolean;
 }
 
 export interface NewTradeOrder {
@@ -75,7 +78,7 @@ interface SetupLevels {
 }
 
 
-export const NewTradePanel = memo(function NewTradePanel({ open, onClose, initialBroker, initialSymbol, initialTimeframe, initialOrder }: NewTradePanelProps) {
+export const NewTradePanel = memo(function NewTradePanel({ open, onClose, initialBroker, initialSymbol, initialTimeframe, initialOrder, docked = false }: NewTradePanelProps) {
   const [mode, setMode] = useState<Mode>('manual');
   const [presets, setPresets] = useState<MirrorPreset[]>([]);
   const [presetId, setPresetId] = useState<number | null>(null);
@@ -308,8 +311,8 @@ export const NewTradePanel = memo(function NewTradePanel({ open, onClose, initia
 
   return (
     <>
-      {open && <div className={styles.backdrop} onClick={onClose} />}
-      <div className={`${styles.panel} ${open ? styles.panelOpen : ''}`}>
+      {open && !docked && <div className={styles.backdrop} onClick={onClose} />}
+      <div className={docked ? `${styles.panel} ${dockedStyles.docked} ${open ? '' : dockedStyles.hidden}` : `${styles.panel} ${open ? styles.panelOpen : ''}`}>
         <div className={styles.header}>
           <span className={styles.title}>New Trade</span>
           <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">✕</button>

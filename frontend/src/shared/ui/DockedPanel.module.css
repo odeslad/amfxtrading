@@ -1,0 +1,26 @@
+/* Spec 054: a side panel laid out next to the chart instead of over it. Doubled selectors
+   win over the panel's own fixed-position rules whatever the CSS order. */
+.docked.docked {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  flex: 0 0 320px;
+  width: 320px;
+  height: auto;
+  transform: none;
+  transition: none;
+}
+
+.hidden.hidden {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .docked.docked {
+    flex: 0 0 50dvh;
+    width: 100%;
+    height: 50dvh;
+    border-left: none;
+    border-top: 1px solid var(--border-bright);
+  }
+}

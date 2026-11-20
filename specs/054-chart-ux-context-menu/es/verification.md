@@ -57,3 +57,10 @@
 - **Pasos:** `lib/useQuickOrders.ts` lee la configuración y los presets; `chartMenu.ts` añade Quick buy / Quick sell (a mercado, con el tamaño o el nombre del preset) y Quick buy / sell at en el precio pulsado (limit o stop), ocultas sin configuración, con el gráfico bloqueado o sin precio; `ChartSlot` arma el plan con `buildQuickOrder` (los errores como aviso); `QuickOrderConfirm` (sobre `ConfirmPanel`, detalle en varias líneas) muestra tipo, precio, cada broker con su tamaño, preset, SL y TP, y envía un comando por broker al Confirmar; el aviso del resultado lo da `AppLayout`. La confirmación es el `ConfirmPanel` lateral existente en vez de la tarjeta centrada de la maqueta, para reutilizar el patrón del resto de confirmaciones.
 - **Resultado:** ✅ build y lint limpios; el operador revisó el menú y la confirmación. 🕐 Envío pendiente hasta la tarea 11.
 - **Est vs Real:** 1.5 SP · 0.5 SP.
+
+## Tarea 9 · [frontend] Paneles New Trade y edición de posición acoplados
+
+- **Mecanismo:** `npm run build` + eslint; prueba local en escritorio.
+- **Pasos:** `shared/ui/DockedPanel.module.css` (`docked`: en el flujo, 320 px, sin transform; `hidden` cerrado; en el móvil 50dvh a todo el ancho); `NewTradePanel` y `BulkEditPanel` reciben `docked` (sin velo); `ChartPage` dispone `.workspace` = área de gráficos + los dos paneles acoplados (en columna en el móvil), y abrir uno cierra el otro. El diario sigue con la capa superpuesta. Los gráficos se redimensionan con su propio `ResizeObserver`.
+- **Resultado:** ✅ build y lint limpios; el operador lo comprobó en escritorio (vista simple y partida). 🕐 Hoja inferior del móvil pendiente hasta la tarea 11.
+- **Est vs Real:** 2.5 SP · 0.75 SP.

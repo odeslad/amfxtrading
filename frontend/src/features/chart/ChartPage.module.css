@@ -31,8 +31,22 @@
   padding-bottom: max(8px, env(safe-area-inset-bottom));
 }
 
+/* Spec 054: the charts and a docked side panel (New Trade, position edit) share the width. */
+.workspace {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+@media (max-width: 768px) {
+  .workspace {
+    flex-direction: column;
+  }
+}
+
 .chartArea {
   flex: 1;
+  min-width: 0;
   display: flex;
   min-height: 0;
   background: var(--bg);

@@ -471,6 +471,7 @@ export function ChartPage() {
     setNewTradeTimeframe(tf);
     setNewTradeOrder(order ? { ...order, key: Date.now() } : undefined);
     setNewTradeOpen(true);
+    setEditPosition(null);
   }, []);
   const closeNewTrade = useCallback(() => setNewTradeOpen(false), []);
   const clearEdit = useCallback(() => setEditPosition(null), []);
@@ -487,7 +488,7 @@ export function ChartPage() {
 
   const handleEditPosition = useCallback((ticket: number) => {
     const pos = positions.find(p => p.ticket === ticket);
-    if (pos) setEditPosition(pos);
+    if (pos) { setEditPosition(pos); setNewTradeOpen(false); }
   }, [positions]);
 
   const handleClosePosition = useCallback((ticket: number) => {
@@ -545,6 +546,7 @@ export function ChartPage() {
 
   return (
     <div className={`${styles.page} ${isFullscreen ? styles.pageFullscreen : ''}`} ref={pageRef}>
+      <div className={styles.workspace}>
       <div
         ref={chartAreaRef}
         className={`${styles.chartArea} ${splitLayout ? styles.split : ''}`}
@@ -582,6 +584,14 @@ export function ChartPage() {
             onSplit={toggleSplitRight}
           />
         )}
+      </div>
+      <NewTradePanel docked open={newTradeOpen} onClose={closeNewTrade} initialBroker={broker} initialSymbol={symbol} initialTimeframe={newTradeTimeframe} initialOrder={newTradeOrder} />
+      <BulkEditPanel
+        docked
+        open={!!editPosition}
+        positions={editPositions}
+        onClose={clearEdit}
+      />
       </div>
       <ChartFiltersPanel
         open={filtersOpen}
@@ -627,13 +637,7 @@ export function ChartPage() {
         onToggleHidden={maTemplates.toggleHidden}
         onAssign={maTemplates.assign}
       />
-      <NewTradePanel open={newTradeOpen} onClose={closeNewTrade} initialBroker={broker} initialSymbol={symbol} initialTimeframe={newTradeTimeframe} initialOrder={newTradeOrder} />
 
-      <BulkEditPanel
-        open={!!editPosition}
-        positions={editPositions}
-        onClose={clearEdit}
-      />
 
       <QuickOrderConfirm symbol={quickOrder?.symbol ?? ''} plan={quickOrder?.plan ?? null} onClose={closeQuickOrder} />
 
