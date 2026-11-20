@@ -42,3 +42,11 @@
 - **Pasos:** `LightweightChart` guarda cada línea de posición/orden (entrada, SL, TP) y resuelve el objetivo bajo el puntero (línea a menos de 6 px, si no un dibujo con el nuevo `TrendlineManager.drawingAt`); la petición lleva el número de dibujos y las acciones de borrar / borrar todos; `chartMenu.ts` añade la sección de posición (Editar, Quitar SL / TP si existen, Cerrar / Cancelar; oculta con el gráfico bloqueado) y la de dibujos (Borrar dibujo, Borrar todos los dibujos… con `ConfirmPanel`); el botón derecho ya no empieza un arrastre de nivel ni un punto de dibujo; quitados los botones flotantes "+ New Trade", "Delete" y "Clear all" y su CSS (la tecla Supr se queda).
 - **Resultado:** ✅ build y lint limpios; el operador comprobó las acciones de posición y de dibujo.
 - **Est vs Real:** 2 SP · 1 SP.
+
+## Tarea 7 · [frontend] Pulsación larga en táctil
+
+- **Mecanismo:** `npm run build` + eslint; prueba local en el modo dispositivo de Chrome DevTools (el móvil no llega al Vite local); la prueba en el iPhone real pasa a la tarea 11 (producción), como ya preveía la spec.
+- **Pasos:** `LightweightChart` arma un temporizador de 500 ms con un toque de un dedo (no con una herramienta de dibujo activa), que se cancela al mover más de 8 px, con un segundo dedo, touchend o touchcancel; al dispararse abre el menú 24 px por debajo del dedo (tolerancia de 18 px para líneas y dibujos) y se queda con el resto del toque (no pulsa una opción ni arrastra); el `contextmenu` de Android por pulsación larga se ignora en punteros táctiles; el gráfico tiene `user-select: none` y `-webkit-touch-callout: none`. `openMenuAt` compartido entre ratón y táctil.
+- **Arreglos durante la prueba:** las opciones del menú actúan al levantar el puntero (solo si se pulsó en la misma opción), porque un manejador táctil del gráfico podía anular el clic sintético; los manejadores táctiles del gráfico ignoran los toques que empiezan en el menú; los listeners de la pulsación larga pasan al documento para que un toque sobre un dibujo también la arme; el menú ofrece "Delete selected drawing" cuando el clic no cae justo sobre la línea (precisión sin cambios, a petición del operador).
+- **Resultado:** ✅ build y lint limpios; el operador lo comprobó en modo dispositivo. 🕐 Gestos en iPhone pendientes hasta la tarea 11.
+- **Est vs Real:** 1.5 SP · 0.75 SP.

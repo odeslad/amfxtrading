@@ -1400,6 +1400,10 @@ export class DrawingManager {
     return hit && hit.id !== RULER_ID ? hit.id : null;
   }
 
+  get selectedDrawingId(): string | null {
+    return this.selectedId !== null && this.selectedId !== RULER_ID ? this.selectedId : null;
+  }
+
   deleteDrawing(id: string) {
     this.setSelected(id);
     this.deleteSelected();

@@ -57,7 +57,9 @@ export function buildChartMenu(ctx: ChartMenuContext, handlers: ChartMenuHandler
   };
 
   const alertDirection = bid !== null && price > bid ? 'above' : 'below';
-  const drawingTarget = target?.kind === 'drawing' ? target.id : null;
+  // The drawing under the pointer, else the selected one (a thin line is hard to hit exactly).
+  const drawingTarget = target?.kind === 'drawing' ? target.id : request.selectedDrawingId;
+  const drawingLabel = target?.kind === 'drawing' ? 'Delete drawing' : 'Delete selected drawing';
 
   return [
     ...(position && !locked ? [positionSection(position, priceText, handlers)] : []),
@@ -80,7 +82,7 @@ export function buildChartMenu(ctx: ChartMenuContext, handlers: ChartMenuHandler
     {
       key: 'drawings',
       items: locked ? [] : [
-        ...(drawingTarget ? [{ key: 'delete-drawing', label: 'Delete drawing', hint: 'Del', tone: 'danger' as const, onSelect: () => request.deleteDrawing(drawingTarget) }] : []),
+        ...(drawingTarget ? [{ key: 'delete-drawing', label: drawingLabel, hint: 'Del', tone: 'danger' as const, onSelect: () => request.deleteDrawing(drawingTarget) }] : []),
         ...(drawingCount > 0 ? [{ key: 'clear-drawings', label: 'Clear all drawings…', hint: String(drawingCount), tone: 'danger' as const, onSelect: handlers.onClearDrawings }] : []),
       ],
     },

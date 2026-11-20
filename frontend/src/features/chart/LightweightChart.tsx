@@ -239,6 +239,7 @@ export interface ChartContextRequest {
   ask: number | null;
   target: ChartMenuTarget | null;
   drawingCount: number;
+  selectedDrawingId: string | null;
   deleteDrawing: (id: string) => void;
   clearDrawings: () => void;
 }
@@ -248,6 +249,11 @@ export type ChartMenuTarget =
   | { kind: 'drawing'; id: string };
 
 const MENU_HIT_PX = 6;
+const MENU_TOUCH_HIT_PX = 18;
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_PX = 8;
+// Below the finger, so the menu is not hidden under it.
+const TOUCH_MENU_OFFSET_PX = 24;
 
 interface LightweightChartExtendedProps extends LightweightChartProps {
   drawMode?: DrawMode | null;
@@ -347,6 +353,8 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
   const positionLevelsRef = useRef<Omit<PositionLabel, 'top' | 'visible'>[]>([]);
   const draggableRef = useRef<DraggableLevel[]>([]);
   const dragStateRef = useRef<DragState | null>(null);
+  const drawModeRef = useRef(drawMode);
+  useEffect(() => { drawModeRef.current = drawMode; }, [drawMode]);
   const panePanRef = useRef<{ startY: number; lastY: number } | null>(null);
   // Chart lock (spec 034): levels, alerts and drawings ignore the pointer.
   const lockedRef = useRef(locked);
@@ -1539,7 +1547,7 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     };
 
     const onMouseDown = (e: MouseEvent) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0 || (e.target as HTMLElement | null)?.closest?.('[data-chart-interactive]')) return;
       if (startDrag(e.clientX, e.clientY)) { e.preventDefault(); e.stopPropagation(); return; }
       if (e.button === 0) beginPanePan(e.clientX, e.clientY);
     };
@@ -1557,7 +1565,7 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
 
     const onTouchStart = (e: TouchEvent) => {
       const t = e.touches[0];
-      if (!t) return;
+      if (!t || (e.target as HTMLElement | null)?.closest?.('[data-chart-interactive]')) return;
       if (startDrag(t.clientX, t.clientY, TOUCH_HIT_PX)) { e.preventDefault(); e.stopPropagation(); return; }
       if (e.touches.length === 1) beginPanePan(t.clientX, t.clientY);
     };
@@ -1607,33 +1615,9 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     trendlineManagerRef.current?.setLocked(locked);
   }, [locked]);
 
-  const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const series = seriesRef.current;
-    if (!series || !onContextMenu || (e.target as HTMLElement).closest('[data-chart-interactive]')) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    if (x >= rect.width - series.priceScale().width()) return;
-    const raw = series.coordinateToPrice(y);
-    if (raw === null) return;
-    const last = candlesRef.current[candlesRef.current.length - 1]?.close ?? null;
-    const { bid, ask } = quoteRef.current;
-    const manager = trendlineManagerRef.current;
-    onContextMenu({
-      x, y,
-      price: Number(raw.toFixed(getPricePrecision(symbol))),
-      bid: bid ?? last,
-      ask: ask ?? bid ?? last,
-      target: menuTargetAt(e.clientX, y),
-      drawingCount: manager?.drawingCount ?? 0,
-      deleteDrawing: id => manager?.deleteDrawing(id),
-      clearDrawings: () => manager?.clearAll(),
-    });
-  };
-
   // A position/order line within a few pixels wins over a drawing.
-  const menuTargetAt = (clientX: number, y: number, tolerance = MENU_HIT_PX): ChartMenuTarget | null => {
+  const menuTargetAt = (clientX: number, y: number, touch: boolean): ChartMenuTarget | null => {
+    const tolerance = touch ? MENU_TOUCH_HIT_PX : MENU_HIT_PX;
     const series = seriesRef.current;
     let best: ChartMenuTarget | null = null;
     let bestDist = tolerance;
@@ -1645,9 +1629,98 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     }
     if (best) return best;
     const rect = containerRef.current?.getBoundingClientRect();
-    const id = rect ? trendlineManagerRef.current?.drawingAt(clientX, rect.top + y) ?? null : null;
+    const id = rect ? trendlineManagerRef.current?.drawingAt(clientX, rect.top + y, touch) ?? null : null;
     return id ? { kind: 'drawing', id } : null;
   };
+
+  // Opens the context menu at a client point; false when the point is not in the pane.
+  const openMenuAt = (clientX: number, clientY: number, target: EventTarget | null, touch: boolean): boolean => {
+    const series = seriesRef.current;
+    const container = containerRef.current;
+    if (!series || !container || !onContextMenu || (target as HTMLElement | null)?.closest?.('[data-chart-interactive]')) return false;
+    const rect = container.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    if (x < 0 || y < 0 || x >= rect.width - series.priceScale().width()) return false;
+    const raw = series.coordinateToPrice(y);
+    if (raw === null) return false;
+    const last = candlesRef.current[candlesRef.current.length - 1]?.close ?? null;
+    const { bid, ask } = quoteRef.current;
+    const manager = trendlineManagerRef.current;
+    onContextMenu({
+      x, y: touch ? y + TOUCH_MENU_OFFSET_PX : y,
+      price: Number(raw.toFixed(getPricePrecision(symbol))),
+      bid: bid ?? last,
+      ask: ask ?? bid ?? last,
+      target: menuTargetAt(clientX, y, touch),
+      drawingCount: manager?.drawingCount ?? 0,
+      selectedDrawingId: manager?.selectedDrawingId ?? null,
+      deleteDrawing: id => manager?.deleteDrawing(id),
+      clearDrawings: () => manager?.clearAll(),
+    });
+    return true;
+  };
+  const openMenuAtRef = useRef(openMenuAt);
+  useEffect(() => { openMenuAtRef.current = openMenuAt; });
+
+  // Android also sends contextmenu on a long press; the touch path below already handles it.
+  const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if ((e.nativeEvent as PointerEvent).pointerType === 'touch') return;
+    openMenuAt(e.clientX, e.clientY, e.target, false);
+  };
+
+  // Spec 054: press and hold one finger still for LONG_PRESS_MS to open the menu. Not armed
+  // while drawing; a move, a second finger or lifting the finger cancels it. Once it fires,
+  // the rest of that touch is swallowed so no tap, drag or selection follows.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    let timer: number | null = null;
+    let start: { x: number; y: number } | null = null;
+    let fired = false;
+    const cancel = () => {
+      if (timer !== null) window.clearTimeout(timer);
+      timer = null;
+      start = null;
+    };
+    const onTouchStart = (e: TouchEvent) => {
+      cancel();
+      fired = false;
+      const t = e.touches[0];
+      if (e.touches.length !== 1 || !t || !container.contains(e.target as Node) || drawModeRef.current || (e.target as HTMLElement | null)?.closest?.('[data-chart-interactive]')) return;
+      start = { x: t.clientX, y: t.clientY };
+      const target = e.target;
+      timer = window.setTimeout(() => {
+        timer = null;
+        if (!start || dragStateRef.current) return;
+        fired = openMenuAtRef.current(start.x, start.y, target, true);
+      }, LONG_PRESS_MS);
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (fired) { e.preventDefault(); e.stopPropagation(); return; }
+      const t = e.touches[0];
+      if (!start || !t || e.touches.length !== 1) { cancel(); return; }
+      if (Math.hypot(t.clientX - start.x, t.clientY - start.y) > LONG_PRESS_MOVE_PX) cancel();
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      cancel();
+      if (fired) { e.preventDefault(); e.stopPropagation(); fired = false; }
+    };
+    // On the document (capture), like DrawingTools: a touch it takes on a drawing still arms the long press.
+    document.addEventListener('touchstart', onTouchStart, { capture: true, passive: true });
+    document.addEventListener('touchmove', onTouchMove, { capture: true, passive: false });
+    document.addEventListener('touchend', onTouchEnd, { capture: true, passive: false });
+    document.addEventListener('touchcancel', cancel, true);
+    return () => {
+      cancel();
+      document.removeEventListener('touchstart', onTouchStart, true);
+      document.removeEventListener('touchmove', onTouchMove, true);
+      document.removeEventListener('touchend', onTouchEnd, true);
+      document.removeEventListener('touchcancel', cancel, true);
+    };
+  }, []);
+
 
   const legendPrecision = getPricePrecision(symbol);
 

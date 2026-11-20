@@ -42,3 +42,11 @@
 - **Steps:** `LightweightChart` records every position/order line (entry, SL, TP) and resolves the target under the pointer (line within 6 px, else a drawing via the new `TrendlineManager.drawingAt`); the request carries the drawing count and the delete / clear actions; `chartMenu.ts` adds the position section (Edit, Remove SL / TP when present, Close / Cancel; hidden when locked) and the drawing section (Delete drawing, Clear all drawings… with a `ConfirmPanel`); right mouse button no longer starts a level drag or a drawing anchor; the floating "+ New Trade", "Delete" and "Clear all" buttons and their CSS are gone (the Delete key stays).
 - **Outcome:** ✅ build and lint clean; the operator checked the position and drawing actions.
 - **Est vs Actual:** 2 SP · 1 SP.
+
+## Task 7 · [frontend] Long press on touch
+
+- **Mechanism:** `npm run build` + eslint; local check in Chrome DevTools device mode (the phone cannot reach the local Vite); the real iPhone check moves to task 11 (production), as the spec already planned.
+- **Steps:** `LightweightChart` arms a 500 ms timer on a single-finger touch (not while a drawing tool is active), cancelled by a move over 8 px, a second finger, touchend or touchcancel; when it fires it opens the menu 24 px below the finger (wider 18 px hit tolerance for lines and drawings) and swallows the rest of the touch (no click on a menu item, no drag); Android's own long-press `contextmenu` is ignored for touch pointers; the chart has `user-select: none` and `-webkit-touch-callout: none`. Shared `openMenuAt` for mouse and touch.
+- **Fixes during the check:** menu items fire on pointer up (only when pressed inside the same item), because a chart touch handler could cancel the synthetic click; the chart's touch handlers ignore touches that start in the menu; the long-press listeners moved to the document so a touch on a drawing still arms it; the menu offers "Delete selected drawing" when the click is not exactly on the line (hit precision left as it is, at the operator's request).
+- **Outcome:** ✅ build and lint clean; the operator checked it in device mode. 🕐 iPhone gestures pending until task 11.
+- **Est vs Actual:** 1.5 SP · 0.75 SP.

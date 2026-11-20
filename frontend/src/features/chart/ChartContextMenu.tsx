@@ -30,6 +30,8 @@ const TONE_CLASS: Record<MenuTone, string> = { buy: styles.buy, sell: styles.sel
 // Positioned inside the chart (so it also shows in fullscreen) and kept within it.
 export function ChartContextMenu({ x, y, sections, onClose }: ChartContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  // The item pressed in this menu; lifting the long-press finger over an item does not choose it.
+  const pressedRef = useRef<string | null>(null);
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; });
 
@@ -87,7 +89,10 @@ export function ChartContextMenu({ x, y, sections, onClose }: ChartContextMenuPr
               type="button"
               role="menuitem"
               className={`${styles.item} ${item.tone ? TONE_CLASS[item.tone] : ''}`}
-              onClick={() => choose(item)}
+              // Pointer up, not click: a touch handler of the chart may cancel the synthetic click.
+              onPointerDown={() => { pressedRef.current = item.key; }}
+              onPointerUp={e => { if (e.button === 0 && pressedRef.current === item.key) choose(item); pressedRef.current = null; }}
+              onClick={e => { if (e.detail === 0) choose(item); }}
             >
               <span>{item.label}</span>
               {item.hint && <span className={styles.hint}>{item.hint}</span>}
