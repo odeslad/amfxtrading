@@ -64,3 +64,10 @@
 - **Steps:** `shared/ui/DockedPanel.module.css` (`docked`: in the flow, 320 px, no transform; `hidden` when closed; on the phone 50dvh at full width); `NewTradePanel` and `BulkEditPanel` take `docked` (no backdrop); `ChartPage` lays out `.workspace` = chart area + the two docked panels (a column on the phone), and opening one closes the other. The Journal keeps the overlay. The charts resize through their own `ResizeObserver`.
 - **Outcome:** ✅ build and lint clean; the operator checked it on desktop (single and split view). 🕐 Phone bottom sheet pending until task 11.
 - **Est vs Actual:** 2.5 SP · 0.75 SP.
+
+## Task 10 · [docs] Architecture docs
+
+- **Mechanism:** manual review of the diff.
+- **Steps:** `backend/docs/architecture.md` (`/settings` and `settings_display` with `quickOrders`); `.claude/CLAUDE.md` (`SettingsDisplay.quickOrders` and a "Menú contextual del gráfico" section).
+- **Outcome:** ✅ both documents agree.
+- **Est vs Actual:** 0.25 SP · 0.15 SP.

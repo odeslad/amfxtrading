@@ -141,7 +141,7 @@ Every router except `/auth` and `/health` sits behind `requireAuth`: the JWT tra
 | `/trades` | `GET` | Closed trades (broker, symbol, from, to, limit, offset) |
 | `/positions` | `GET /live`, `PATCH /color` | Open positions from the stores; colour per ticket |
 | `/balances` | `GET`, `GET /daily-pnl` | Daily balance rows; today's P&L per broker |
-| `/settings` | `GET`, `PUT` | EA mirror settings per broker, display settings and `visibility` (brokers and per-broker symbols hidden from the frontend; purely visual, spec 024) |
+| `/settings` | `GET`, `PUT` | EA mirror settings per broker, display settings and `visibility` (brokers and per-broker symbols hidden from the frontend; purely visual, spec 024); `display.quickOrders` (spec 054) is validated like New Trade (risk % and R need an SL, the preset must exist) |
 | `/symbols` | `GET` | Symbols with a tick per broker |
 | `/candles` | `GET` | Closed candles (`before` / `after` paging, up to 5 000) |
 | `/candle-sync` | `GET`, `PUT /targets`, `POST` | Settings › Data (spec 049): candles per broker and timeframe, their targets (100 … 50 000, default 10 000) and the manual sync (below) |
@@ -264,7 +264,7 @@ Managed with **Prisma**; see `prisma/schema.prisma`. Migrations are hand-written
 | `balance_operations` | file watcher | deposits/withdrawals from `history.json`, `createMany({ skipDuplicates })` by ticket |
 | `balances` | file watcher | one `upsert` per broker and UTC `day`, `timestamp` refreshed on every poll |
 | `mirror_presets` | `/settings` | Named mirror presets, per-broker config as JSON (spec 033) |
-| `settings_display` | `/settings` | display settings (single row) plus `hiddenBrokers` / `hiddenSymbols` (visibility, spec 024) |
+| `settings_display` | `/settings` | display settings (single row) plus `hiddenBrokers` / `hiddenSymbols` (visibility, spec 024) and `quickOrders` (JSON or null: size lots / risk %, SL pips, TP pips or R, optional mirror preset; the chart menu's quick orders, spec 054) |
 | `position_colors` | `/positions/color` | colour per broker and ticket |
 | `users` | — | created out of band; bcrypt password hash |
 | `price_alerts`, `ema_cross_alerts` | `/alerts`, `/ema-alerts`, evaluators | per user; `triggeredAt` set when fired |

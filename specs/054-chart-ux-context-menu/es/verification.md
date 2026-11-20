@@ -64,3 +64,10 @@
 - **Pasos:** `shared/ui/DockedPanel.module.css` (`docked`: en el flujo, 320 px, sin transform; `hidden` cerrado; en el móvil 50dvh a todo el ancho); `NewTradePanel` y `BulkEditPanel` reciben `docked` (sin velo); `ChartPage` dispone `.workspace` = área de gráficos + los dos paneles acoplados (en columna en el móvil), y abrir uno cierra el otro. El diario sigue con la capa superpuesta. Los gráficos se redimensionan con su propio `ResizeObserver`.
 - **Resultado:** ✅ build y lint limpios; el operador lo comprobó en escritorio (vista simple y partida). 🕐 Hoja inferior del móvil pendiente hasta la tarea 11.
 - **Est vs Real:** 2.5 SP · 0.75 SP.
+
+## Tarea 10 · [docs] Documentación de arquitectura
+
+- **Mecanismo:** revisión manual del diff.
+- **Pasos:** `backend/docs/architecture.md` (`/settings` y `settings_display` con `quickOrders`); `.claude/CLAUDE.md` (`SettingsDisplay.quickOrders` y una sección "Menú contextual del gráfico").
+- **Resultado:** ✅ los dos documentos coinciden.
+- **Est vs Real:** 0.25 SP · 0.15 SP.
