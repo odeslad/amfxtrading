@@ -56,3 +56,32 @@
 - **Pasos:** `ea/docs/deploy.md` (`symbols` gestionado desde la app, recarga en vivo, `symbols-available.json`); `backend/docs/architecture.md` (`/broker-symbols`, sustitución acotada en la sincronización, sincronización de pares nuevos con sus estados, velas con hora 0, `hiddenSymbols` sin uso); `.claude/CLAUDE.md` (ficheros bridge, 20 routers, sección "Pares de cada broker", `hiddenSymbols` sin uso).
 - **Resultado:** ✅ los tres documentos coinciden.
 - **Est vs Real:** 0.5 SP · 0.25 SP.
+
+## Tarea 9 · [infra] Despliegue y validación en producción
+
+- **Pushes (20-nov-2026):** tareas 1–4 del backend + `b198213` solas, paso revisado en el log (solidary y solidary II se quedan en EURUSD, USDCAD apagado en las otras siete cuentas solidary, el resto sin cambios); EA `e890535` solo, el pipeline compiló los dos EAs y recargó los terminales (12 de 13 escriben `symbols-available.json` y envían su `config.json`; solidary isa no tiene EA funcionando desde el 2-oct-2026, fuera de esta spec); backend `0be331b` + `e8936d9` salieron por error junto a la tarea 6 del frontend (`94c02fe`), los dos pipelines en verde; frontend `ae533a1` y `d3ce4a4` (arreglos de maquetación) solos.
+- **Validación del operador en `amfxtrading.com`:** NZDUSD y AUDUSD activados en demo sin reiniciar MT4, cada uno sincronizado solo y con su avance visible en Visibility y Data; ninguna vela con hora 0 en la BD; un par con posiciones abiertas bloqueado; un par apagado desaparece de la app; panel en el móvil; columnas fijas y botones Pairs y recuentos visibles.
+- **Resultado:** ✅ AC 1–12. Quedan confirmados los 🕐 de las tareas 5 y 7. Pendiente fuera de la spec: el EA de solidary isa; una sincronización completa desde Settings › Data puede dar a los pares nuevos más profundidad de la que MT4 tenía cargada al activarlos.
+- **Est vs Real:** 1.5 SP · 1.25 SP.
+
+## Tarea 10 · [specs] Cierre
+
+- **Est vs Real:** 0.25 SP · 0.25 SP.
+
+## Est vs Real
+
+| Tarea | Est | Real |
+|---|---|---|
+| 1 | 1.5 | 0.5 |
+| 2 | 1.5 | 0.5 |
+| 3 | 2 | 0.75 |
+| 4 | 1 | 0.5 |
+| 5 | 3 | 1 |
+| 6 | 1 | 0.4 |
+| 7 | 2 | 1.25 |
+| 8 | 0.5 | 0.25 |
+| 9 | 1.5 | 1.25 |
+| 10 | 0.25 | 0.25 |
+| **Total** | **14.25** | **6.65** |
+
+Calibración: las piezas de backend y EA costaron cerca de un tercio de lo estimado; la mayor parte del tiempo real fue a las comprobaciones en vivo en el servidor y a mostrar el avance, acordado durante la validación.

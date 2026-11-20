@@ -1,6 +1,6 @@
 # 056 — Símbolos de cada broker desde el frontend
 
-> Estado: **aprobado**
+> Estado: **cerrado**
 
 ## Contexto
 Cada terminal MT4 lee `bridge/config.json` (`brokerName`, `symbols`) cuando arranca el EA; `symbols` decide qué pares envía el EA al backend (ticks, velas activas, ficheros de velas). Hoy el fichero se edita a mano en el servidor y un cambio obliga a reiniciar el EA. Aparte, Settings › Visibility oculta brokers y símbolos solo en el frontend (`settings_display.hiddenSymbols`): un símbolo oculto se sigue recibiendo. El backend ya conoce la carpeta bridge de cada broker (`brokers.json`).

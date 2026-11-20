@@ -56,3 +56,32 @@
 - **Steps:** `ea/docs/deploy.md` (`symbols` managed from the app, live reload, `symbols-available.json`); `backend/docs/architecture.md` (`/broker-symbols`, scoped sync replace, new-pair sync with its states, time-0 candles, `hiddenSymbols` unused); `.claude/CLAUDE.md` (bridge files, 20 routers, a "Pares de cada broker" section, `hiddenSymbols` unused).
 - **Outcome:** ✅ the three documents agree.
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Task 9 · [infra] Deploy and production validation
+
+- **Pushes (2026-11-20):** backend tasks 1–4 + `b198213` alone, rollout checked in the log (solidary and solidary II down to EURUSD, USDCAD off on the other seven solidary accounts, the rest untouched); EA `e890535` alone, the pipeline compiled both EAs and reloaded the terminals (12 of 13 write `symbols-available.json` and stream their `config.json`; solidary isa has had no running EA since 2026-10-02, outside this spec); backend `0be331b` + `e8936d9` went out together with frontend task 6 (`94c02fe`) by mistake, both pipelines green; frontend `ae533a1` and `d3ce4a4` (layout fixes) alone.
+- **Operator validation on `amfxtrading.com`:** NZDUSD and AUDUSD turned on in demo without restarting MT4, each synced alone with its progress shown in Visibility and Data; no candle at time 0 left in the DB; a pair with open positions locked on; a pair turned off leaves the app; phone panel; steady columns and visible Pairs buttons and counts.
+- **Outcome:** ✅ AC 1–12. The 🕐 items of tasks 5 and 7 are confirmed. Pending outside the spec: the EA of solidary isa; a full sync from Settings › Data may give the new pairs more depth than MT4 had loaded when they were turned on.
+- **Est vs Actual:** 1.5 SP · 1.25 SP.
+
+## Task 10 · [specs] Close
+
+- **Est vs Actual:** 0.25 SP · 0.25 SP.
+
+## Est vs Actual
+
+| Task | Est | Actual |
+|---|---|---|
+| 1 | 1.5 | 0.5 |
+| 2 | 1.5 | 0.5 |
+| 3 | 2 | 0.75 |
+| 4 | 1 | 0.5 |
+| 5 | 3 | 1 |
+| 6 | 1 | 0.4 |
+| 7 | 2 | 1.25 |
+| 8 | 0.5 | 0.25 |
+| 9 | 1.5 | 1.25 |
+| 10 | 0.25 | 0.25 |
+| **Total** | **14.25** | **6.65** |
+
+Calibration: the backend and EA pieces ran at about a third of the estimate; most of the real time went into the live checks on the server and into the progress display agreed during validation.

@@ -1,6 +1,6 @@
 # 056 — Broker symbols from the frontend
 
-> Status: **approved**
+> Status: **closed**
 
 ## Context
 Each MT4 terminal reads `bridge/config.json` (`brokerName`, `symbols`) when the EA starts; `symbols` decides which pairs the EA streams to the backend (ticks, active candles, candle files). Today the file is edited by hand on the server and a change needs the EA to be restarted. Separately, Settings › Visibility hides brokers and symbols only in the frontend (`settings_display.hiddenSymbols`): a hidden symbol is still received. The backend already knows each broker's bridge folder (`brokers.json`).
