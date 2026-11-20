@@ -42,7 +42,10 @@ export function parseSymbols(raw: unknown): string[] {
   if (!Array.isArray(body.symbols) || body.symbols.some(s => typeof s !== 'string' || s.trim() === '')) {
     throw new BadRequest('symbols must be an array of symbol names');
   }
-  return [...new Set((body.symbols as string[]).map(s => s.trim()))];
+  const symbols = [...new Set((body.symbols as string[]).map(s => s.trim()))];
+  // An empty list would make the EA fall back to its built-in SYMBOLS input.
+  if (symbols.length === 0) throw new BadRequest('Keep at least one pair on');
+  return symbols;
 }
 
 // What a save would change, or why it cannot: unknown symbols, or open ones being turned off.

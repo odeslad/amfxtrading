@@ -7,7 +7,6 @@ import { BadRequest } from '../middleware/errors';
 describe('parseSymbols', () => {
   it('accepts a list of names, trimmed and unique', () => {
     expect(parseSymbols({ symbols: [' EURUSD', 'GBPJPY', 'EURUSD'] })).toEqual(['EURUSD', 'GBPJPY']);
-    expect(parseSymbols({ symbols: [] })).toEqual([]);
   });
 
   it('rejects anything else with 400', () => {
@@ -15,6 +14,7 @@ describe('parseSymbols', () => {
     expect(() => parseSymbols({ symbols: 'EURUSD' })).toThrow(BadRequest);
     expect(() => parseSymbols({ symbols: ['EURUSD', 3] })).toThrow(BadRequest);
     expect(() => parseSymbols({ symbols: [' '] })).toThrow(BadRequest);
+    expect(() => parseSymbols({ symbols: [] })).toThrow(BadRequest);
   });
 });
 
