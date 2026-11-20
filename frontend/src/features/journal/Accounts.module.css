@@ -1,5 +1,7 @@
 .card {
   position: relative;
+  min-width: 0;
+  overflow: hidden;
   padding: 0 2px;
   border-left: 2px solid transparent;
 }
@@ -16,8 +18,10 @@
 
 .summary {
   display: grid;
-  grid-template-columns: auto auto 1fr;
-  align-items: baseline;
+  /* Same columns on every card (spec 055): a long broker name wraps inside its column. */
+  grid-template-columns: minmax(0, 1fr) 72px auto;
+  align-items: start;
+  min-width: 0;
   gap: 4px 14px;
   width: 100%;
   padding: 10px 5px;
@@ -48,6 +52,8 @@
 
 .accountName {
   font-family: var(--font-mono);
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: var(--text-lg);
   color: var(--text);
   text-transform: uppercase;
@@ -56,6 +62,7 @@
 
 .pnl {
   font-size: var(--text-3xl);
+  white-space: nowrap;
 }
 
 .pnlCol {
@@ -94,11 +101,11 @@
 /* Spec 055: the colour dot sits beside the summary button (a button cannot hold another). */
 .badge {
   position: absolute;
-  left: 10px;
+  left: 8px;
   top: 28px;
   z-index: 1;
 }
 
 .badge ~ .summary {
-  padding-left: 40px;
+  padding-left: 28px;
 }
