@@ -1,5 +1,5 @@
 #property copyright "HttpBridge"
-#property version   "2.24"
+#property version   "2.25"
 #property strict
 
 // Spec 049: the Home key makes MT4 ask the broker for older bars (ChartNavigate alone does not).
@@ -45,26 +45,46 @@ bool   g_syncGrew       = false;
 ulong  g_syncStarted    = 0;
 ulong  g_syncQuietSince = 0;
 
-void LoadConfig() {
-   g_brokerName = BROKER_NAME;
-   g_symbolsRaw = SYMBOLS;
+// Both EAs read config.json, at the same moment when the terminal starts: share it, and retry a few
+// times before giving up. Returns false when the file exists but could not be read; the caller keeps
+// what it had (never the company name) and tries again later.
+#define CONFIG_READ_TRIES 10
+#define CONFIG_READ_WAIT_MS 200
+bool g_configOk = false;
+
+bool LoadConfig() {
+   string broker = BROKER_NAME;
+   string symbols = SYMBOLS;
+
    if (FileIsExist("bridge\\config.json")) {
-      int handle = FileOpen("bridge\\config.json", FILE_READ | FILE_TXT | FILE_ANSI);
-      if (handle != INVALID_HANDLE) {
-         string content = "";
-         while (!FileIsEnding(handle)) content += FileReadString(handle);
-         FileClose(handle);
-         string b = ExtractField(content, "brokerName");
-         string s = ExtractField(content, "symbols");
-         if (StringLen(b) > 0) g_brokerName = b;
-         if (StringLen(s) > 0) g_symbolsRaw = s;
-         Print("[CMD] Config loaded from config.json | broker: ", g_brokerName);
-         return;
+      int handle = INVALID_HANDLE;
+      for (int i = 0; i < CONFIG_READ_TRIES && handle == INVALID_HANDLE; i++) {
+         handle = FileOpen("bridge\\config.json", FILE_READ | FILE_TXT | FILE_ANSI | FILE_SHARE_READ | FILE_SHARE_WRITE);
+         if (handle == INVALID_HANDLE) Sleep(CONFIG_READ_WAIT_MS);
       }
+      if (handle == INVALID_HANDLE) {
+         Print("[CMD] WARN config.json exists but cannot be read (error ", GetLastError(), "); retrying later");
+         return false;
+      }
+      string content = "";
+      while (!FileIsEnding(handle)) content += FileReadString(handle);
+      FileClose(handle);
+
+      string b = ExtractField(content, "brokerName");
+      string s = ExtractField(content, "symbols");
+      if (StringLen(b) > 0) broker = b;
+      if (StringLen(s) > 0) symbols = s;
+      g_brokerName = broker;
+      g_symbolsRaw = symbols;
+      Print("[CMD] Config loaded from config.json | broker: ", g_brokerName, " | symbols from config: ", (StringLen(s) > 0));
+      return true;
    }
+
    string company = AccountCompany();
-   if (StringLen(company) > 0) g_brokerName = company;
-   Print("[CMD] No config.json — broker fallback: ", g_brokerName);
+   g_brokerName = StringLen(company) > 0 ? company : broker;
+   g_symbolsRaw = symbols;
+   Print("[CMD] No config.json — broker fallback: ", g_brokerName, " | symbols from input");
+   return true;
 }
 
 void ParseSymbols() {
@@ -83,11 +103,11 @@ void ParseSymbols() {
 }
 
 int OnInit() {
-   LoadConfig();
+   g_configOk = LoadConfig();
    ParseSymbols();
    g_configStamp = ConfigStamp();
    EventSetTimer(1);
-   Print("[CMD] HttpBridgeCommands v2.24 | broker: ", g_brokerName, " | symbols: ", g_symbolCount,
+   Print("[CMD] HttpBridgeCommands v2.25 | broker: ", g_brokerName, " | symbols: ", g_symbolCount,
          " | max bars in chart: ", TerminalInfoInteger(TERMINAL_MAXBARS),
          " | DLL imports: ", DllsAllowed() ? "allowed" : "OFF (candle sync unavailable)", " | ready");
    return INIT_SUCCEEDED;
@@ -113,9 +133,10 @@ void OnTimer() {
 
 void ReloadConfigIfChanged() {
    long stamp = ConfigStamp();
-   if (stamp == g_configStamp) return;
+   if (stamp == g_configStamp && g_configOk) return;
+   if (!LoadConfig()) return;
    g_configStamp = stamp;
-   LoadConfig();
+   g_configOk = true;
    ParseSymbols();
    Print("[CMD] config.json changed | symbols: ", g_symbolCount);
 }

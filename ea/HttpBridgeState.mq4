@@ -1,5 +1,5 @@
 #property copyright "HttpBridge"
-#property version   "3.16"
+#property version   "3.17"
 #property strict
 
 #import "kernel32.dll"
@@ -102,30 +102,46 @@ string ExtractField(string json, string key) {
    return v;
 }
 
-void LoadConfig() {
-   g_brokerName = BROKER_NAME;
-   g_symbolsRaw = SYMBOLS;
+// Both EAs read config.json, at the same moment when the terminal starts: share it, and retry a few
+// times before giving up. Returns false when the file exists but could not be read; the caller keeps
+// what it had (never the company name) and tries again later.
+#define CONFIG_READ_TRIES 10
+#define CONFIG_READ_WAIT_MS 200
+bool g_configOk = false;
+
+bool LoadConfig() {
+   string broker = BROKER_NAME;
+   string symbols = SYMBOLS;
 
    if (FileIsExist("bridge\\config.json")) {
-      int handle = FileOpen("bridge\\config.json", FILE_READ | FILE_TXT | FILE_ANSI);
-      if (handle != INVALID_HANDLE) {
-         string content = "";
-         while (!FileIsEnding(handle)) content += FileReadString(handle);
-         FileClose(handle);
-
-         string b = ExtractField(content, "brokerName");
-         string s = ExtractField(content, "symbols");
-         if (StringLen(b) > 0) g_brokerName = b;
-         if (StringLen(s) > 0) g_symbolsRaw = s;
-         Print("[STATE] Config loaded from config.json | broker: ", g_brokerName,
-               " | symbols from config: ", (StringLen(s) > 0));
-         return;
+      int handle = INVALID_HANDLE;
+      for (int i = 0; i < CONFIG_READ_TRIES && handle == INVALID_HANDLE; i++) {
+         handle = FileOpen("bridge\\config.json", FILE_READ | FILE_TXT | FILE_ANSI | FILE_SHARE_READ | FILE_SHARE_WRITE);
+         if (handle == INVALID_HANDLE) Sleep(CONFIG_READ_WAIT_MS);
       }
+      if (handle == INVALID_HANDLE) {
+         Print("[STATE] WARN config.json exists but cannot be read (error ", GetLastError(), "); retrying later");
+         return false;
+      }
+      string content = "";
+      while (!FileIsEnding(handle)) content += FileReadString(handle);
+      FileClose(handle);
+
+      string b = ExtractField(content, "brokerName");
+      string s = ExtractField(content, "symbols");
+      if (StringLen(b) > 0) broker = b;
+      if (StringLen(s) > 0) symbols = s;
+      g_brokerName = broker;
+      g_symbolsRaw = symbols;
+      Print("[STATE] Config loaded from config.json | broker: ", g_brokerName, " | symbols from config: ", (StringLen(s) > 0));
+      return true;
    }
 
    string company = AccountCompany();
-   if (StringLen(company) > 0) g_brokerName = company;
+   g_brokerName = StringLen(company) > 0 ? company : broker;
+   g_symbolsRaw = symbols;
    Print("[STATE] No config.json — broker fallback: ", g_brokerName, " | symbols from input");
+   return true;
 }
 
 
@@ -156,13 +172,24 @@ void WriteAvailableSymbols() {
 }
 
 // New pairs start streaming within CONFIG_CHECK_MS; the pipe keeps its name (brokerName never changes here).
+// Also retries a config.json that could not be read at start: once it is, the pipe moves to the
+// broker name it gives (the start could only use the inputs).
 void ReloadConfigIfChanged() {
    long stamp = ConfigStamp();
-   if (stamp == g_configStamp) return;
-   g_configStamp = stamp;
+   if (stamp == g_configStamp && g_configOk) return;
    string pipeBroker = g_brokerName;
-   LoadConfig();
-   g_brokerName = pipeBroker;
+   if (!LoadConfig()) return;
+   g_configStamp = stamp;
+   if (!g_configOk) {
+      g_configOk = true;
+      if (g_brokerName != pipeBroker) {
+         g_pipeName = "\\\\.\\pipe\\mt4tick_" + g_brokerName;
+         PipeClose();
+         Print("[STATE] config.json read late | pipe now for broker: ", g_brokerName);
+      }
+   } else {
+      g_brokerName = pipeBroker;
+   }
    ParseSymbols();
    SelectSymbols();
    Print("[STATE] config.json changed | symbols: ", g_symbolsRaw, " | symbol count: ", g_symbolCount);
@@ -262,7 +289,7 @@ bool PipeWrite(string data) {
 // ────────────────────────────────────────────────────────────────────────────
 
 int OnInit() {
-   LoadConfig();
+   g_configOk = LoadConfig();
    ParseSymbols();
    SelectSymbols();
    g_configStamp = ConfigStamp();
@@ -271,7 +298,7 @@ int OnInit() {
    g_event = CreateEventW(0, 1, 0, 0);
    EventSetMillisecondTimer(100);
 
-   Print("[STATE] HttpBridgeState v3.16 | broker: ", g_brokerName,
+   Print("[STATE] HttpBridgeState v3.17 | broker: ", g_brokerName,
          " | symbols: ", g_symbolsRaw,
          " | symbol count: ", g_symbolCount,
          " | state every: ", STATE_EVERY_S, "s",
