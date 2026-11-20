@@ -138,3 +138,7 @@
     font-size: var(--text-xl);
   }
 }
+
+.detail {
+  white-space: pre-line;
+}

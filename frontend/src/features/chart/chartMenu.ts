@@ -3,6 +3,7 @@ import { orderTypeAt, type Side } from '../../lib/orderType';
 import { isBuySide, isPending, pricePrecision, type Position } from '../journal/utils/position';
 import type { MenuItem, MenuSection } from './ChartContextMenu';
 import type { ChartContextRequest } from './LightweightChart';
+import type { QuickOrders } from '../../lib/quickOrders';
 
 // Spec 054: the items of the chart's context menu for the point that was clicked.
 export interface ChartMenuContext {
@@ -10,6 +11,8 @@ export interface ChartMenuContext {
   request: ChartContextRequest;
   position: Position | null;   // the position or order whose line was clicked
   locked: boolean;
+  quickOrders: QuickOrders | null;
+  quickPresetName: string | null;
 }
 
 export interface ChartMenuHandlers {
@@ -20,6 +23,7 @@ export interface ChartMenuHandlers {
   onClosePosition: (ticket: number) => void;
   onModifyPosition: (ticket: number, sl: number, tp: number) => void;
   onClearDrawings: () => void;
+  onQuickOrder: (side: Side, price: number | null) => void;
 }
 
 const ORDER_LABEL: Partial<Record<CommandAction, string>> = {
@@ -39,7 +43,7 @@ function positionSection(p: Position, priceText: (v: number) => string, handlers
 }
 
 export function buildChartMenu(ctx: ChartMenuContext, handlers: ChartMenuHandlers): MenuSection[] {
-  const { symbol, request, position, locked } = ctx;
+  const { symbol, request, position, locked, quickOrders, quickPresetName } = ctx;
   const { price, bid, ask, target, drawingCount } = request;
   const priceText = (v: number) => v.toFixed(pricePrecision(symbol));
   const hasQuote = bid !== null && ask !== null;
@@ -61,11 +65,20 @@ export function buildChartMenu(ctx: ChartMenuContext, handlers: ChartMenuHandler
   const drawingTarget = target?.kind === 'drawing' ? target.id : request.selectedDrawingId;
   const drawingLabel = target?.kind === 'drawing' ? 'Delete drawing' : 'Delete selected drawing';
 
+  const quickSize = !quickOrders ? '' : quickPresetName ?? (quickOrders.lotsMode === 'fixed' ? `${quickOrders.size} lots` : `${quickOrders.size}%`);
+  const quickItems: MenuItem[] = !quickOrders || locked || !hasQuote ? [] : [
+    { key: 'quick-buy', label: 'Quick buy', hint: `market · ${quickSize}`, tone: 'buy', onSelect: () => handlers.onQuickOrder('buy', null) },
+    { key: 'quick-sell', label: 'Quick sell', hint: `market · ${quickSize}`, tone: 'sell', onSelect: () => handlers.onQuickOrder('sell', null) },
+    { key: 'quick-buy-at', label: `Quick buy at ${price}`, hint: ORDER_LABEL[orderTypeAt('buy', price, bid, ask)], tone: 'buy', onSelect: () => handlers.onQuickOrder('buy', price) },
+    { key: 'quick-sell-at', label: `Quick sell at ${price}`, hint: ORDER_LABEL[orderTypeAt('sell', price, bid, ask)], tone: 'sell', onSelect: () => handlers.onQuickOrder('sell', price) },
+  ];
+
   return [
     ...(position && !locked ? [positionSection(position, priceText, handlers)] : []),
+    { key: 'quick', title: position && !locked ? undefined : `${symbol} · ${price}`, items: quickItems },
     {
       key: 'trade',
-      title: `${symbol} · ${price}`,
+      title: quickItems.length > 0 || (position && !locked) ? undefined : `${symbol} · ${price}`,
       items: [
         ...orderAt('buy'),
         ...orderAt('sell'),

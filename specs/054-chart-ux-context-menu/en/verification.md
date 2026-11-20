@@ -50,3 +50,10 @@
 - **Fixes during the check:** menu items fire on pointer up (only when pressed inside the same item), because a chart touch handler could cancel the synthetic click; the chart's touch handlers ignore touches that start in the menu; the long-press listeners moved to the document so a touch on a drawing still arms it; the menu offers "Delete selected drawing" when the click is not exactly on the line (hit precision left as it is, at the operator's request).
 - **Outcome:** ✅ build and lint clean; the operator checked it in device mode. 🕐 iPhone gestures pending until task 11.
 - **Est vs Actual:** 1.5 SP · 0.75 SP.
+
+## Task 8 · [frontend] Quick orders in the menu
+
+- **Mechanism:** `npm run build` + eslint; local check of the menu and the confirmation (Cancel only; sending is validated in production, task 11).
+- **Steps:** `lib/useQuickOrders.ts` reads the configuration and the presets; `chartMenu.ts` adds Quick buy / Quick sell (market, with the size or preset name) and Quick buy / sell at the clicked price (limit or stop), hidden when not configured, locked or without a quote; `ChartSlot` builds the plan with `buildQuickOrder` (errors as toasts); `QuickOrderConfirm` (on `ConfirmPanel`, detail on several lines) shows type, price, each broker with its size, preset, SL and TP, and sends one command per broker on Confirm; the result toast comes from `AppLayout`. The confirmation is the existing right-side `ConfirmPanel` rather than the centred card of the mockup, to reuse the pattern of the other confirmations.
+- **Outcome:** ✅ build and lint clean; the operator checked the menu and the confirmation. 🕐 Sending pending until task 11.
+- **Est vs Actual:** 1.5 SP · 0.5 SP.

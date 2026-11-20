@@ -50,3 +50,10 @@
 - **Arreglos durante la prueba:** las opciones del menú actúan al levantar el puntero (solo si se pulsó en la misma opción), porque un manejador táctil del gráfico podía anular el clic sintético; los manejadores táctiles del gráfico ignoran los toques que empiezan en el menú; los listeners de la pulsación larga pasan al documento para que un toque sobre un dibujo también la arme; el menú ofrece "Delete selected drawing" cuando el clic no cae justo sobre la línea (precisión sin cambios, a petición del operador).
 - **Resultado:** ✅ build y lint limpios; el operador lo comprobó en modo dispositivo. 🕐 Gestos en iPhone pendientes hasta la tarea 11.
 - **Est vs Real:** 1.5 SP · 0.75 SP.
+
+## Tarea 8 · [frontend] Órdenes rápidas en el menú
+
+- **Mecanismo:** `npm run build` + eslint; prueba local del menú y de la confirmación (solo Cancel; el envío se valida en producción, tarea 11).
+- **Pasos:** `lib/useQuickOrders.ts` lee la configuración y los presets; `chartMenu.ts` añade Quick buy / Quick sell (a mercado, con el tamaño o el nombre del preset) y Quick buy / sell at en el precio pulsado (limit o stop), ocultas sin configuración, con el gráfico bloqueado o sin precio; `ChartSlot` arma el plan con `buildQuickOrder` (los errores como aviso); `QuickOrderConfirm` (sobre `ConfirmPanel`, detalle en varias líneas) muestra tipo, precio, cada broker con su tamaño, preset, SL y TP, y envía un comando por broker al Confirmar; el aviso del resultado lo da `AppLayout`. La confirmación es el `ConfirmPanel` lateral existente en vez de la tarjeta centrada de la maqueta, para reutilizar el patrón del resto de confirmaciones.
+- **Resultado:** ✅ build y lint limpios; el operador revisó el menú y la confirmación. 🕐 Envío pendiente hasta la tarea 11.
+- **Est vs Real:** 1.5 SP · 0.5 SP.

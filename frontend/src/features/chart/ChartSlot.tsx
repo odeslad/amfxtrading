@@ -12,6 +12,8 @@ import { ConfirmPanel } from '../journal/ConfirmPanel';
 import { buildChartMenu } from './chartMenu';
 import type { CommandAction } from '../../lib/commands';
 import type { NewAlert } from '../../lib/useAlerts';
+import { buildQuickOrder, type QuickOrderPlan } from '../../lib/quickOrders';
+import type { QuickOrderSetup } from '../../lib/useQuickOrders';
 import { addToast } from '../../lib/toast';
 import { errorMessage } from '../../lib/api';
 import { ChartErrorBoundary } from './ChartErrorBoundary';
@@ -58,6 +60,8 @@ interface ChartSlotProps {
   alertsFlashing: boolean;
   onNewTrade: (timeframe: string, order?: { action: CommandAction; price: number }) => void;
   onCreateAlert: (alert: NewAlert) => Promise<unknown>;
+  quickOrders: QuickOrderSetup | null;
+  onQuickOrder: (symbol: string, plan: QuickOrderPlan) => void;
   onEditPosition: (ticket: number) => void;
   onClosePosition: (ticket: number) => void;
   onModifyPosition: (ticket: number, sl: number, tp: number) => void;
@@ -136,7 +140,7 @@ export function ChartSlot({
   timeframe, onTimeframeChange, positions, balance, averagesFor, trendlineAppearance, showSpread, pnlMode, emaTradesSettings,
   alerts, onMoveAlert, onEditAlertPrice, onToggleAlert, onDeleteAlert,
   onIndicators, onFilters, onAlerts, alertsActive, alertsFlashing,
-  onNewTrade, onCreateAlert, onEditPosition, onClosePosition, onModifyPosition, onFullscreen, isFullscreen,
+  onNewTrade, onCreateAlert, quickOrders, onQuickOrder, onEditPosition, onClosePosition, onModifyPosition, onFullscreen, isFullscreen,
   splitAvailable, splitActive, onSplit,
 }: ChartSlotProps) {
   const emas = useMemo(() => averagesFor(broker, timeframe), [averagesFor, broker, timeframe]);
@@ -322,7 +326,11 @@ export function ChartSlot({
   const [confirmClear, setConfirmClear] = useState<(() => void) | null>(null);
   const menuTicket = menu?.target?.kind === 'position' ? menu.target.ticket : null;
   const menuPosition = menuTicket !== null ? chartPositions.find(p => p.ticket === menuTicket) ?? null : null;
-  const menuSections = menu ? buildChartMenu({ symbol, request: menu, position: menuPosition, locked }, {
+  const menuSections = menu ? buildChartMenu({
+    symbol, request: menu, position: menuPosition, locked,
+    quickOrders: quickOrders?.config ?? null,
+    quickPresetName: quickOrders?.presets.find(p => p.id === quickOrders.config.mirrorPresetId)?.name ?? null,
+  }, {
     onOrderAt: (action, price) => onNewTrade(timeframe, { action, price }),
     onNewTrade: openNewTrade,
     onAlertAt: (price, direction) => {
@@ -332,6 +340,12 @@ export function ChartSlot({
     onClosePosition,
     onModifyPosition,
     onClearDrawings: () => setConfirmClear(() => menu.clearDrawings),
+    onQuickOrder: (side, price) => {
+      if (!quickOrders || menu.bid === null || menu.ask === null) return;
+      const result = buildQuickOrder(quickOrders.config, { side, broker, symbol, price, bid: menu.bid, ask: menu.ask, presets: quickOrders.presets });
+      if ('error' in result) addToast(result.error, 'error');
+      else onQuickOrder(symbol, result.plan);
+    },
   }) : [];
 
   return (

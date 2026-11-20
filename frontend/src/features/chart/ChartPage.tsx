@@ -23,6 +23,9 @@ import { ChartSlot, type ChartSide } from './ChartSlot';
 import { BulkEditPanel } from '../journal/BulkEditPanel';
 import { ClosePositionPanel } from '../journal/ClosePositionPanel';
 import { NewTradePanel, type NewTradeOrder } from '../journal/NewTradePanel';
+import { QuickOrderConfirm } from './QuickOrderConfirm';
+import { useQuickOrders } from '../../lib/useQuickOrders';
+import type { QuickOrderPlan } from '../../lib/quickOrders';
 import type { CommandAction } from '../../lib/commands';
 import type { Position } from '../journal/utils/position';
 import styles from './ChartPage.module.css';
@@ -306,6 +309,10 @@ export function ChartPage() {
   const [balances, setBalances] = useState<Record<string, number>>({});
   const { pnlMode } = useDisplaySettings();
   const emaTradesSettings = useEmaTradesSettings();
+  const quickOrders = useQuickOrders();
+  const [quickOrder, setQuickOrder] = useState<{ symbol: string; plan: QuickOrderPlan } | null>(null);
+  const openQuickOrder = useCallback((symbol: string, plan: QuickOrderPlan) => setQuickOrder({ symbol, plan }), []);
+  const closeQuickOrder = useCallback(() => setQuickOrder(null), []);
 
   useEffect(() => {
     apiFetch<{ broker: string; balance: number }[]>('/balances')
@@ -523,6 +530,8 @@ export function ChartPage() {
     alertsFlashing: alertFlash,
     onNewTrade: openNewTrade,
     onCreateAlert: createAlert,
+    quickOrders,
+    onQuickOrder: openQuickOrder,
     onEditPosition: handleEditPosition,
     onClosePosition: handleClosePosition,
     onModifyPosition: handleModifyPosition,
@@ -625,6 +634,8 @@ export function ChartPage() {
         positions={editPositions}
         onClose={clearEdit}
       />
+
+      <QuickOrderConfirm symbol={quickOrder?.symbol ?? ''} plan={quickOrder?.plan ?? null} onClose={closeQuickOrder} />
 
       <ClosePositionPanel
         open={!!closePosition}
