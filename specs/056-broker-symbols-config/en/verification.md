@@ -27,3 +27,10 @@
 - **Steps:** `services/hidden-symbols-rollout.ts`: `planRollout` (pure: per broker, hidden pairs to remove from the active list, matching a broker suffix; pairs with open positions kept on; brokers whose positions are not known yet left for later) and `rollOutHiddenSymbols` (writes each `config.json`, logs every change, keeps only the pending brokers in `hiddenSymbols`); started from `index.ts` when the watcher feature is on, first run 1 min after start, retried every 10 min while something is pending. `/settings` no longer stores an incoming `hiddenSymbols` (old clients). Deviation from the design: the rollout waits for each broker's positions instead of running at the very start, since the positions store is empty until the EA streams.
 - **Outcome:** ✅ full suite green, typecheck, build and lint clean.
 - **Est vs Actual:** 1 SP · 0.5 SP.
+
+## Task 5 · [ea] Broker symbol list, live config and one-pair sync
+
+- **Mechanism:** compiled by the EA pipeline on deploy; manual check on one terminal (task 9).
+- **Steps:** `HttpBridgeState` 3.16: `SelectSymbols` (Market Watch), `WriteAvailableSymbols` (`symbols-available.json` with `SymbolsTotal(false)` names, at start and when the count changes, checked every 60 s), `ReloadConfigIfChanged` every 5 s by `config.json` modification time (`FileGetInteger`, `FILE_MODIFY_DATE`), keeping the pipe broker name. `HttpBridgeCommands` 2.24: the same config reload every 5 s; `ExtractStringArray` reads `symbols` from `sync-command.json` and the sync walks that list (else every streamed symbol). Found while writing it: an empty `symbols` makes the EA fall back to its built-in input list, so the backend now refuses to save an empty list ("Keep at least one pair on", separate backend fix).
+- **Outcome:** 🕐 pending the pipeline compile and the terminal check.
+- **Est vs Actual:** 3 SP · 1 SP (code).

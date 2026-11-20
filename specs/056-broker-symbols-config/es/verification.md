@@ -27,3 +27,10 @@
 - **Pasos:** `services/hidden-symbols-rollout.ts`: `planRollout` (pura: por broker, los pares ocultos que se quitan de la lista activa, reconociendo el sufijo del broker; los pares con posiciones abiertas siguen activos; los brokers cuyas posiciones aún no se conocen quedan para después) y `rollOutHiddenSymbols` (escribe cada `config.json`, deja cada cambio en el log, conserva en `hiddenSymbols` solo los brokers pendientes); arrancado desde `index.ts` con el watcher activo, primera vez 1 min tras arrancar y se repite cada 10 min mientras quede algo. `/settings` ya no guarda el `hiddenSymbols` que reciba (clientes antiguos). Desviación del diseño: el paso espera a las posiciones de cada broker en vez de correr nada más arrancar, porque el store de posiciones está vacío hasta que el EA envía.
 - **Resultado:** ✅ suite completa en verde, typecheck, build y lint limpios.
 - **Est vs Real:** 1 SP · 0.5 SP.
+
+## Tarea 5 · [ea] Lista de símbolos del broker, config en vivo y sincronización de un par
+
+- **Mecanismo:** compilado por el pipeline del EA al desplegar; prueba manual en un terminal (tarea 9).
+- **Pasos:** `HttpBridgeState` 3.16: `SelectSymbols` (Observación del mercado), `WriteAvailableSymbols` (`symbols-available.json` con los nombres de `SymbolsTotal(false)`, al arrancar y cuando cambia el número, mirado cada 60 s), `ReloadConfigIfChanged` cada 5 s por la hora de modificación de `config.json` (`FileGetInteger`, `FILE_MODIFY_DATE`), conservando el nombre de broker del pipe. `HttpBridgeCommands` 2.24: la misma recarga cada 5 s; `ExtractStringArray` lee `symbols` de `sync-command.json` y la sincronización recorre esa lista (si no, todos los símbolos enviados). Visto al escribirlo: un `symbols` vacío hace que el EA vuelva a su lista interna por defecto, así que el backend ya no deja guardar una lista vacía ("Keep at least one pair on", arreglo aparte del backend).
+- **Resultado:** 🕐 pendiente de la compilación del pipeline y la prueba en el terminal.
+- **Est vs Real:** 3 SP · 1 SP (código).

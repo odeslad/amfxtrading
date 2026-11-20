@@ -1,5 +1,5 @@
 #property copyright "HttpBridge"
-#property version   "2.23"
+#property version   "2.24"
 #property strict
 
 // Spec 049: the Home key makes MT4 ask the broker for older bars (ChartNavigate alone does not).
@@ -23,6 +23,13 @@ string g_brokerName = "";
 string g_symbolsRaw = "";
 string g_symbols[];
 int    g_symbolCount = 0;
+
+// Spec 056: config.json is reloaded when it changes; a sync may name only some symbols.
+#define CONFIG_CHECK_S 5
+long   g_configStamp   = 0;
+int    g_configTicks   = 0;
+string g_syncSyms[];
+int    g_syncSymCount  = 0;
 
 // Candle sync in progress (spec 049): one symbol × timeframe per timer tick.
 string g_syncId         = "";
@@ -78,8 +85,9 @@ void ParseSymbols() {
 int OnInit() {
    LoadConfig();
    ParseSymbols();
+   g_configStamp = ConfigStamp();
    EventSetTimer(1);
-   Print("[CMD] HttpBridgeCommands v2.23 | broker: ", g_brokerName, " | symbols: ", g_symbolCount,
+   Print("[CMD] HttpBridgeCommands v2.24 | broker: ", g_brokerName, " | symbols: ", g_symbolCount,
          " | max bars in chart: ", TerminalInfoInteger(TERMINAL_MAXBARS),
          " | DLL imports: ", DllsAllowed() ? "allowed" : "OFF (candle sync unavailable)", " | ready");
    return INIT_SUCCEEDED;
@@ -100,6 +108,45 @@ void OnDeinit(const int reason) {
 void OnTimer() {
    CheckCommands();
    SyncStep();
+   if (++g_configTicks >= CONFIG_CHECK_S) { g_configTicks = 0; ReloadConfigIfChanged(); }
+}
+
+void ReloadConfigIfChanged() {
+   long stamp = ConfigStamp();
+   if (stamp == g_configStamp) return;
+   g_configStamp = stamp;
+   LoadConfig();
+   ParseSymbols();
+   Print("[CMD] config.json changed | symbols: ", g_symbolCount);
+}
+
+// Spec 056: the backend rewrites config.json from Settings › Visibility; its modification time tells us.
+long ConfigStamp() {
+   if (!FileIsExist("bridge\\config.json")) return 0;
+   return FileGetInteger("bridge\\config.json", FILE_MODIFY_DATE);
+}
+
+// The names of a JSON string array field, e.g. "symbols":["EURUSD","GBPJPY"]; none when absent.
+int ExtractStringArray(string json, string key, string &out[]) {
+   ArrayResize(out, 0);
+   int p = StringFind(json, "\"" + key + "\"");
+   if (p < 0) return 0;
+   int open = StringFind(json, "[", p);
+   int close = StringFind(json, "]", open);
+   if (open < 0 || close < 0) return 0;
+   string parts[];
+   int n = StringSplit(StringSubstr(json, open + 1, close - open - 1), ',', parts);
+   int count = 0;
+   for (int i = 0; i < n; i++) {
+      string item = parts[i];
+      StringReplace(item, "\"", "");
+      StringTrimLeft(item);
+      StringTrimRight(item);
+      if (StringLen(item) == 0) continue;
+      ArrayResize(out, count + 1);
+      out[count++] = item;
+   }
+   return count;
 }
 
 void CheckCommands() {
@@ -340,7 +387,15 @@ bool StartSync() {
       p = StringFind(json, "\"tf\"", p + 4);
    }
 
-   if (g_syncId == "" || g_syncTfCount == 0 || g_symbolCount == 0) {
+   // Spec 056: a command may name only some symbols (pairs just turned on); else every streamed symbol.
+   g_syncSymCount = ExtractStringArray(json, "symbols", g_syncSyms);
+   if (g_syncSymCount == 0) {
+      ArrayResize(g_syncSyms, g_symbolCount);
+      for (int i = 0; i < g_symbolCount; i++) g_syncSyms[i] = g_symbols[i];
+      g_syncSymCount = g_symbolCount;
+   }
+
+   if (g_syncId == "" || g_syncTfCount == 0 || g_syncSymCount == 0) {
       Print("[SYNC] Ignored an invalid sync command");
       if (g_syncId != "") WriteSyncStatus("error", "", "", 0, "Invalid sync command");
       g_syncId = "";
@@ -351,7 +406,7 @@ bool StartSync() {
    g_syncTf = 0;
    g_syncSym = 0;
    g_syncPhase = 0;
-   Print("[SYNC] Start | id: ", g_syncId, " | timeframes: ", g_syncTfCount, " | symbols: ", g_symbolCount);
+   Print("[SYNC] Start | id: ", g_syncId, " | timeframes: ", g_syncTfCount, " | symbols: ", g_syncSymCount);
    return true;
 }
 
@@ -369,7 +424,7 @@ void SyncStep() {
       return;
    }
 
-   string sym = g_symbols[g_syncSym];
+   string sym = g_syncSyms[g_syncSym];
 
    if (g_syncPhase == 0) {
       WriteSyncStatus("running", label, sym, g_syncSym, "");
@@ -444,10 +499,10 @@ void ExportSymbol(string sym, int period, string label, int target) {
 
    g_syncPhase = 0;
    g_syncSym++;
-   if (g_syncSym < g_symbolCount) return;
+   if (g_syncSym < g_syncSymCount) return;
 
    // Every symbol of the timeframe is written: the backend swaps it, then deletes the files.
-   WriteSyncStatus("complete", label, "", g_symbolCount, "");
+   WriteSyncStatus("complete", label, "", g_syncSymCount, "");
    g_syncPhase   = 2;
    g_syncStarted = GetTickCount();
 }
@@ -465,7 +520,7 @@ void NextTimeframe() {
    g_syncSym   = 0;
    g_syncPhase = 0;
    if (g_syncTf < g_syncTfCount) return;
-   WriteSyncStatus("finished", "", "", g_symbolCount, "");
+   WriteSyncStatus("finished", "", "", g_syncSymCount, "");
    Print("[SYNC] Finished | id: ", g_syncId);
    g_syncId = "";
 }
@@ -481,7 +536,7 @@ void WriteSyncStatus(string state, string label, string sym, int done, string me
    string j = "{\"id\":\"" + g_syncId + "\",\"state\":\"" + state + "\"";
    if (label != "")   j += ",\"timeframe\":\"" + label + "\"";
    if (sym != "")     j += ",\"symbol\":\"" + sym + "\"";
-   j += ",\"done\":" + IntegerToString(done) + ",\"total\":" + IntegerToString(g_symbolCount);
+   j += ",\"done\":" + IntegerToString(done) + ",\"total\":" + IntegerToString(g_syncSymCount);
    if (message != "") j += ",\"message\":\"" + message + "\"";
    j += "}";
    WriteFile("sync-status.json", j);

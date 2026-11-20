@@ -1,5 +1,5 @@
 #property copyright "HttpBridge"
-#property version   "3.15"
+#property version   "3.16"
 #property strict
 
 #import "kernel32.dll"
@@ -46,6 +46,14 @@ ulong  lastHistoryWrite    = 0;
 // ── Symbol list ──────────────────────────────────────────────────────────────
 string g_symbols[];
 int    g_symbolCount = 0;
+
+// ── Spec 056: live config and the broker's symbol list ────────────────────────
+#define CONFIG_CHECK_MS     5000
+#define AVAILABLE_CHECK_MS  60000
+long   g_configStamp      = 0;
+ulong  lastConfigCheck    = 0;
+int    g_availableCount   = -1;
+ulong  lastAvailableCheck = 0;
 
 #define GENERIC_WRITE          0x40000000
 #define OPEN_EXISTING          3
@@ -118,6 +126,46 @@ void LoadConfig() {
    string company = AccountCompany();
    if (StringLen(company) > 0) g_brokerName = company;
    Print("[STATE] No config.json — broker fallback: ", g_brokerName, " | symbols from input");
+}
+
+
+// Spec 056: the backend rewrites config.json from Settings › Visibility; its modification time tells us.
+long ConfigStamp() {
+   if (!FileIsExist("bridge\\config.json")) return 0;
+   return FileGetInteger("bridge\\config.json", FILE_MODIFY_DATE);
+}
+
+// Every symbol streamed must be in Market Watch to get ticks.
+void SelectSymbols() {
+   for (int i = 0; i < g_symbolCount; i++) SymbolSelect(g_symbols[i], true);
+}
+
+// The full symbol list of the broker (not only Market Watch), rewritten when its size changes.
+void WriteAvailableSymbols() {
+   int total = SymbolsTotal(false);
+   if (total == g_availableCount) return;
+   string j = "{\"symbols\":[";
+   for (int i = 0; i < total; i++) {
+      if (i > 0) j += ",";
+      j += "\"" + SymbolName(i, false) + "\"";
+   }
+   j += "]}";
+   WriteFile("symbols-available.json", j);
+   g_availableCount = total;
+   Print("[STATE] Broker symbols written | count: ", total);
+}
+
+// New pairs start streaming within CONFIG_CHECK_MS; the pipe keeps its name (brokerName never changes here).
+void ReloadConfigIfChanged() {
+   long stamp = ConfigStamp();
+   if (stamp == g_configStamp) return;
+   g_configStamp = stamp;
+   string pipeBroker = g_brokerName;
+   LoadConfig();
+   g_brokerName = pipeBroker;
+   ParseSymbols();
+   SelectSymbols();
+   Print("[STATE] config.json changed | symbols: ", g_symbolsRaw, " | symbol count: ", g_symbolCount);
 }
 
 void ParseSymbols() {
@@ -216,11 +264,14 @@ bool PipeWrite(string data) {
 int OnInit() {
    LoadConfig();
    ParseSymbols();
+   SelectSymbols();
+   g_configStamp = ConfigStamp();
+   WriteAvailableSymbols();
    g_pipeName = "\\\\.\\pipe\\mt4tick_" + g_brokerName;
    g_event = CreateEventW(0, 1, 0, 0);
    EventSetMillisecondTimer(100);
 
-   Print("[STATE] HttpBridgeState v3.13 | broker: ", g_brokerName,
+   Print("[STATE] HttpBridgeState v3.16 | broker: ", g_brokerName,
          " | symbols: ", g_symbolsRaw,
          " | symbol count: ", g_symbolCount,
          " | state every: ", STATE_EVERY_S, "s",
@@ -254,6 +305,9 @@ void OnDeinit(const int reason) {
 
 void OnTimer() {
    ulong now = GetTickCount();
+
+   if (now - lastConfigCheck >= CONFIG_CHECK_MS) { lastConfigCheck = now; ReloadConfigIfChanged(); }
+   if (now - lastAvailableCheck >= AVAILABLE_CHECK_MS) { lastAvailableCheck = now; WriteAvailableSymbols(); }
 
    // ── Tick batch: all symbols every 100ms ──────────────────────────────────
    int    brokerOffset = (int)(TimeCurrent() - TimeGMT());
