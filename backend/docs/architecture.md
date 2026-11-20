@@ -140,7 +140,7 @@ Every router except `/auth` and `/health` sits behind `requireAuth`: the JWT tra
 | `/commands` | `POST` | Send an order to the EA (below) |
 | `/trades` | `GET` | Closed trades (broker, symbol, from, to, limit, offset) |
 | `/positions` | `GET /live`, `PATCH /color` | Open positions from the stores; colour per ticket |
-| `/balances` | `GET`, `GET /daily-pnl` | Daily balance rows; today's P&L per broker |
+| `/balances` | `GET`, `GET /daily-pnl`, `PATCH /color` | Daily balance rows with the account colour (spec 055); today's P&L per broker; set an account colour |
 | `/settings` | `GET`, `PUT` | EA mirror settings per broker, display settings and `visibility` (brokers and per-broker symbols hidden from the frontend; purely visual, spec 024); `display.quickOrders` (spec 054) is validated like New Trade (risk % and R need an SL, the preset must exist) |
 | `/symbols` | `GET` | Symbols with a tick per broker |
 | `/candles` | `GET` | Closed candles (`before` / `after` paging, up to 5 000) |
@@ -265,6 +265,7 @@ Managed with **Prisma**; see `prisma/schema.prisma`. Migrations are hand-written
 | `balances` | file watcher | one `upsert` per broker and UTC `day`, `timestamp` refreshed on every poll |
 | `mirror_presets` | `/settings` | Named mirror presets, per-broker config as JSON (spec 033) |
 | `settings_display` | `/settings` | display settings (single row) plus `hiddenBrokers` / `hiddenSymbols` (visibility, spec 024) and `quickOrders` (JSON or null: size lots / risk %, SL pips, TP pips or R, optional mirror preset; the chart menu's quick orders, spec 054) |
+| `account_colors` | `/balances` | colour per broker account (Journal › Accounts, spec 055), unrelated to position colours; `GET /balances` adds `color`, `PATCH /balances/color` sets it (empty clears) |
 | `position_colors` | `/positions/color` | colour per broker and ticket |
 | `users` | — | created out of band; bcrypt password hash |
 | `price_alerts`, `ema_cross_alerts` | `/alerts`, `/ema-alerts`, evaluators | per user; `triggeredAt` set when fired |

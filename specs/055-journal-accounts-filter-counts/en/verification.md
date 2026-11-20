@@ -34,3 +34,10 @@
 - **Steps:** `FiltersPanel` takes `fields` (default unchanged) and a `name` text field; `JournalPage` shows the Filters button on every tab, keeps `journal.accountFilters` (`broker`, `name`, `color`) in `localStorage` and opens the same panel for Accounts with Broker, Name and Color; `Accounts` filters (broker exact, name contains, case-insensitive; colour exact), reports the broker and colour options, and says "No accounts match the filters". Agreed with the operator: Name added to the panel, as a text field that matches as you type.
 - **Outcome:** ✅ build and lint clean; the operator checked the filters.
 - **Est vs Actual:** 1 SP · 0.5 SP.
+
+## Task 6 · [docs] Architecture docs
+
+- **Mechanism:** manual review of the diff.
+- **Steps:** `backend/docs/architecture.md` (`/balances` with `PATCH /color`, `account_colors` table); `.claude/CLAUDE.md` (`AccountColor` model).
+- **Outcome:** ✅ both documents agree.
+- **Est vs Actual:** 0.25 SP · 0.1 SP.

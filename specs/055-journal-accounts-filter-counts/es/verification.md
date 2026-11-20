@@ -34,3 +34,10 @@
 - **Pasos:** `FiltersPanel` recibe `fields` (por defecto igual que antes) y un campo de texto `name`; `JournalPage` muestra el botón Filters en todas las pestañas, guarda `journal.accountFilters` (`broker`, `name`, `color`) en `localStorage` y abre el mismo panel para Accounts con Broker, Name y Color; `Accounts` filtra (broker exacto, nombre que contiene el texto sin distinguir mayúsculas, color exacto), informa de las opciones de broker y color y dice "No accounts match the filters". Acordado con el operador: Name añadido al panel, como campo de texto que filtra mientras se escribe.
 - **Resultado:** ✅ build y lint limpios; el operador comprobó los filtros.
 - **Est vs Real:** 1 SP · 0.5 SP.
+
+## Tarea 6 · [docs] Documentación de arquitectura
+
+- **Mecanismo:** revisión manual del diff.
+- **Pasos:** `backend/docs/architecture.md` (`/balances` con `PATCH /color`, tabla `account_colors`); `.claude/CLAUDE.md` (modelo `AccountColor`).
+- **Resultado:** ✅ los dos documentos coinciden.
+- **Est vs Real:** 0.25 SP · 0.1 SP.
