@@ -6,6 +6,7 @@ import { isVisible, useVisibility, visibleBrokers } from '../../lib/visibility';
 import { useLivePositions } from './useLivePositions';
 import { fmt, currencySymbol, isPending } from './utils/position';
 import { AccountCard } from './AccountCard';
+import { matchesColorFilter } from './utils/colorFilter';
 import { ColorSwatchButton } from './ColorBadge';
 import { apiSend } from '../../lib/api';
 import styles from './JournalPage.module.css';
@@ -137,7 +138,7 @@ export function Accounts({ onSelectBroker, filters, onOptionsChange }: AccountsP
   const columns = useMemo(() => buildColumns(dayPnl, counts), [dayPnl, counts]);
   const nameQuery = filters.name.trim().toLowerCase();
   const filtered = useMemo(
-    () => visible.filter(b => (!filters.broker || b.broker === filters.broker) && (!nameQuery || b.name.toLowerCase().includes(nameQuery)) && (!filters.color || b.color === filters.color)),
+    () => visible.filter(b => (!filters.broker || b.broker === filters.broker) && (!nameQuery || b.name.toLowerCase().includes(nameQuery)) && matchesColorFilter(filters.color, b.color)),
     [visible, filters.broker, nameQuery, filters.color],
   );
   const optionsKey = [visible.map(b => b.broker), visible.map(b => b.color)].map(l => l.join('\u001f')).join('|');

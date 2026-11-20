@@ -22,6 +22,7 @@ Diario › Accounts lista todas las cuentas de broker (tabla en escritorio, tarj
 - AC 6. En escritorio la tabla tiene una columna "Trades / Orders" con el número de posiciones abiertas y de órdenes pendientes de la cuenta (p. ej. "3 / 1"), ordenable por el número de posiciones.
 - AC 7. En el móvil la tarjeta de la cuenta muestra "Trades / Orders" en lugar de "Number"; el número pasa a los detalles desplegados.
 - AC 8. Los contadores siguen a las posiciones y órdenes en vivo (cambian cuando se abre o cierra una posición, o se pone o cancela una orden) y respetan la visibilidad (los símbolos ocultos no cuentan).
+- AC 10. (añadido en la tarea 7) El filtro de color de Accounts, Positions y Orders admite varios colores: un círculo por color en uso, cada clic lo marca o desmarca, ninguno marcado = todos los colores; un elemento coincide con cualquiera de los colores marcados.
 - AC 9. Los brokers ocultos (Settings › Visibility) siguen ocultos, como hoy.
 
 ## Fuera de alcance

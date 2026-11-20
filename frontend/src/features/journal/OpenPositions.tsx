@@ -9,6 +9,7 @@ import { useBalances } from '../../lib/useBalances';
 import { isVisible, useVisibility } from '../../lib/visibility';
 import { type FilterValues, type FilterOptions } from './FiltersPanel';
 import { PositionCard } from './PositionCard';
+import { matchesColorFilter } from './utils/colorFilter';
 import { ColorBadge } from './ColorBadge';
 import { ConfirmPanel } from './ConfirmPanel';
 import { BulkEditPanel } from './BulkEditPanel';
@@ -86,7 +87,7 @@ export function OpenPositions({ filters, onOptionsChange, onBulkChange }: OpenPo
     if (filters.symbol && p.symbol !== filters.symbol) return false;
     if (filters.type === 'buy' && !isBuySide(p.type)) return false;
     if (filters.type === 'sell' && isBuySide(p.type)) return false;
-    if (filters.color && colors.get(posKey(p.broker!, p.ticket)) !== filters.color) return false;
+    if (!matchesColorFilter(filters.color, colors.get(posKey(p.broker!, p.ticket)))) return false;
     return true;
   }), [positions, filters, colors]);
 

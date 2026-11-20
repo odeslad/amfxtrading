@@ -1,6 +1,6 @@
-import { POSITION_COLORS, POSITION_COLOR_VALUES, type PositionColor } from './utils/position';
 import { type DateRange, DATE_RANGE_OPTIONS, clampToToday } from './utils/dateRange';
 import { IsoDateField } from '../../shared/ui/DateField';
+import { ColorFilterField } from './ColorFilterField';
 import styles from './FiltersPanel.module.css';
 
 export interface FilterValues {
@@ -91,18 +91,8 @@ export function FiltersPanel({ open, onClose, values, options, onChange, showDat
             </div>
           )}
 
-          {show('color') && options.colors.length > 0 && (
-            <div className={styles.field}>
-              <label className={styles.label}>Color</label>
-              <select className={styles.input} value={values.color} onChange={set('color')}>
-                <option value="">All Colors</option>
-                {POSITION_COLORS.filter(c => options.colors.includes(c)).map(c => (
-                  <option key={c} value={c} style={{ color: POSITION_COLOR_VALUES[c as PositionColor] }}>
-                    {c.charAt(0).toUpperCase() + c.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {show('color') && (
+            <ColorFilterField value={values.color} available={options.colors} onChange={color => onChange({ ...values, color })} labelClassName={styles.label} fieldClassName={styles.field} />
           )}
 
           {showDateFilter && (

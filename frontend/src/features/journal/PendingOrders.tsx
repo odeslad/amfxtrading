@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { matchesColorFilter } from './utils/colorFilter';
 import { useNavigate } from 'react-router-dom';
 import { type Position, fmt, fmtDistance, fmtLocalTime, TYPE_LABEL, isBuySide, isPending, orderDistancePips, sameSymbol } from './utils/position';
 import { type FilterOptions } from './FiltersPanel';
@@ -53,7 +54,7 @@ export function PendingOrders({ filters, onOptionsChange, onGroupChange, onEdit,
     if (filters.orderType && String(p.type) !== filters.orderType) return false;
     if (filters.side === 'buy' && !isBuySide(p.type)) return false;
     if (filters.side === 'sell' && isBuySide(p.type)) return false;
-    if (filters.color && colors.get(posKey(p.broker!, p.ticket)) !== filters.color) return false;
+    if (!matchesColorFilter(filters.color, colors.get(posKey(p.broker!, p.ticket)))) return false;
     return true;
   }), [orders, filters, colors]);
 

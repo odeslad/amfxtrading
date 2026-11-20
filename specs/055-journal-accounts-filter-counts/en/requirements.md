@@ -22,6 +22,7 @@ Journal › Accounts lists every broker account (a table on desktop, cards on th
 - AC 6. On desktop the table has a "Trades / Orders" column with the number of open positions and of pending orders of the account (e.g. "3 / 1"), sortable by the number of positions.
 - AC 7. On the phone the account card shows "Trades / Orders" in place of "Number"; the number moves to the expanded details.
 - AC 8. The counts follow the live positions and orders (they change when a position opens or closes, or an order is placed or cancelled) and respect the visibility settings (hidden symbols are not counted).
+- AC 10. (added during task 7) The colour filter of Accounts, Positions and Orders allows several colours: one dot per colour in use, each click selects or clears it, none selected = all colours; an item matches any selected colour.
 - AC 9. Hidden brokers (Settings › Visibility) stay hidden, as today.
 
 ## Out of scope

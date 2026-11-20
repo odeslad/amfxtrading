@@ -41,3 +41,9 @@
 - **Steps:** `backend/docs/architecture.md` (`/balances` with `PATCH /color`, `account_colors` table); `.claude/CLAUDE.md` (`AccountColor` model).
 - **Outcome:** ✅ both documents agree.
 - **Est vs Actual:** 0.25 SP · 0.1 SP.
+
+## Changes agreed during the production check (task 7)
+
+- Phone cards: same columns on every card, long broker names wrap inside their column, card never wider than the screen, tighter left padding (`f597e51`).
+- Name filter: text field without the select arrow (`38aa1cc`).
+- AC 10: multi-colour filter on Accounts, Positions and Orders (`ColorFilterField`, `utils/colorFilter.ts`; the filter keeps its string shape as "orange,blue", so stored filters still work).

@@ -1,6 +1,7 @@
-import { POSITION_COLORS, POSITION_COLOR_VALUES, TYPE_LABEL, type PositionColor } from './utils/position';
+import { TYPE_LABEL } from './utils/position';
 import { type FilterOptions } from './FiltersPanel';
 import { DEFAULT_ORDER_FILTERS, hasActiveOrderFilters, type OrderFilterValues } from './utils/orderFilters';
+import { ColorFilterField } from './ColorFilterField';
 import styles from './FiltersPanel.module.css';
 
 const ORDER_TYPES = [2, 3, 4, 5];
@@ -60,19 +61,7 @@ export function OrderFiltersPanel({ open, onClose, values, options, onChange }: 
             </select>
           </div>
 
-          {options.colors.length > 0 && (
-            <div className={styles.field}>
-              <label className={styles.label}>Color</label>
-              <select className={styles.input} value={values.color} onChange={set('color')}>
-                <option value="">All Colors</option>
-                {POSITION_COLORS.filter(c => options.colors.includes(c)).map(c => (
-                  <option key={c} value={c} style={{ color: POSITION_COLOR_VALUES[c as PositionColor] }}>
-                    {c.charAt(0).toUpperCase() + c.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <ColorFilterField value={values.color} available={options.colors} onChange={color => onChange({ ...values, color })} labelClassName={styles.label} fieldClassName={styles.field} />
 
           {hasActiveOrderFilters(values) && (
             <button type="button" className={styles.resetBtn} onClick={() => onChange(DEFAULT_ORDER_FILTERS)}>
