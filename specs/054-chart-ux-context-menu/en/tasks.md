@@ -2,7 +2,7 @@
 
 Each task is one conventional commit. The project must build after every task. Tasks of different layers never share a commit. Deploy order: db + backend → frontend. The frontend has no test runner (vitest is not a frontend dependency), so frontend tasks are verified with `npm run build` + eslint and a local check (Vite 5174 against the production API).
 
-- [ ] 1. [db] Migration adding `settings_display."quickOrders" JSONB NULL` · **Verify:** `prisma validate` + `prisma generate` + build; `prisma migrate diff` from production shows only this column · **Est:** 0.5 SP
+- [x] 1. [db] Migration adding `settings_display."quickOrders" JSONB NULL` · **Verify:** `prisma validate` + `prisma generate` + build; `prisma migrate diff` from production shows only this column · **Est:** 0.5 SP
 - [ ] 2. [backend] `display.quickOrders` in `/settings` (parse, validate, read, write, deleted preset → null) with tests · **Verify:** lint + typecheck + test + build · **Est:** 1 SP
 - [ ] 3. [frontend] Settings › Mirror › "Quick orders" section and `useQuickOrders` (read + save) · **Verify:** build + eslint; local: save, reload, clear; validation messages (risk % without SL, R without SL) · **Est:** 1.5 SP
 - [ ] 4. [frontend] `lib/orderType.ts` (`orderTypeAt`) and `buildQuickOrder` (SL/TP from pips and R, market or clicked price, chart broker or mirror preset) · **Verify:** build + eslint; local: summaries checked by hand against New Trade for a buy and a sell, at market and at a price · **Est:** 0.75 SP

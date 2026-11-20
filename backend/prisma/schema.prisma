@@ -139,6 +139,8 @@ model SettingsDisplay {
   emaTradesCount     Int   @default(3)
   emaTradesTpRatio   Float @default(2)
   emaTradesLabels    String[] @default(["price", "r", "pips"])
+  // Spec 054: { lotsMode, size, slPips, tpMode, tp, mirrorPresetId }; null = not configured
+  quickOrders    Json?
   hiddenBrokers  String[] @default([])
   hiddenSymbols  Json     @default("{}")
   updatedAt      DateTime @updatedAt
