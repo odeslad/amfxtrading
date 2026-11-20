@@ -6,3 +6,10 @@
 - **Steps:** migration `20261120000000_moving_average_types` adds `fastType`/`slowType` (`ema_cross_alerts`, `ema_notifications`) and `emaTradesFastType`/`emaTradesSlowType` (`settings_display`), all `TEXT NOT NULL DEFAULT 'ema'`; matching fields in `schema.prisma`.
 - **Outcome:** ✅ schema valid, client generated, build green; the diff from production is exactly the six columns of the migration.
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Task 2 · [backend] SMA and the average helper
+
+- **Mechanism:** vitest + build + lint.
+- **Steps:** `indicators/sma.ts` (`calculateSma`, same rolling sum as the chart's `calcSma`); `indicators/moving-average.ts` (`MA_TYPES`, `isMaType`, `calculateMa`, `maLabel`); `moving-average.test.ts`.
+- **Outcome:** ✅ 17 indicator tests green, build and lint clean.
+- **Est vs Actual:** 0.5 SP · 0.25 SP.

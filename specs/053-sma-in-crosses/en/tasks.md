@@ -3,7 +3,7 @@
 Each task is one conventional commit. The project must build after every task. Tasks of different layers never share a commit. Deploy order: db + backend → frontend.
 
 - [x] 1. [db] Migration adding `fastType`/`slowType` to `ema_cross_alerts` and `ema_notifications`, and `emaTradesFastType`/`emaTradesSlowType` to `settings_display` (default `'ema'`) · **Verify:** `prisma validate` + `prisma generate` + build; `prisma migrate diff` from production shows only these columns · **Est:** 0.5 SP
-- [ ] 2. [backend] `calculateSma` + `calculateMa` with tests (same series as the chart) · **Verify:** vitest · **Est:** 0.5 SP
+- [x] 2. [backend] `calculateSma` + `calculateMa` with tests (same series as the chart) · **Verify:** vitest · **Est:** 0.5 SP
 - [ ] 3. [backend] `ema-cross.ts` and `/setup-levels` with the types (optional, default ema) · **Verify:** vitest + build · **Est:** 0.75 SP
 - [ ] 4. [backend] Alerts and notifications: routes validate the types, evaluators use `calculateMa`, push texts with the labels · **Verify:** lint + typecheck + test · **Est:** 1.5 SP
 - [ ] 5. [backend] `/settings` overlay type fields · **Verify:** lint + typecheck + test · **Est:** 0.25 SP
