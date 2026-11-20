@@ -1,0 +1,16 @@
+# 056 — Símbolos de cada broker desde el frontend · Tareas
+
+Cada tarea es un commit convencional. El proyecto debe compilar tras cada tarea. Tareas de capas distintas nunca comparten commit. Orden de despliegue: backend → EA → frontend (los cambios del EA son compatibles hacia atrás; el frontend necesita los dos).
+
+- [ ] 1. [backend] `services/broker-symbols.ts` (leer `symbols-available.json` filtrado a los cruces de AUD, EUR, NZD, USD, CAD, GBP, JPY; leer `config.json`; escribir solo `symbols` con `.tmp` + rename) con tests sobre una carpeta temporal · **Verificar:** lint + typecheck + test + build · **Est:** 1.5 SP
+- [ ] 2. [backend] `GET /broker-symbols` y `PUT /broker-symbols/:broker` (validación, 409 para símbolos con posiciones/órdenes abiertas, WS `broker_symbols`) con tests · **Verificar:** lint + typecheck + test + build · **Est:** 1.5 SP
+- [ ] 3. [backend] Sincronización de velas de algunos símbolos: `symbols` en la petición y en `sync-command.json`, esperar al primer tick, `sync-watcher` sustituye solo esos símbolos; lanzada por el `PUT` para los pares recién activados · **Verificar:** lint + typecheck + test + build · **Est:** 2 SP
+- [ ] 4. [backend] Paso de `hiddenSymbols` al arrancar (quitar de `config.json` salvo símbolos con posiciones, vaciar el campo, log); `/settings` ignora el `hiddenSymbols` que reciba · **Verificar:** lint + typecheck + test + build · **Est:** 1 SP
+- [ ] 5. [ea] `HttpBridgeState`: escribir `symbols-available.json` al arrancar y cuando cambie el número; los dos EAs: recargar `config.json` cuando cambie su hora de modificación (5 s), `SymbolSelect` de los símbolos nuevos; `HttpBridgeCommands`: respetar `symbols` en `sync-command.json` · **Verificar:** compilado por el pipeline del EA; prueba manual en un terminal (fichero escrito, un cambio de config aplicado sin reiniciar, una sincronización de un símbolo) · **Est:** 3 SP
+- [ ] 6. [frontend] `lib/visibility.ts` con `activeSymbols` (de `GET /broker-symbols` y WS) en lugar de `hiddenSymbols` en `isSymbolVisible` · **Verificar:** build + eslint; local: las listas siguen a los pares activos · **Est:** 1 SP
+- [ ] 7. [frontend] Settings › Visibility: recuentos activo/apagado por broker, panel de pares (3 columnas, pares bloqueados, All on / All off, Save to EA, errores, hoja en el móvil) · **Verificar:** build + eslint; local contra producción (sin guardar hasta la tarea 9) · **Est:** 2 SP
+- [ ] 8. [docs] `.claude/CLAUDE.md`, `backend/docs/architecture.md`, `ea/docs/deploy.md` (config.json gestionado desde Settings; ficheros bridge nuevos) · **Verificar:** manual · **Est:** 0.5 SP
+- [ ] 9. [infra] Push del backend (tareas 1–4) solo y revisar el log del paso; push del EA (tarea 5) y dejar que el pipeline recargue los terminales; push del frontend cuando lo pida el usuario; **validar en producción**: cada broker lista sus pares; un par activado empieza a enviarse sin reiniciar y su histórico se sincroniza; un par apagado desaparece; un par con posiciones no se puede apagar; los símbolos ocultos antes siguen ocultos; ocultar un broker sigue funcionando · **Verificar:** manual (validación del usuario) · **Est:** 1.5 SP
+- [ ] 10. [specs] Est vs Real en `verification.md` (ambos idiomas), cerrar y archivar en `archive/YYYY-MM/` · **Verificar:** manual · **Est:** 0.25 SP
+
+**Estimación total**: 14.25 SP
