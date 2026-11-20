@@ -41,3 +41,11 @@
 - **Pasos:** `lib/visibility.ts`: `activeSymbols` cargado de `GET /broker-symbols` junto a `/settings`, `isSymbolVisible` = está en la lista activa del broker (sin distinguir mayúsculas; un broker sin lista lo muestra todo), `setBrokerSymbols` para el mensaje WS `broker_symbols` (conectado en `AppLayout`), `publishVisibility` conserva las listas activas al guardar Settings; `hiddenSymbols` ya no filtra.
 - **Resultado:** ✅ build y lint limpios; el operador comprobó que solidary y solidary II solo listan EURUSD y que FTMO / darwinex conservan sus 15 pares.
 - **Est vs Real:** 1 SP · 0.4 SP.
+
+## Tarea 7 · [frontend] Pares en Settings › Visibility
+
+- **Mecanismo:** `npm run build` + eslint; prueba local contra producción; un guardado real en demo (activar NZDUSD) vigilado en el servidor.
+- **Pasos:** `lib/useBrokerSymbols.ts` (GET, WS, guardar, símbolos abiertos de `/positions/live`); `SymbolsPanel` reescrito (pares en rejilla de 3 columnas, pares bloqueados con posiciones abiertas, All on / All off, Save to EA, errores en el panel, hoja en el móvil); `VisibilityTab` muestra "N on · M off" o "list pending" y un botón **Pairs**; `SettingsPage` deja de editar los símbolos ocultos. Prueba en demo: `config.json` añadió NZDUSD, el EA lo recargó sin reiniciar, el backend sincronizó solo NZDUSD (H1 10 000, el resto 2 047: lo que MT4 tenía cargado) y una vela D1 con hora 0 escrita por el EA antes de cargar el histórico quedó sustituida por la sincronización.
+- **Acordado en la prueba (AC 12):** mostrar el avance de la activación (el backend marca las filas del broker "waiting for the EA" / "history requested" / error y lo emite; Visibility muestra la sincronización bajo el broker con enlace a Data; el aviso al guardar nombra los pares que se sincronizan) y no guardar nunca velas con hora 0 (watcher de ficheros, cierres por tick, sincronización), en dos commits del backend.
+- **Resultado:** ✅ build y lint limpios; el operador revisó la pantalla y el guardado en demo. 🕐 El avance se comprueba tras desplegar el backend (tarea 9).
+- **Est vs Real:** 2 SP · 1.25 SP.

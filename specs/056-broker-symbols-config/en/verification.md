@@ -41,3 +41,11 @@
 - **Steps:** `lib/visibility.ts`: `activeSymbols` loaded from `GET /broker-symbols` with `/settings`, `isSymbolVisible` = in the broker's active list (case-insensitive; a broker without a list shows everything), `setBrokerSymbols` for the `broker_symbols` WS message (wired in `AppLayout`), `publishVisibility` keeps the active lists when Settings saves; `hiddenSymbols` no longer filters.
 - **Outcome:** ✅ build and lint clean; the operator checked that solidary and solidary II only list EURUSD and FTMO / darwinex keep their 15 pairs.
 - **Est vs Actual:** 1 SP · 0.4 SP.
+
+## Task 7 · [frontend] Pairs in Settings › Visibility
+
+- **Mechanism:** `npm run build` + eslint; local check against production; one real save on demo (NZDUSD on) watched on the server.
+- **Steps:** `lib/useBrokerSymbols.ts` (GET, WS, save, open symbols from `/positions/live`); `SymbolsPanel` rewritten (tracked pairs on a 3-column grid, locked pairs with open positions, All on / All off, Save to EA, inline errors, phone sheet); `VisibilityTab` shows "N on · M off" or "list pending" and a **Pairs** button; `SettingsPage` drops the old hidden-symbol editing. Demo check: `config.json` gained NZDUSD, the EA reloaded it without restart, the backend synced only NZDUSD (H1 10 000, the rest 2 047: what MT4 had loaded) and a D1 bar at time 0 written by the EA before the history loaded was replaced by the sync.
+- **Agreed during the check (AC 12):** show the progress of the activation (backend marks the broker rows "waiting for the EA" / "history requested" / error and broadcasts them; Visibility shows the sync under the broker linking to Data; the save toast names the pairs syncing) and never store candles at time 0 (file watcher, tick closes, sync), as two backend commits.
+- **Outcome:** ✅ build and lint clean; the operator checked the screen and the demo save. 🕐 Progress display checked after the backend deploy (task 9).
+- **Est vs Actual:** 2 SP · 1.25 SP.

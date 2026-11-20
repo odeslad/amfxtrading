@@ -42,3 +42,27 @@
     justify-self: end;
   }
 }
+
+/* Spec 056: the history sync of a pair just turned on, linking to Settings › Data. */
+.syncNote,
+.syncError {
+  display: block;
+  margin-top: 4px;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.syncNote {
+  color: var(--orange);
+}
+
+.syncError {
+  color: var(--red);
+}

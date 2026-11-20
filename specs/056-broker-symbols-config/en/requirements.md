@@ -25,6 +25,8 @@ Each MT4 terminal reads `bridge/config.json` (`brokerName`, `symbols`) when the 
 - AC 10. WHEN a symbol is turned on THEN its candle history is synced automatically once the EA streams it, on every timeframe of Settings › Data (M5, M15, H1, H4, D1) with the default target, only for that symbol (the broker's other symbols are not touched); its progress shows in Settings › Data like a manual sync.
 - AC 11. WHEN a symbol is turned off THEN its stored candles are kept (turning it on again re-syncs it).
 
+- AC 12. (added during task 7) Turning a pair on shows its progress: Settings › Data marks the broker "waiting for the EA to stream it", then "history requested", the running sync and done, or an error when the EA sends no ticks or is disconnected; Settings › Visibility shows the same under the broker, linking to Data. Candles at time 0 (MT4 before the history of a new pair is loaded) are never stored.
+
 ## Out of scope
 - Editing `brokerName` or adding/removing brokers (`brokers.json`).
 - Market Watch management in MT4 beyond what the EA needs to stream a symbol.

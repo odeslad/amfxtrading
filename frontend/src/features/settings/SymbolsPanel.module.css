@@ -1,39 +1,86 @@
 .panel {
-  width: 360px;
+  width: 380px;
   overflow: hidden;
 }
 
 .body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   padding: 16px 20px;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
 }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.count {
+.note,
+.lockNote,
+.error {
+  margin: 0;
   font-family: var(--font-sans);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
+  font-size: var(--text-sm);
+  line-height: 1.5;
   color: var(--muted);
 }
 
-.toolbarBtns {
-  display: flex;
+.lockNote {
+  color: var(--gold);
+}
+
+.error {
+  color: var(--red);
+}
+
+.onCount {
+  color: var(--green);
+}
+
+/* Spec 056: the tracked pairs on a 3-column grid. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
+.chip {
+  height: 30px;
+  padding: 0 6px;
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.chip:hover {
+  color: var(--text);
+}
+
+.chipOn {
+  border-color: var(--green);
+  background: rgba(76, 175, 132, 0.12);
+  color: var(--text);
+}
+
+.chipLocked {
+  border-color: var(--gold);
+  cursor: not-allowed;
+}
+
+.footer {
+  display: flex;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+
 .smBtn {
-  height: 27px;
+  height: 34px;
   padding: 0 10px;
   background: transparent;
   border: 1px solid var(--border-bright);
@@ -46,88 +93,32 @@
   transition: color 0.12s ease, border-color 0.12s ease;
 }
 
-.smBtn:hover { color: var(--text); border-color: var(--text); }
-
-.list {
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
-}
-
-.list::-webkit-scrollbar { width: 6px; }
-.list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 3px; }
-.list::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
-.list::-webkit-scrollbar-track { background: transparent; }
-
-.item {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 16px 8px 0;
-  border-top: 1px solid var(--border);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
+.smBtn:hover {
   color: var(--text);
-  cursor: pointer;
+  border-color: var(--text);
 }
 
-.item:last-child {
-  border-bottom: 1px solid var(--border);
-}
-
-.item input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.box {
-  width: 16px;
-  height: 16px;
-  border: 1px solid var(--border-bright);
-  background: var(--bg);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-sm);
-  transition: border-color 0.12s ease, background 0.12s ease;
-}
-
-.boxOn {
-  border-color: var(--green);
-  background: rgba(76, 175, 132, 0.15);
-  color: var(--green);
-}
-
-.name { color: var(--text); }
-
-.nameHidden {
-  color: #555;
-  text-decoration: line-through;
-}
-
-.state {
+.saveBtn {
+  flex: 1;
+  height: 34px;
+  background: var(--orange);
+  color: #000;
+  border: 0;
   font-family: var(--font-sans);
-  font-size: var(--text-2xs);
+  font-size: var(--text-sm);
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
-  color: var(--muted);
+  cursor: pointer;
+  transition: opacity 0.12s ease;
 }
 
-.stateHidden { color: var(--gold); }
+.saveBtn:hover {
+  opacity: 0.85;
+}
 
-.empty {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  color: var(--muted);
-  padding: 8px 0;
+.saveBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
@@ -135,13 +126,9 @@
     width: 100%;
   }
 
-  .item {
-    min-height: 44px;
-    padding: 0 16px 0 0;
-    font-size: var(--text-xl);
-  }
-
-  .smBtn {
-    height: 34px;
+  .chip,
+  .smBtn,
+  .saveBtn {
+    height: 44px;
   }
 }

@@ -25,6 +25,8 @@ Cada terminal MT4 lee `bridge/config.json` (`brokerName`, `symbols`) cuando arra
 - AC 10. CUANDO se activa un símbolo ENTONCES su histórico de velas se sincroniza solo en cuanto el EA lo envía, en todas las temporalidades de Settings › Data (M5, M15, H1, H4, D1) con el objetivo por defecto, y solo para ese símbolo (no se tocan los demás símbolos del broker); su progreso se ve en Settings › Data como una sincronización manual.
 - AC 11. CUANDO se apaga un símbolo ENTONCES sus velas guardadas se conservan (al volver a activarlo se vuelve a sincronizar).
 
+- AC 12. (añadido en la tarea 7) Activar un par muestra su avance: Settings › Data marca el broker "waiting for the EA to stream it", luego "history requested", la sincronización en marcha y done, o un error si el EA no envía ticks o está desconectado; Settings › Visibility muestra lo mismo bajo el broker, con enlace a Data. Las velas con hora 0 (MT4 antes de cargar el histórico de un par nuevo) no se guardan nunca.
+
 ## Fuera de alcance
 - Editar `brokerName` o añadir/quitar brokers (`brokers.json`).
 - Gestionar la Observación del mercado de MT4 más allá de lo que el EA necesite para enviar un símbolo.

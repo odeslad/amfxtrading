@@ -15,6 +15,7 @@ import { NotificationPanel } from './NotificationPanel';
 import { DevicesPanel } from './DevicesPanel';
 import { VisibilityTab } from './VisibilityTab';
 import { SymbolsPanel } from './SymbolsPanel';
+import { useBrokerSymbols } from '../../lib/useBrokerSymbols';
 import { DataSyncTab } from './DataSyncTab';
 import { useCandleSync } from '../../lib/useCandleSync';
 import { ServerTab } from './ServerTab';
@@ -75,9 +76,9 @@ export function SettingsPage() {
   const [accounts, setAccounts] = useState<Record<string, AccountInfo>>({});
   const [display, setDisplay] = useState<DisplaySettingsForm>(DEFAULT_DISPLAY);
   const [visibility, setVisibility] = useState<Visibility>(EMPTY_VISIBILITY);
-  const [symbols, setSymbols] = useState<Record<string, string[]>>({});
   const [symbolsBroker, setSymbolsBroker] = useState<string | null>(null);
   const [symbolsOpen, setSymbolsOpen] = useState(false);
+  const brokerSymbols = useBrokerSymbols(tab === 'visibility');
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const { notifications, create, update, toggle, remove } = useEmaNotifications();
@@ -86,7 +87,8 @@ export function SettingsPage() {
   const [confirming, setConfirming] = useState(false);
   const pushDevices = usePushDevices();
   const [devicesOpen, setDevicesOpen] = useState(false);
-  const candleSync = useCandleSync(tab === 'data');
+  // Visibility also shows the history sync of pairs just turned on (spec 056).
+  const candleSync = useCandleSync(tab === 'data' || tab === 'visibility');
   const server = useServerStatus(tab === 'server');
 
   useEffect(() => {
@@ -106,19 +108,6 @@ export function SettingsPage() {
     }).catch(() => {});
     return () => ac.abort();
   }, []);
-
-  // Symbol lists are only needed by the Visibility tab: fetched once per broker the first time it opens.
-  useEffect(() => {
-    if (tab !== 'visibility') return;
-    const missing = brokerNames.filter(b => symbols[b] === undefined);
-    if (missing.length === 0) return;
-    const ac = new AbortController();
-    Promise.all(missing.map(b => apiFetch<string[]>(`/symbols?broker=${encodeURIComponent(b)}`, { signal: ac.signal })
-      .then(list => [b, [...list].sort()] as const)))
-      .then(entries => setSymbols(prev => ({ ...prev, ...Object.fromEntries(entries) })))
-      .catch(() => {});
-    return () => ac.abort();
-  }, [tab, brokerNames, symbols]);
 
   const updatePreset = useCallback((patch: (p: MirrorPreset) => MirrorPreset) => {
     setPresets(prev => prev.map(p => p.key === selectedPresetKey ? patch(p) : p));
@@ -158,15 +147,6 @@ export function SettingsPage() {
       ...prev,
       hiddenBrokers: visible ? prev.hiddenBrokers.filter(b => b !== broker) : [...prev.hiddenBrokers, broker],
     }));
-    setDirty(true);
-  }, []);
-
-  const setHiddenSymbols = useCallback((broker: string, hidden: string[]) => {
-    setVisibility(prev => {
-      const next = { ...prev.hiddenSymbols };
-      if (hidden.length === 0) delete next[broker]; else next[broker] = hidden;
-      return { ...prev, hiddenSymbols: next };
-    });
     setDirty(true);
   }, []);
 
@@ -284,7 +264,9 @@ export function SettingsPage() {
         <VisibilityTab
           brokers={brokers}
           accounts={accounts}
-          symbols={symbols}
+          brokerSymbols={brokerSymbols.brokers}
+          syncs={candleSync.brokers ?? []}
+          onOpenData={() => setTab('data')}
           visibility={visibility}
           onToggleBroker={toggleBrokerVisible}
           onOpenSymbols={openSymbols}
@@ -327,10 +309,8 @@ export function SettingsPage() {
 
       <SymbolsPanel
         open={symbolsOpen}
-        broker={symbolsBroker}
-        symbols={symbolsBroker ? symbols[symbolsBroker] ?? [] : []}
-        hidden={symbolsBroker ? visibility.hiddenSymbols[symbolsBroker] ?? [] : []}
-        onChange={setHiddenSymbols}
+        state={symbolsBroker ? brokerSymbols.brokers[symbolsBroker] ?? null : null}
+        onSave={brokerSymbols.save}
         onClose={() => setSymbolsOpen(false)}
       />
 
