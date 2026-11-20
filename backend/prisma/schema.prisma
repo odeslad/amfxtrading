@@ -132,6 +132,8 @@ model SettingsDisplay {
   // EMA cross trades overlay (spec 039)
   emaTradesFast      Int   @default(24)
   emaTradesSlow      Int   @default(48)
+  emaTradesFastType  String @default("ema")
+  emaTradesSlowType  String @default("ema")
   emaTradesEntryPips Float @default(5)
   emaTradesCandles   Int   @default(24)
   emaTradesCount     Int   @default(3)
@@ -198,6 +200,8 @@ model EmaCrossAlert {
   timeframe     String
   emaFast       Int
   emaSlow       Int
+  fastType      String    @default("ema") // ema | sma (spec 053)
+  slowType      String    @default("ema")
   direction     String    // "buy" | "sell" | "both"
   thresholdPips Float
   note          String?
@@ -237,6 +241,8 @@ model EmaNotification {
   timeframe     String                 // M5 | M15 | H1 | H4 | D1
   emaFast       Int
   emaSlow       Int
+  fastType      String                 @default("ema") // ema | sma (spec 053)
+  slowType      String                 @default("ema")
   event         String                 // cross | approach | both
   thresholdPips Float                  @default(2)
   direction     String                 // buy | sell | both
