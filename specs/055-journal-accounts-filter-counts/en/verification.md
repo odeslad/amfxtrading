@@ -6,3 +6,10 @@
 - **Steps:** migration `20261120200000_account_colors` (`account_colors`: `broker` primary key, `color`); model `AccountColor`.
 - **Outcome:** ✅ schema valid, client generated, build green; the diff from production is exactly this table.
 - **Est vs Actual:** 0.25 SP · 0.15 SP.
+
+## Task 2 · [backend] Account colour in `/balances`
+
+- **Mechanism:** lint + typecheck + test + build.
+- **Steps:** `GET /balances` adds `color` (`''` when none) from one `accountColor.findMany`; `PATCH /balances/color` (`parseAccountColor`: non-empty broker, colour a string of at most 20 characters; empty deletes the row, else upsert); `balances.test.ts`.
+- **Outcome:** ✅ 214 tests green, typecheck, build and lint clean.
+- **Est vs Actual:** 0.75 SP · 0.25 SP.
