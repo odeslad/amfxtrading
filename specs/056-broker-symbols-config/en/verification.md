@@ -20,3 +20,10 @@
 - **Steps:** `SyncCommand.symbols` (optional); `syncNewSymbols` in `routes/candle-sync.ts` waits for the first tick of every new pair (2 min), for any sync in progress to end (30 min) and for the pipe, then marks the broker's rows queued and writes `sync-command.json` with every Data timeframe at its target and `symbols`; wired from `PUT /broker-symbols` in `index.ts` (outcome logged). `sync-watcher` now replaces only the delivered symbols of a timeframe, so a one-pair sync leaves the rest alone and a turned-off pair keeps its candles (AC 11). Tests for the command, the three give-up cases and the scoped delete.
 - **Outcome:** ✅ full suite green, typecheck, build and lint clean.
 - **Est vs Actual:** 2 SP · 0.75 SP.
+
+## Task 4 · [backend] Rollout of the hidden symbols
+
+- **Mechanism:** lint + typecheck + test + build.
+- **Steps:** `services/hidden-symbols-rollout.ts`: `planRollout` (pure: per broker, hidden pairs to remove from the active list, matching a broker suffix; pairs with open positions kept on; brokers whose positions are not known yet left for later) and `rollOutHiddenSymbols` (writes each `config.json`, logs every change, keeps only the pending brokers in `hiddenSymbols`); started from `index.ts` when the watcher feature is on, first run 1 min after start, retried every 10 min while something is pending. `/settings` no longer stores an incoming `hiddenSymbols` (old clients). Deviation from the design: the rollout waits for each broker's positions instead of running at the very start, since the positions store is empty until the EA streams.
+- **Outcome:** ✅ full suite green, typecheck, build and lint clean.
+- **Est vs Actual:** 1 SP · 0.5 SP.

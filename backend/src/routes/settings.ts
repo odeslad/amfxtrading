@@ -347,10 +347,8 @@ router.put('/', asyncRoute(async (req, res) => {
       ...(display.emaTrades !== undefined ? emaTradesColumns(display.emaTrades) : {}),
       ...(display.quickOrders !== undefined ? { quickOrders: quickOrdersColumn(display.quickOrders) } : {}),
     };
-    const visibilityFields = visibility === undefined ? {} : {
-      hiddenBrokers: visibility.hiddenBrokers,
-      hiddenSymbols: visibility.hiddenSymbols,
-    };
+    // Spec 056: hidden symbols became pairs turned off in each EA's config.json; an old client's list is ignored.
+    const visibilityFields = visibility === undefined ? {} : { hiddenBrokers: visibility.hiddenBrokers };
     ops.push(
       db.settingsDisplay.upsert({
         where: { key: 'global' },

@@ -28,6 +28,7 @@ import { startServerMonitor } from './services/server-monitor';
 import { setMaTemplatesBroadcaster } from './routes/ma-templates';
 import { setBrokerSymbolsBroadcaster, setSymbolsTurnedOnHandler } from './routes/broker-symbols';
 import { syncNewSymbols } from './routes/candle-sync';
+import { startHiddenSymbolsRollout } from './services/hidden-symbols-rollout';
 
 type Wss = ReturnType<typeof createWss>;
 
@@ -128,6 +129,7 @@ async function main() {
   setEmaNotificationBroadcaster((fire) => wss.broadcastEmaNotification(fire.userId, { ...fire }));
   setMaTemplatesBroadcaster((userId) => wss.broadcastMaTemplates(userId));
   setBrokerSymbolsBroadcaster((state) => wss.broadcastBrokerSymbols(state));
+  if (config.features.watcher) startHiddenSymbolsRollout();
   setSymbolsTurnedOnHandler((broker, symbols) => {
     syncNewSymbols(broker, symbols)
       .then((outcome) => console.log(`[SYMBOLS] ${broker}: history sync of ${symbols.join(', ')} → ${outcome}`))

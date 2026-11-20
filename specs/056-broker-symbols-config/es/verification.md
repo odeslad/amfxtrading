@@ -20,3 +20,10 @@
 - **Pasos:** `SyncCommand.symbols` (opcional); `syncNewSymbols` en `routes/candle-sync.ts` espera al primer tick de cada par nuevo (2 min), a que acabe cualquier sincronización en curso (30 min) y al pipe, y entonces marca las filas del broker como en cola y escribe `sync-command.json` con cada temporalidad de Data a su objetivo y `symbols`; conectado desde `PUT /broker-symbols` en `index.ts` (el resultado queda en el log). `sync-watcher` ahora sustituye solo los símbolos entregados de una temporalidad, así una sincronización de un par no toca el resto y un par apagado conserva sus velas (AC 11). Tests del encargo, los tres casos en que se abandona y el borrado acotado.
 - **Resultado:** ✅ suite completa en verde, typecheck, build y lint limpios.
 - **Est vs Real:** 2 SP · 0.75 SP.
+
+## Tarea 4 · [backend] Paso de los símbolos ocultos
+
+- **Mecanismo:** lint + typecheck + test + build.
+- **Pasos:** `services/hidden-symbols-rollout.ts`: `planRollout` (pura: por broker, los pares ocultos que se quitan de la lista activa, reconociendo el sufijo del broker; los pares con posiciones abiertas siguen activos; los brokers cuyas posiciones aún no se conocen quedan para después) y `rollOutHiddenSymbols` (escribe cada `config.json`, deja cada cambio en el log, conserva en `hiddenSymbols` solo los brokers pendientes); arrancado desde `index.ts` con el watcher activo, primera vez 1 min tras arrancar y se repite cada 10 min mientras quede algo. `/settings` ya no guarda el `hiddenSymbols` que reciba (clientes antiguos). Desviación del diseño: el paso espera a las posiciones de cada broker en vez de correr nada más arrancar, porque el store de posiciones está vacío hasta que el EA envía.
+- **Resultado:** ✅ suite completa en verde, typecheck, build y lint limpios.
+- **Est vs Real:** 1 SP · 0.5 SP.
