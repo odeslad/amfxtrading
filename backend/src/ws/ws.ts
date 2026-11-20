@@ -136,6 +136,10 @@ export function createWss(server: Server) {
       broadcast('candle_sync', { broker, ...update });
     },
     // Spec 052: the user's moving average templates or assignments changed; their clients reload.
+    // Spec 056: a broker's streamed pairs changed (Settings › Visibility); every client refreshes them.
+    broadcastBrokerSymbols(state: { broker: string; available: string[] | null; active: string[] }) {
+      broadcast('broker_symbols', state);
+    },
     broadcastMaTemplates(userId: number) {
       sendToUser(userId, 'ma_templates', {});
     },

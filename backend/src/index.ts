@@ -26,6 +26,7 @@ import { evaluateEmaNotifications, setEmaNotificationBroadcaster } from './alert
 import { refreshEmaNotifications, startEmaNotificationRefresh } from './alerts/ema-notification-store';
 import { startServerMonitor } from './services/server-monitor';
 import { setMaTemplatesBroadcaster } from './routes/ma-templates';
+import { setBrokerSymbolsBroadcaster } from './routes/broker-symbols';
 
 type Wss = ReturnType<typeof createWss>;
 
@@ -125,6 +126,7 @@ async function main() {
   setEmaAlertBroadcaster((userId, broker, symbol, timeframe, direction) => wss.broadcastEmaAlert(userId, broker, symbol, timeframe, direction));
   setEmaNotificationBroadcaster((fire) => wss.broadcastEmaNotification(fire.userId, { ...fire }));
   setMaTemplatesBroadcaster((userId) => wss.broadcastMaTemplates(userId));
+  setBrokerSymbolsBroadcaster((state) => wss.broadcastBrokerSymbols(state));
 
   const watchers = config.brokers.map(({ name, bridgePath }) =>
     startBroker(name, bridgePath, wss),
