@@ -78,28 +78,56 @@ export interface SymbolSyncTiming {
 
 const SYMBOL_SYNC_TIMING: SymbolSyncTiming = { tickWaitMs: 120_000, busyWaitMs: 30 * 60_000, pollMs: 5_000 };
 
-// Spec 056: pairs just turned on get their history on every timeframe. Waits for the EA to stream them
-// (first tick) and for any sync in progress to end, then asks the EA for those symbols only.
+type SyncBroadcaster = (broker: string, update: Record<string, unknown>) => void;
+let broadcastSync: SyncBroadcaster | null = null;
+export const setCandleSyncBroadcaster = (fn: SyncBroadcaster): void => { broadcastSync = fn; };
+
+// Every row of the broker to one state, announced over the `candle_sync` WS message like the watcher does.
+async function markRows(broker: string, where: { requestId?: string }, state: string, detail: string, requestId?: string | null): Promise<void> {
+  await db.candleSync.updateMany({ where: { broker, ...where }, data: { state, detail, ...(requestId !== undefined ? { requestId } : {}) } });
+  const rows = await db.candleSync.findMany({ where: { broker } });
+  for (const r of rows) {
+    broadcastSync?.(broker, { timeframe: r.timeframe, state: r.state, detail: r.detail, candleCount: r.candleCount, lastSyncAt: r.lastSyncAt?.toISOString() ?? null });
+  }
+}
+
+// Spec 056: pairs just turned on get their history on every timeframe. Settings › Data shows each step:
+// waiting for the EA to stream them, waiting for a sync in progress, the sync itself (watcher), or why it stopped.
 export async function syncNewSymbols(broker: string, symbols: string[], timing: SymbolSyncTiming = SYMBOL_SYNC_TIMING): Promise<'queued' | 'no-ticks' | 'busy' | 'disconnected'> {
   const bridgePath = bridgePathOf(broker);
+  const label = symbols.join(', ');
+  const marker = `pending:${randomUUID()}`;
+  const isBusy = (r: { state: string; requestId: string | null }) => BUSY_STATES.has(r.state) && r.requestId !== marker;
+  await ensureRows();
+
+  // Shown only when no sync of the broker is running, so a sync in progress keeps its own rows.
+  let rows = await db.candleSync.findMany({ where: { broker } });
+  if (!rows.some(isBusy)) await markRows(broker, {}, 'queued', `${label} · waiting for the EA to stream it`, marker);
+
   const tickDeadline = Date.now() + timing.tickWaitMs;
   while (symbols.some((s) => getBid(broker, s) === null)) {
-    if (Date.now() > tickDeadline) return 'no-ticks';
+    if (Date.now() > tickDeadline) {
+      await markRows(broker, { requestId: marker }, 'error', `${label}: the EA sent no ticks in ${Math.round(timing.tickWaitMs / 1000)} s`);
+      return 'no-ticks';
+    }
     await sleep(timing.pollMs);
   }
-  await ensureRows();
+
   const busyDeadline = Date.now() + timing.busyWaitMs;
-  let rows = await db.candleSync.findMany({ where: { broker } });
-  while (rows.some((r) => BUSY_STATES.has(r.state))) {
+  rows = await db.candleSync.findMany({ where: { broker } });
+  while (rows.some(isBusy)) {
     if (Date.now() > busyDeadline) return 'busy';
     await sleep(timing.pollMs);
     rows = await db.candleSync.findMany({ where: { broker } });
   }
-  if (pipeStateOf(broker) !== 'connected') return 'disconnected';
+  if (pipeStateOf(broker) !== 'connected') {
+    await markRows(broker, { requestId: marker }, 'error', `${label}: the EA of ${broker} is not connected`);
+    return 'disconnected';
+  }
 
   const id = randomUUID();
   const targetOf = (tf: string): number => rows.find((r) => r.timeframe === tf)?.target ?? TARGET_DEFAULT;
-  await db.candleSync.updateMany({ where: { broker }, data: { state: 'queued', detail: symbols.join(', '), requestId: id } });
+  await markRows(broker, {}, 'queued', `${label} · history requested`, id);
   writeSyncCommand(bridgePath, { id, timeframes: SYNC_TIMEFRAMES.map((tf) => ({ tf, target: targetOf(tf) })), symbols });
   return 'queued';
 }

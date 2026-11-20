@@ -165,6 +165,7 @@ describe('syncNewSymbols (spec 056)', () => {
   it('gives up without ticks, while busy or disconnected', async () => {
     ticks.getBid.mockReturnValue(null);
     expect(await syncNewSymbols('demo', ['AUDCAD'], fast)).toBe('no-ticks');
+    expect(db.candleSync.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ state: 'error' }) }));
     ticks.getBid.mockReturnValue(1.1);
     db.candleSync.findMany.mockResolvedValue(rows('running'));
     expect(await syncNewSymbols('demo', ['AUDCAD'], fast)).toBe('busy');
