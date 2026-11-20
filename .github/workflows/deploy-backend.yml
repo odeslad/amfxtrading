@@ -6,6 +6,9 @@ on:
       - master
     paths:
       - 'backend/**'
+      # Documentation alone never deploys.
+      - '!backend/docs/**'
+      - '!backend/**/*.md'
   workflow_dispatch:
 
 jobs:

@@ -6,6 +6,9 @@ on:
       - master
     paths:
       - 'ea/**'
+      # Documentation alone never deploys.
+      - '!ea/docs/**'
+      - '!ea/**/*.md'
   workflow_dispatch:
 
 jobs:
