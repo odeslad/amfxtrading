@@ -27,3 +27,10 @@
 - **Steps:** `Accounts` counts, from `useLivePositions()`, the market positions and the pending orders of each broker, skipping hidden symbols (`isVisible`); desktop column "Trades / Orders" after Number, sortable by positions, header shortened to "Tr. / Or." at the operator's request; `AccountCard` shows it in place of Number, and Number opens the expanded details.
 - **Outcome:** ✅ build and lint clean; the operator checked the counts against Positions and Orders.
 - **Est vs Actual:** 1 SP · 0.35 SP.
+
+## Task 5 · [frontend] Account filters
+
+- **Mechanism:** `npm run build` + eslint; local check against the production API.
+- **Steps:** `FiltersPanel` takes `fields` (default unchanged) and a `name` text field; `JournalPage` shows the Filters button on every tab, keeps `journal.accountFilters` (`broker`, `name`, `color`) in `localStorage` and opens the same panel for Accounts with Broker, Name and Color; `Accounts` filters (broker exact, name contains, case-insensitive; colour exact), reports the broker and colour options, and says "No accounts match the filters". Agreed with the operator: Name added to the panel, as a text field that matches as you type.
+- **Outcome:** ✅ build and lint clean; the operator checked the filters.
+- **Est vs Actual:** 1 SP · 0.5 SP.

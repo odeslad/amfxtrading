@@ -60,11 +60,19 @@ const buildColumns = (dayPnl: Record<string, number>, counts: Map<string, Accoun
   { key: 'currency', label: 'Currency', value: b => b.currency },
 ];
 
-interface AccountsProps {
-  onSelectBroker?: (broker: string) => void;
+export interface AccountFilters {
+  broker: string;
+  name: string;
+  color: string;
 }
 
-export function Accounts({ onSelectBroker }: AccountsProps) {
+interface AccountsProps {
+  onSelectBroker?: (broker: string) => void;
+  filters: AccountFilters;
+  onOptionsChange: (options: { brokers: string[]; colors: string[] }) => void;
+}
+
+export function Accounts({ onSelectBroker, filters, onOptionsChange }: AccountsProps) {
   const [balances, setBalances] = useState<Balance[]>([]);
   const [dayPnl, setDayPnl] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -127,11 +135,25 @@ export function Accounts({ onSelectBroker }: AccountsProps) {
     return map;
   }, [positions, visibility]);
   const columns = useMemo(() => buildColumns(dayPnl, counts), [dayPnl, counts]);
-  const { sorted, sort, toggle } = useSort(visible, columns, { key: 'broker', dir: 'asc' });
+  const nameQuery = filters.name.trim().toLowerCase();
+  const filtered = useMemo(
+    () => visible.filter(b => (!filters.broker || b.broker === filters.broker) && (!nameQuery || b.name.toLowerCase().includes(nameQuery)) && (!filters.color || b.color === filters.color)),
+    [visible, filters.broker, nameQuery, filters.color],
+  );
+  const optionsKey = [visible.map(b => b.broker), visible.map(b => b.color)].map(l => l.join('\u001f')).join('|');
+  useEffect(() => {
+    const [brokerList, colorList] = optionsKey.split('|').map(l => l.split('\u001f').filter(Boolean));
+    onOptionsChange({
+      brokers: [...brokerList].sort(),
+      colors: [...new Set(colorList)],
+    });
+  }, [optionsKey, onOptionsChange]);
+  const { sorted, sort, toggle } = useSort(filtered, columns, { key: 'broker', dir: 'asc' });
 
   if (loading) return <div className={styles.empty}>Loading...</div>;
   if (error) return <div className={styles.empty}>{error}</div>;
   if (visible.length === 0) return <div className={styles.empty}>{balances.length === 0 ? 'No accounts' : 'Every account is hidden in Settings'}</div>;
+  if (filtered.length === 0) return <div className={styles.empty}>No accounts match the filters</div>;
 
   return (
     <>

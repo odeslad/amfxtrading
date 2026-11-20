@@ -27,3 +27,10 @@
 - **Pasos:** `Accounts` cuenta, con `useLivePositions()`, las posiciones de mercado y las órdenes pendientes de cada broker, sin los símbolos ocultos (`isVisible`); columna "Trades / Orders" en escritorio tras Number, ordenable por posiciones, con la cabecera acortada a "Tr. / Or." a petición del operador; `AccountCard` la muestra en lugar de Number, y Number abre los detalles desplegados.
 - **Resultado:** ✅ build y lint limpios; el operador comprobó los contadores contra Positions y Orders.
 - **Est vs Real:** 1 SP · 0.35 SP.
+
+## Tarea 5 · [frontend] Filtros de cuentas
+
+- **Mecanismo:** `npm run build` + eslint; prueba local contra el API de producción.
+- **Pasos:** `FiltersPanel` recibe `fields` (por defecto igual que antes) y un campo de texto `name`; `JournalPage` muestra el botón Filters en todas las pestañas, guarda `journal.accountFilters` (`broker`, `name`, `color`) en `localStorage` y abre el mismo panel para Accounts con Broker, Name y Color; `Accounts` filtra (broker exacto, nombre que contiene el texto sin distinguir mayúsculas, color exacto), informa de las opciones de broker y color y dice "No accounts match the filters". Acordado con el operador: Name añadido al panel, como campo de texto que filtra mientras se escribe.
+- **Resultado:** ✅ build y lint limpios; el operador comprobó los filtros.
+- **Est vs Real:** 1 SP · 0.5 SP.

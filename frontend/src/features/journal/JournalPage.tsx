@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { OpenPositions, type BulkGroup } from './OpenPositions';
 import { PendingOrders } from './PendingOrders';
 import { ClosedPositions } from './ClosedPositions';
-import { Accounts } from './Accounts';
+import { Accounts, type AccountFilters } from './Accounts';
 import { FiltersPanel, type FilterValues, type FilterOptions } from './FiltersPanel';
 import { OrderFiltersPanel } from './OrderFiltersPanel';
 import { DEFAULT_ORDER_FILTERS, hasActiveOrderFilters, type OrderFilterValues } from './utils/orderFilters';
@@ -23,6 +23,8 @@ import styles from './JournalPage.module.css';
 
 type Tab = 'accounts' | 'open' | 'orders' | 'closed';
 
+const DEFAULT_ACCOUNT_FILTERS: AccountFilters = { broker: '', name: '', color: '' };
+
 const DEFAULT_FILTERS: FilterValues = {
   broker: '', symbol: '', type: '', color: '',
   dateRange: '', dateFrom: '', dateTo: '',
@@ -35,6 +37,10 @@ export function JournalPage() {
   const [tab, setTab] = useState<Tab>(() => (searchParams.get('tab') === 'orders' ? 'orders' : searchParams.get('broker') ? 'open' : 'accounts'));
   const [storedFilters, setFilters] = useLocalStorage<FilterValues>('journal.filters', DEFAULT_FILTERS);
   const [storedOrderFilters, setOrderFilters] = useLocalStorage<OrderFilterValues>('journal.orderFilters', DEFAULT_ORDER_FILTERS);
+  // Spec 055: Accounts filters by broker and account colour.
+  const [storedAccountFilters, setAccountFilters] = useLocalStorage<AccountFilters>('journal.accountFilters', DEFAULT_ACCOUNT_FILTERS);
+  const accountFilters: AccountFilters = useMemo(() => ({ ...DEFAULT_ACCOUNT_FILTERS, ...storedAccountFilters }), [storedAccountFilters]);
+  const [accountOptions, setAccountOptions] = useState<{ brokers: string[]; colors: string[] }>({ brokers: [], colors: [] });
   // Stored filters may predate some fields; merge so every key exists.
   // Memoised: a fresh object every render retriggers the group effects in the
   // tabs, which set state here and loop the render infinitely.
@@ -87,7 +93,9 @@ export function JournalPage() {
   const [cancelling, setCancelling] = useState(false);
 
   const filterOptions = tab === 'open' ? openOptions : closedOptions;
-  const hasActiveFilters = tab === 'orders'
+  const hasActiveFilters = tab === 'accounts'
+    ? !!(accountFilters.broker || accountFilters.name || accountFilters.color)
+    : tab === 'orders'
     ? hasActiveOrderFilters(orderFilters)
     : !!(filters.broker || filters.symbol || filters.type || filters.color || (tab === 'closed' && filters.dateRange));
 
@@ -193,21 +201,19 @@ export function JournalPage() {
               </button>
             </>
           )}
-          {tab !== 'accounts' && (
-            <button
-              type="button"
-              className={`${styles.filtersBtn} ${hasActiveFilters ? styles.filtersBtnActive : ''}`}
-              onClick={() => setFiltersOpen(true)}
-            >
-              <span>Filters</span>
-              <span className={styles.filtersBtnMobile}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square"/>
-                </svg>
-              </span>
-              {hasActiveFilters && <span className={styles.filtersDot} />}
-            </button>
-          )}
+          <button
+            type="button"
+            className={`${styles.filtersBtn} ${hasActiveFilters ? styles.filtersBtnActive : ''}`}
+            onClick={() => setFiltersOpen(true)}
+          >
+            <span>Filters</span>
+            <span className={styles.filtersBtnMobile}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square"/>
+              </svg>
+            </span>
+            {hasActiveFilters && <span className={styles.filtersDot} />}
+          </button>
           <button type="button" className={styles.newTradeBtn} onClick={() => setPanelOpen(true)}>
             <span>+ New Trade</span>
             <span className={styles.newTradeBtnMobile}>+</span>
@@ -218,12 +224,21 @@ export function JournalPage() {
       <NewTradePanel open={panelOpen} onClose={() => setPanelOpen(false)} />
 
       <FiltersPanel
-        open={filtersOpen && tab !== 'orders'}
+        open={filtersOpen && tab !== 'orders' && tab !== 'accounts'}
         onClose={() => setFiltersOpen(false)}
         values={filters}
         options={filterOptions}
         onChange={setFilters}
         showDateFilter={tab === 'closed'}
+      />
+
+      <FiltersPanel
+        open={filtersOpen && tab === 'accounts'}
+        onClose={() => setFiltersOpen(false)}
+        values={{ ...DEFAULT_FILTERS, ...accountFilters }}
+        options={{ brokers: accountOptions.brokers, symbols: [], colors: accountOptions.colors }}
+        onChange={v => setAccountFilters({ broker: v.broker, name: v.name ?? '', color: v.color })}
+        fields={['broker', 'name', 'color']}
       />
 
       <OrderFiltersPanel
@@ -267,7 +282,7 @@ export function JournalPage() {
 
       <div className={styles.tabContent}>
         <div className={tab === 'accounts' ? styles.tabPanel : styles.tabPanelHidden}>
-          <Accounts onSelectBroker={handleSelectBroker} />
+          <Accounts onSelectBroker={handleSelectBroker} filters={accountFilters} onOptionsChange={setAccountOptions} />
         </div>
         <div className={tab === 'open' ? styles.tabPanel : styles.tabPanelHidden}>
           <OpenPositions

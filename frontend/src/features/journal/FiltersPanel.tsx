@@ -5,6 +5,8 @@ import styles from './FiltersPanel.module.css';
 
 export interface FilterValues {
   broker: string;
+  // Spec 055: the account name, only in Accounts.
+  name?: string;
   symbol: string;
   type: string;
   color: string;
@@ -26,16 +28,22 @@ interface FiltersPanelProps {
   options: FilterOptions;
   onChange: (values: FilterValues) => void;
   showDateFilter?: boolean;
+  // Spec 055: the fields to show; Accounts uses only broker and colour.
+  fields?: FilterField[];
 }
 
-export function FiltersPanel({ open, onClose, values, options, onChange, showDateFilter }: FiltersPanelProps) {
+export type FilterField = 'broker' | 'name' | 'symbol' | 'type' | 'color';
+const ALL_FIELDS: FilterField[] = ['broker', 'symbol', 'type', 'color'];
+
+export function FiltersPanel({ open, onClose, values, options, onChange, showDateFilter, fields = ALL_FIELDS }: FiltersPanelProps) {
+  const show = (field: FilterField) => fields.includes(field);
   const set = (key: keyof FilterValues) => (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) =>
     onChange({ ...values, [key]: e.target.value });
 
-  const hasActiveFilters = !!(values.broker || values.symbol || values.type || values.color || values.dateRange);
+  const hasActiveFilters = !!(values.broker || values.name || values.symbol || values.type || values.color || values.dateRange);
 
   const reset = () =>
-    onChange({ broker: '', symbol: '', type: '', color: '', dateRange: '', dateFrom: '', dateTo: '' });
+    onChange({ broker: '', name: '', symbol: '', type: '', color: '', dateRange: '', dateFrom: '', dateTo: '' });
 
   return (
     <>
@@ -55,24 +63,35 @@ export function FiltersPanel({ open, onClose, values, options, onChange, showDat
             </select>
           </div>
 
-          <div className={styles.field}>
-            <label className={styles.label}>Symbol</label>
-            <select className={styles.input} value={values.symbol} onChange={set('symbol')}>
-              <option value="">All Symbols</option>
-              {options.symbols.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
+          {show('name') && (
+            <div className={styles.field}>
+              <label className={styles.label}>Name</label>
+              <input type="text" className={styles.input} value={values.name ?? ''} onChange={set('name')} placeholder="Account name" aria-label="Account name" />
+            </div>
+          )}
 
-          <div className={styles.field}>
-            <label className={styles.label}>Type</label>
-            <select className={styles.input} value={values.type} onChange={set('type')}>
-              <option value="">All Types</option>
-              <option value="buy">Buy</option>
-              <option value="sell">Sell</option>
-            </select>
-          </div>
+          {show('symbol') && (
+            <div className={styles.field}>
+              <label className={styles.label}>Symbol</label>
+              <select className={styles.input} value={values.symbol} onChange={set('symbol')}>
+                <option value="">All Symbols</option>
+                {options.symbols.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          )}
 
-          {options.colors.length > 0 && (
+          {show('type') && (
+            <div className={styles.field}>
+              <label className={styles.label}>Type</label>
+              <select className={styles.input} value={values.type} onChange={set('type')}>
+                <option value="">All Types</option>
+                <option value="buy">Buy</option>
+                <option value="sell">Sell</option>
+              </select>
+            </div>
+          )}
+
+          {show('color') && options.colors.length > 0 && (
             <div className={styles.field}>
               <label className={styles.label}>Color</label>
               <select className={styles.input} value={values.color} onChange={set('color')}>
