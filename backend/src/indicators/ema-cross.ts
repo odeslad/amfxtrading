@@ -1,8 +1,11 @@
-import { calculateEma, type Candle } from './ema';
+import type { Candle } from './ema';
+import { calculateMa, type MaType } from './moving-average';
 
 export interface EmaCrossContext {
   emaFast: number;
   emaSlow: number;
+  fastType?: MaType;
+  slowType?: MaType;
   direction: 'buy' | 'sell' | 'both';
 }
 
@@ -33,10 +36,10 @@ interface CrossEvent {
 }
 
 export function detectEmaCrossSetups(candles: Candle[], context: EmaCrossContext): EmaCrossSetup[] {
-  const { emaFast: fastPeriod, emaSlow: slowPeriod, direction } = context;
+  const { emaFast: fastPeriod, emaSlow: slowPeriod, fastType = 'ema', slowType = 'ema', direction } = context;
 
-  const fastEma = calculateEma(candles, fastPeriod);
-  const slowEma = calculateEma(candles, slowPeriod);
+  const fastEma = calculateMa(candles, fastType, fastPeriod);
+  const slowEma = calculateMa(candles, slowType, slowPeriod);
 
   // First pass: detect all crosses in both directions
   const allCrosses: CrossEvent[] = [];

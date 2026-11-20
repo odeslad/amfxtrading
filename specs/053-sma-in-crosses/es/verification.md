@@ -13,3 +13,10 @@
 - **Pasos:** `indicators/sma.ts` (`calculateSma`, misma suma móvil que `calcSma` del gráfico); `indicators/moving-average.ts` (`MA_TYPES`, `isMaType`, `calculateMa`, `maLabel`); `moving-average.test.ts`.
 - **Resultado:** ✅ 17 tests de indicadores en verde, build y lint limpios.
 - **Est vs Real:** 0.5 SP · 0.25 SP.
+
+## Tarea 3 · [backend] Cruces y setup levels con tipos
+
+- **Mecanismo:** vitest + build + lint.
+- **Pasos:** `ema-cross.ts` admite `fastType`/`slowType` opcionales (por defecto ema) y usa `calculateMa`; `/setup-levels` acepta `fastType`/`slowType` (400 si no es ema|sma; periodos iguales permitidos si los tipos difieren); test nuevo con la media lenta SMA.
+- **Resultado:** ✅ 207 tests en verde, build y lint limpios.
+- **Est vs Real:** 0.75 SP · 0.25 SP.

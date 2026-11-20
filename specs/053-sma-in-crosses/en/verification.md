@@ -13,3 +13,10 @@
 - **Steps:** `indicators/sma.ts` (`calculateSma`, same rolling sum as the chart's `calcSma`); `indicators/moving-average.ts` (`MA_TYPES`, `isMaType`, `calculateMa`, `maLabel`); `moving-average.test.ts`.
 - **Outcome:** ✅ 17 indicator tests green, build and lint clean.
 - **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Task 3 · [backend] Crosses and setup levels with types
+
+- **Mechanism:** vitest + build + lint.
+- **Steps:** `ema-cross.ts` takes optional `fastType`/`slowType` (default ema) and uses `calculateMa`; `/setup-levels` accepts `fastType`/`slowType` (400 if not ema|sma; equal periods allowed when the types differ); new test with an SMA slow side.
+- **Outcome:** ✅ 207 tests green, build and lint clean.
+- **Est vs Actual:** 0.75 SP · 0.25 SP.

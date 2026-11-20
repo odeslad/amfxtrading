@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db/client';
 import { detectEmaCrossSetups } from '../indicators/ema-cross';
+import { isMaType, type MaType } from '../indicators/moving-average';
 import { getPipSize } from '../indicators/pip-size';
 import type { Candle } from '../indicators/ema';
 import { asyncRoute } from '../middleware/asyncRoute';
@@ -21,6 +22,8 @@ router.get('/', asyncRoute(async (req, res) => {
   const tf = singleQuery(req.query, 'tf');
   const emaFast = singleQuery(req.query, 'emaFast');
   const emaSlow = singleQuery(req.query, 'emaSlow');
+  const fastType = singleQuery(req.query, 'fastType') ?? 'ema';
+  const slowType = singleQuery(req.query, 'slowType') ?? 'ema';
   const limit = intParam(singleQuery(req.query, 'limit'), 'limit', { min: 1, max: MAX_SETUPS, default: 1 }) ?? 1;
 
   if (!broker || !symbol || !tf || !emaFast || !emaSlow) {
@@ -29,8 +32,13 @@ router.get('/', asyncRoute(async (req, res) => {
   }
   const fast = parseInt(emaFast, 10);
   const slow = parseInt(emaSlow, 10);
-  if (!Number.isInteger(fast) || !Number.isInteger(slow) || fast <= 0 || slow <= 0 || fast === slow) {
-    res.status(400).json({ message: 'emaFast and emaSlow must be positive integers and differ' });
+  if (!Number.isInteger(fast) || !Number.isInteger(slow) || fast <= 0 || slow <= 0 || (fast === slow && fastType === slowType)) {
+    res.status(400).json({ message: 'emaFast and emaSlow must be positive integers, and differ for the same type' });
+    return;
+  }
+
+  if (!isMaType(fastType) || !isMaType(slowType)) {
+    res.status(400).json({ message: 'fastType and slowType must be ema or sma' });
     return;
   }
 
@@ -47,7 +55,7 @@ router.get('/', asyncRoute(async (req, res) => {
   const candles = rows.reverse() as Candle[];
   const pip = getPipSize(symbol);
 
-  const setups = detectEmaCrossSetups(candles, { emaFast: fast, emaSlow: slow, direction: 'both' });
+  const setups = detectEmaCrossSetups(candles, { emaFast: fast, emaSlow: slow, fastType: fastType as MaType, slowType: slowType as MaType, direction: 'both' });
   if (setups.length === 0) {
     res.json({ setup: null, setups: [] });
     return;

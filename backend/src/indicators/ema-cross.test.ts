@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calculateEma, type Candle } from './ema';
 import { detectEmaCrossSetups } from './ema-cross';
+import { calculateSma } from './sma';
 
 // Characterisation tests: they pin what the detector does today on a synthetic
 // V-shaped series (down, then up), so later refactors cannot move a cross or a
@@ -74,5 +75,15 @@ describe('detectEmaCrossSetups', () => {
     const [setup] = detectEmaCrossSetups(candles, context);
     expect(setup.closeIndex).toBeNull();
     expect(setup.candleCount).toBe(candles.length - 1 - setup.activationIndex);
+  });
+
+  it('uses an SMA on the side that asks for it', () => {
+    const [setup] = detectEmaCrossSetups(candles, { ...context, slowType: 'sma' });
+    const i = setup.activationIndex;
+    const fast = calculateEma(candles, 5);
+    const slow = calculateSma(candles, 20);
+    expect(fast[i - 1]! <= slow[i - 1]!).toBe(true);
+    expect(fast[i]! > slow[i]!).toBe(true);
+    expect(setup.levels.EMA).toBeLessThanOrEqual(Math.max(slow[i - 1]!, slow[i]!));
   });
 });
