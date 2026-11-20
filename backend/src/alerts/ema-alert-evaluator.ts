@@ -1,7 +1,8 @@
 import type { TickData, TickBatch } from '../bridge/pipe-reader';
 import { db } from '../db/client';
 import { sendToUser } from '../services/push';
-import { calculateEma, type Candle } from '../indicators/ema';
+import type { Candle } from '../indicators/ema';
+import { calculateMa, maLabel } from '../indicators/moving-average';
 import { getPipSize } from '../indicators/pip-size';
 import {
   getArmedEmaAlerts, hasAnyEmaAlerts, refreshEmaAlerts, type ArmedEmaAlert,
@@ -39,8 +40,8 @@ async function fire(alert: ArmedEmaAlert, crossDir: 'buy' | 'sell'): Promise<voi
   await refreshEmaAlerts();
   broadcast?.(alert.userId, alert.broker, alert.symbol, alert.timeframe, crossDir);
   await sendToUser(alert.userId, {
-    title: `${alert.symbol} EMA cross`,
-    body: `${alert.symbol} (${alert.broker}) ${alert.timeframe}: EMA ${alert.emaFast}/${alert.emaSlow} converging (${crossDir})`,
+    title: `${alert.symbol} MA cross`,
+    body: `${alert.symbol} (${alert.broker}) ${alert.timeframe}: ${maLabel(alert.fastType, alert.emaFast)} / ${maLabel(alert.slowType, alert.emaSlow)} converging (${crossDir})`,
     data: { broker: alert.broker, symbol: alert.symbol, timeframe: alert.timeframe, direction: crossDir },
   });
 }
@@ -57,8 +58,8 @@ async function evaluateAlert(alert: ArmedEmaAlert): Promise<void> {
   if (rows.length < need) return;
   const candles = rows.reverse() as Candle[];
 
-  const fast = calculateEma(candles, alert.emaFast);
-  const slow = calculateEma(candles, alert.emaSlow);
+  const fast = calculateMa(candles, alert.fastType, alert.emaFast);
+  const slow = calculateMa(candles, alert.slowType, alert.emaSlow);
   const n = candles.length;
   const fNow = fast[n - 1], sNow = slow[n - 1];
   const fPrev = fast[n - 2], sPrev = slow[n - 2];

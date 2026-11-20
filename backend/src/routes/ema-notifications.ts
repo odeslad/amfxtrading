@@ -5,6 +5,7 @@ import { asyncRoute } from '../middleware/asyncRoute';
 import { BadRequest, NotFound } from '../middleware/errors';
 import { bodyRecord, integer, intParam, optionalBoolean, optionalFiniteNumber, optionalInteger, optionalOneOf, optionalString, nonEmptyString } from '../middleware/parse';
 import { refreshEmaNotifications } from '../alerts/ema-notification-store';
+import { MA_TYPES, type MaType } from '../indicators/moving-average';
 
 // Standing EMA cross notification rules of the signed-in user (spec 023).
 
@@ -55,6 +56,8 @@ interface RuleFields {
   timeframe?: typeof TIMEFRAMES[number];
   emaFast?: number;
   emaSlow?: number;
+  fastType?: MaType;
+  slowType?: MaType;
   event?: typeof EVENTS[number];
   thresholdPips?: number;
   direction?: typeof DIRECTIONS[number];
@@ -77,6 +80,8 @@ function parseRule(raw: unknown, required: boolean): RuleFields {
     timeframe: req(optionalOneOf(body.timeframe, 'timeframe', TIMEFRAMES), 'timeframe'),
     emaFast: req(optionalInteger(body.emaFast, 'emaFast', { min: 1 }), 'emaFast'),
     emaSlow: req(optionalInteger(body.emaSlow, 'emaSlow', { min: 1 }), 'emaSlow'),
+    fastType: optionalOneOf(body.fastType, 'fastType', MA_TYPES),
+    slowType: optionalOneOf(body.slowType, 'slowType', MA_TYPES),
     event: req(optionalOneOf(body.event, 'event', EVENTS), 'event'),
     thresholdPips: optionalFiniteNumber(body.thresholdPips, 'thresholdPips', { positive: true }),
     direction: req(optionalOneOf(body.direction, 'direction', DIRECTIONS), 'direction'),
@@ -88,10 +93,12 @@ function parseRule(raw: unknown, required: boolean): RuleFields {
   return fields;
 }
 
-function checkConsistency(fields: RuleFields, current?: { emaFast: number; emaSlow: number; event: string; thresholdPips: number }): void {
+function checkConsistency(fields: RuleFields, current?: { emaFast: number; emaSlow: number; fastType: string; slowType: string; event: string; thresholdPips: number }): void {
   const fast = fields.emaFast ?? current?.emaFast;
   const slow = fields.emaSlow ?? current?.emaSlow;
-  if (fast !== undefined && slow !== undefined && fast === slow) throw new BadRequest('emaFast and emaSlow must differ');
+  const fastType = fields.fastType ?? current?.fastType ?? 'ema';
+  const slowType = fields.slowType ?? current?.slowType ?? 'ema';
+  if (fast !== undefined && slow !== undefined && fast === slow && fastType === slowType) throw new BadRequest('emaFast and emaSlow must differ for the same type');
   const event = fields.event ?? current?.event;
   const threshold = fields.thresholdPips ?? current?.thresholdPips;
   if (event !== 'cross' && (threshold === undefined || threshold <= 0)) throw new BadRequest('thresholdPips must be a positive number for approach notifications');
@@ -101,7 +108,7 @@ const stateOf = (r: { enabled: boolean; endsAt: Date | null }): State =>
   r.endsAt !== null && r.endsAt.getTime() <= Date.now() ? 'ended' : r.enabled ? 'active' : 'paused';
 
 async function serialize(rule: {
-  id: number; broker: string; symbols: string[]; timeframe: string; emaFast: number; emaSlow: number; event: string;
+  id: number; broker: string; symbols: string[]; timeframe: string; emaFast: number; emaSlow: number; fastType: string; slowType: string; event: string;
   thresholdPips: number; direction: string; repeatMinutes: number | null; endsAt: Date | null; enabled: boolean;
   note: string | null; createdAt: Date;
 }) {
@@ -124,6 +131,7 @@ router.post('/', asyncRoute<AuthRequest>(async (req, res) => {
   const rule = await db.emaNotification.create({
     data: {
       userId: req.userId!, broker: f.broker!, symbols: f.symbols!, timeframe: f.timeframe!, emaFast: f.emaFast!, emaSlow: f.emaSlow!,
+      fastType: f.fastType ?? 'ema', slowType: f.slowType ?? 'ema',
       event: f.event!, thresholdPips: f.thresholdPips ?? 2, direction: f.direction!, repeatMinutes: f.repeatMinutes ?? null,
       endsAt: f.endsAt ?? null, enabled: f.enabled ?? true, note: f.note ?? null,
     },
@@ -152,6 +160,8 @@ router.put('/:id', asyncRoute<AuthRequest>(async (req, res) => {
       ...(f.timeframe !== undefined ? { timeframe: f.timeframe } : {}),
       ...(f.emaFast !== undefined ? { emaFast: f.emaFast } : {}),
       ...(f.emaSlow !== undefined ? { emaSlow: f.emaSlow } : {}),
+      ...(f.fastType !== undefined ? { fastType: f.fastType } : {}),
+      ...(f.slowType !== undefined ? { slowType: f.slowType } : {}),
       ...(f.event !== undefined ? { event: f.event } : {}),
       ...(f.thresholdPips !== undefined ? { thresholdPips: f.thresholdPips } : {}),
       ...(f.direction !== undefined ? { direction: f.direction } : {}),

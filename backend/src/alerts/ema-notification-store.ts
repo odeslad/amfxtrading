@@ -1,4 +1,5 @@
 import { db } from '../db/client';
+import type { MaType } from '../indicators/moving-average';
 import type { NotificationDirection, NotificationEvent } from './ema-notification-rules';
 
 // In-memory cache of the enabled, not yet ended EMA notification rules, indexed
@@ -13,6 +14,8 @@ export interface ActiveRule {
   timeframe: string;
   emaFast: number;
   emaSlow: number;
+  fastType: MaType;
+  slowType: MaType;
   event: NotificationEvent;
   thresholdPips: number;
   direction: NotificationDirection;
@@ -27,13 +30,13 @@ export async function refreshEmaNotifications(): Promise<void> {
   const rows = await db.emaNotification.findMany({
     where: { enabled: true, OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] },
     select: {
-      id: true, userId: true, broker: true, symbols: true, timeframe: true, emaFast: true, emaSlow: true,
+      id: true, userId: true, broker: true, symbols: true, timeframe: true, emaFast: true, emaSlow: true, fastType: true, slowType: true,
       event: true, thresholdPips: true, direction: true, repeatMinutes: true, note: true,
     },
   });
   const map = new Map<string, Map<string, ActiveRule[]>>();
   for (const r of rows) {
-    const rule: ActiveRule = { ...r, event: r.event as NotificationEvent, direction: r.direction as NotificationDirection };
+    const rule: ActiveRule = { ...r, fastType: r.fastType as MaType, slowType: r.slowType as MaType, event: r.event as NotificationEvent, direction: r.direction as NotificationDirection };
     let tfs = map.get(r.broker);
     if (!tfs) { tfs = new Map(); map.set(r.broker, tfs); }
     const list = tfs.get(r.timeframe);

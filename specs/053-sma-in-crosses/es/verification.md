@@ -20,3 +20,10 @@
 - **Pasos:** `ema-cross.ts` admite `fastType`/`slowType` opcionales (por defecto ema) y usa `calculateMa`; `/setup-levels` acepta `fastType`/`slowType` (400 si no es ema|sma; periodos iguales permitidos si los tipos difieren); test nuevo con la media lenta SMA.
 - **Resultado:** ✅ 207 tests en verde, build y lint limpios.
 - **Est vs Real:** 0.75 SP · 0.25 SP.
+
+## Tarea 4 · [backend] Alertas y notificaciones con tipos
+
+- **Mecanismo:** lint + typecheck + test + build.
+- **Pasos:** `/ema-alerts` y `/ema-notifications` aceptan y validan `fastType`/`slowType` (ema|sma, por defecto ema; periodos iguales solo se rechazan con el mismo tipo); los stores cargan los tipos; los evaluadores usan `calculateMa`; los push dicen "EMA 24 / SMA 50" (título de la alerta "MA cross"); el payload WS de la notificación lleva los tipos.
+- **Resultado:** ✅ 207 tests en verde (el test inestable conocido de `pipe-reader` falló una vez y pasó al repetir), typecheck, build y lint limpios.
+- **Est vs Real:** 1.5 SP · 0.5 SP.

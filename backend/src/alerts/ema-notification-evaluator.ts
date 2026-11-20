@@ -1,7 +1,8 @@
 import type { TickData, TickBatch } from '../bridge/pipe-reader';
 import { db } from '../db/client';
 import { sendToUser } from '../services/push';
-import { calculateEma, type Candle } from '../indicators/ema';
+import type { Candle } from '../indicators/ema';
+import { calculateMa, maLabel, type MaType } from '../indicators/moving-average';
 import { getPipSize } from '../indicators/pip-size';
 import { decideFire, type FireDirection, type FireKind, type LastEvent } from './ema-notification-rules';
 import { getActiveRules, hasAnyEmaNotifications, type ActiveRule } from './ema-notification-store';
@@ -21,6 +22,8 @@ export interface EmaNotificationFire {
   gapPips: number;
   emaFast: number;
   emaSlow: number;
+  fastType: MaType;
+  slowType: MaType;
   note: string | null;
 }
 
@@ -58,19 +61,19 @@ async function fire(rule: ActiveRule, symbol: string, kind: FireKind, direction:
   });
   const payload: EmaNotificationFire = {
     userId: rule.userId, notificationId: rule.id, broker: rule.broker, symbol, timeframe: rule.timeframe,
-    kind, direction, gapPips, emaFast: rule.emaFast, emaSlow: rule.emaSlow, note: rule.note,
+    kind, direction, gapPips, emaFast: rule.emaFast, emaSlow: rule.emaSlow, fastType: rule.fastType, slowType: rule.slowType, note: rule.note,
   };
   broadcast?.(payload);
   await sendToUser(rule.userId, {
     title: title(payload),
-    body: `${rule.broker} · EMA ${rule.emaFast}/${rule.emaSlow}${rule.note ? ` · ${rule.note}` : ''}`,
+    body: `${rule.broker} · ${maLabel(rule.fastType, rule.emaFast)} / ${maLabel(rule.slowType, rule.emaSlow)}${rule.note ? ` · ${rule.note}` : ''}`,
     data: { broker: rule.broker, symbol, timeframe: rule.timeframe, direction, kind, notificationId: rule.id },
   });
 }
 
 async function evaluateRule(rule: ActiveRule, symbol: string, candles: Candle[], pip: number): Promise<void> {
-  const fast = calculateEma(candles, rule.emaFast);
-  const slow = calculateEma(candles, rule.emaSlow);
+  const fast = calculateMa(candles, rule.fastType, rule.emaFast);
+  const slow = calculateMa(candles, rule.slowType, rule.emaSlow);
   const n = candles.length;
   const fNow = fast[n - 1], sNow = slow[n - 1];
   const fPrev = fast[n - 2], sPrev = slow[n - 2];

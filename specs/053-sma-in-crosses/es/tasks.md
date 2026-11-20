@@ -5,7 +5,7 @@ Cada tarea es un commit convencional. El proyecto debe compilar tras cada tarea.
 - [x] 1. [db] Migración que añade `fastType`/`slowType` a `ema_cross_alerts` y `ema_notifications`, y `emaTradesFastType`/`emaTradesSlowType` a `settings_display` (por defecto `'ema'`) · **Verificar:** `prisma validate` + `prisma generate` + build; `prisma migrate diff` desde producción solo muestra estas columnas · **Est:** 0.5 SP
 - [x] 2. [backend] `calculateSma` + `calculateMa` con tests (misma serie que el gráfico) · **Verificar:** vitest · **Est:** 0.5 SP
 - [x] 3. [backend] `ema-cross.ts` y `/setup-levels` con los tipos (opcionales, por defecto ema) · **Verificar:** vitest + build · **Est:** 0.75 SP
-- [ ] 4. [backend] Alertas y notificaciones: las rutas validan los tipos, los evaluadores usan `calculateMa`, textos del push con las etiquetas · **Verificar:** lint + typecheck + test · **Est:** 1.5 SP
+- [x] 4. [backend] Alertas y notificaciones: las rutas validan los tipos, los evaluadores usan `calculateMa`, textos del push con las etiquetas · **Verificar:** lint + typecheck + test · **Est:** 1.5 SP
 - [ ] 5. [backend] Campos de tipo del overlay en `/settings` · **Verificar:** lint + typecheck + test · **Est:** 0.25 SP
 - [ ] 6. [frontend] `MaTypeToggle` + tipos en `useEmaAlerts` y `AlertsPanel` (escritorio y móvil) · **Verificar:** `npm run build` + prueba local contra el API de producción · **Est:** 1.25 SP
 - [ ] 7. [frontend] Notificaciones: `useEmaNotifications`, `NotificationPanel`, tabla/cards y confirmación de borrado · **Verificar:** `npm run build` + prueba local · **Est:** 1 SP

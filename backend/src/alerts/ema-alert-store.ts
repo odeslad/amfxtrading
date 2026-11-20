@@ -1,4 +1,5 @@
 import { db } from '../db/client';
+import type { MaType } from '../indicators/moving-average';
 
 // In-memory cache of armed EMA-cross alerts, mirrored from the DB. Read on every
 // candle close, so it must be cheap. Routes call refresh() after any change.
@@ -11,6 +12,8 @@ export interface ArmedEmaAlert {
   timeframe: string;
   emaFast: number;
   emaSlow: number;
+  fastType: MaType;
+  slowType: MaType;
   direction: 'buy' | 'sell' | 'both';
   thresholdPips: number;
 }
@@ -34,10 +37,10 @@ export async function refreshEmaAlerts(): Promise<void> {
     where: { enabled: true, triggeredAt: null },
     select: {
       id: true, userId: true, broker: true, symbol: true, timeframe: true,
-      emaFast: true, emaSlow: true, direction: true, thresholdPips: true,
+      emaFast: true, emaSlow: true, fastType: true, slowType: true, direction: true, thresholdPips: true,
     },
   });
-  byBrokerSymbol = index(rows.map(r => ({ ...r, direction: r.direction as 'buy' | 'sell' | 'both' })));
+  byBrokerSymbol = index(rows.map(r => ({ ...r, fastType: r.fastType as MaType, slowType: r.slowType as MaType, direction: r.direction as 'buy' | 'sell' | 'both' })));
 }
 
 export function getArmedEmaAlerts(broker: string, symbol: string): ArmedEmaAlert[] {

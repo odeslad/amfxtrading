@@ -3,6 +3,7 @@ import { db } from '../db/client';
 import type { AuthRequest } from '../middleware/requireAuth';
 import { refreshEmaAlerts } from '../alerts/ema-alert-store';
 import { asyncRoute } from '../middleware/asyncRoute';
+import { isMaType, type MaType } from '../indicators/moving-average';
 
 const router = Router();
 
@@ -14,6 +15,8 @@ interface EmaAlertBody {
   timeframe?: string;
   emaFast?: number;
   emaSlow?: number;
+  fastType?: MaType;
+  slowType?: MaType;
   direction?: Direction;
   thresholdPips?: number;
   note?: string | null;
@@ -29,6 +32,8 @@ const FIELD_RULES: Record<keyof EmaAlertBody, (v: unknown) => string | null> = {
   timeframe: v => (typeof v === 'string' && v !== '' ? null : 'timeframe must be a non-empty string'),
   emaFast: v => (positiveInt(v) ? null : 'emaFast must be a positive integer'),
   emaSlow: v => (positiveInt(v) ? null : 'emaSlow must be a positive integer'),
+  fastType: v => (isMaType(v) ? null : 'fastType must be "ema" or "sma"'),
+  slowType: v => (isMaType(v) ? null : 'slowType must be "ema" or "sma"'),
   direction: v => (v === 'buy' || v === 'sell' || v === 'both' ? null : 'direction must be "buy", "sell" or "both"'),
   thresholdPips: v => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? null : 'thresholdPips must be a positive number'),
   note: v => (v === null || typeof v === 'string' ? null : 'note must be a string or null'),
@@ -39,7 +44,6 @@ function validate(body: EmaAlertBody): string | null {
   if (!body.broker || !body.symbol || !body.timeframe) return 'broker, symbol and timeframe are required';
   if (!Number.isInteger(body.emaFast) || !Number.isInteger(body.emaSlow)) return 'emaFast and emaSlow must be integers';
   if ((body.emaFast as number) <= 0 || (body.emaSlow as number) <= 0) return 'emaFast and emaSlow must be positive';
-  if (body.emaFast === body.emaSlow) return 'emaFast and emaSlow must differ';
   if (body.direction !== 'buy' && body.direction !== 'sell' && body.direction !== 'both') return 'direction must be "buy", "sell" or "both"';
   if (typeof body.thresholdPips !== 'number' || !Number.isFinite(body.thresholdPips) || body.thresholdPips <= 0) return 'thresholdPips must be a positive number';
   return validatePartial(body);
@@ -47,7 +51,7 @@ function validate(body: EmaAlertBody): string | null {
 
 // Only the fields present are checked; `current` supplies the other EMA period
 // so the "must differ" rule holds when just one of them is sent.
-function validatePartial(body: EmaAlertBody, current?: { emaFast: number; emaSlow: number }): string | null {
+function validatePartial(body: EmaAlertBody, current?: { emaFast: number; emaSlow: number; fastType: string; slowType: string }): string | null {
   for (const [field, rule] of Object.entries(FIELD_RULES) as [keyof EmaAlertBody, (v: unknown) => string | null][]) {
     if (body[field] === undefined) continue;
     const error = rule(body[field]);
@@ -55,7 +59,9 @@ function validatePartial(body: EmaAlertBody, current?: { emaFast: number; emaSlo
   }
   const fast = body.emaFast ?? current?.emaFast;
   const slow = body.emaSlow ?? current?.emaSlow;
-  if (fast !== undefined && slow !== undefined && fast === slow) return 'emaFast and emaSlow must differ';
+  const fastType = body.fastType ?? current?.fastType ?? 'ema';
+  const slowType = body.slowType ?? current?.slowType ?? 'ema';
+  if (fast !== undefined && slow !== undefined && fast === slow && fastType === slowType) return 'emaFast and emaSlow must differ for the same type';
   return null;
 }
 
@@ -80,6 +86,8 @@ router.post('/', asyncRoute<AuthRequest>(async (req, res) => {
       timeframe: body.timeframe!,
       emaFast: body.emaFast!,
       emaSlow: body.emaSlow!,
+      fastType: body.fastType ?? 'ema',
+      slowType: body.slowType ?? 'ema',
       direction: body.direction!,
       thresholdPips: body.thresholdPips!,
       note: body.note ?? null,
@@ -114,6 +122,8 @@ router.put('/:id', asyncRoute<AuthRequest>(async (req, res) => {
       ...(body.timeframe !== undefined ? { timeframe: body.timeframe } : {}),
       ...(body.emaFast !== undefined ? { emaFast: body.emaFast } : {}),
       ...(body.emaSlow !== undefined ? { emaSlow: body.emaSlow } : {}),
+      ...(body.fastType !== undefined ? { fastType: body.fastType } : {}),
+      ...(body.slowType !== undefined ? { slowType: body.slowType } : {}),
       ...(body.direction !== undefined ? { direction: body.direction } : {}),
       ...(body.thresholdPips !== undefined ? { thresholdPips: body.thresholdPips } : {}),
       ...(body.note !== undefined ? { note: body.note } : {}),
