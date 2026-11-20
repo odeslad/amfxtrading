@@ -225,3 +225,12 @@
     font-size: var(--text-xl);
   }
 }
+
+/* Spec 055: a text field takes the input look without the select arrow. */
+.textInput {
+  background-image: none;
+}
+
+.textInput::placeholder {
+  color: #333;
+}

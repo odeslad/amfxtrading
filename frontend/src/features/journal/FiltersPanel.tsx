@@ -66,7 +66,7 @@ export function FiltersPanel({ open, onClose, values, options, onChange, showDat
           {show('name') && (
             <div className={styles.field}>
               <label className={styles.label}>Name</label>
-              <input type="text" className={styles.input} value={values.name ?? ''} onChange={set('name')} placeholder="Account name" aria-label="Account name" />
+              <input type="text" className={`${styles.input} ${styles.textInput}`} value={values.name ?? ''} onChange={set('name')} placeholder="Account name" aria-label="Account name" />
             </div>
           )}
 
