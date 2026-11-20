@@ -49,3 +49,10 @@
 - **Acordado en la prueba (AC 12):** mostrar el avance de la activación (el backend marca las filas del broker "waiting for the EA" / "history requested" / error y lo emite; Visibility muestra la sincronización bajo el broker con enlace a Data; el aviso al guardar nombra los pares que se sincronizan) y no guardar nunca velas con hora 0 (watcher de ficheros, cierres por tick, sincronización), en dos commits del backend.
 - **Resultado:** ✅ build y lint limpios; el operador revisó la pantalla y el guardado en demo. 🕐 El avance se comprueba tras desplegar el backend (tarea 9).
 - **Est vs Real:** 2 SP · 1.25 SP.
+
+## Tarea 8 · [docs] Documentación
+
+- **Mecanismo:** revisión manual del diff.
+- **Pasos:** `ea/docs/deploy.md` (`symbols` gestionado desde la app, recarga en vivo, `symbols-available.json`); `backend/docs/architecture.md` (`/broker-symbols`, sustitución acotada en la sincronización, sincronización de pares nuevos con sus estados, velas con hora 0, `hiddenSymbols` sin uso); `.claude/CLAUDE.md` (ficheros bridge, 20 routers, sección "Pares de cada broker", `hiddenSymbols` sin uso).
+- **Resultado:** ✅ los tres documentos coinciden.
+- **Est vs Real:** 0.5 SP · 0.25 SP.

@@ -75,6 +75,8 @@ C:\Users\Administrator\AppData\Roaming\MetaQuotes\Terminal\<HASH>\MQL4\Files\bri
 
 Si el archivo existe, sobreescribe los inputs del EA. Si no existe, el EA usa `AccountCompany()` como fallback para `brokerName` y el input `SYMBOLS`.
 
+**Desde la spec 056 `symbols` se gestiona desde la app** (Settings › Visibility › Pairs): el backend reescribe solo ese campo (`.tmp` + rename) y los dos EAs (State 3.16+, Commands 2.24+) vuelven a leer el fichero en unos 5 s cuando cambia su hora de modificación, sin reiniciar MT4. `brokerName` se sigue editando a mano y nunca desde la app; una lista vacía no se guarda (el EA volvería a su input `SYMBOLS`). El EA de estado escribe además `bridge/symbols-available.json` con todos los símbolos del broker, que la app filtra a los cruces de AUD, EUR, NZD, USD, CAD, GBP y JPY.
+
 Ver `ea/config.example.json` como referencia.
 
 ## Recarga del EA en MT4

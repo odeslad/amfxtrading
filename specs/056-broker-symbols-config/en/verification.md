@@ -49,3 +49,10 @@
 - **Agreed during the check (AC 12):** show the progress of the activation (backend marks the broker rows "waiting for the EA" / "history requested" / error and broadcasts them; Visibility shows the sync under the broker linking to Data; the save toast names the pairs syncing) and never store candles at time 0 (file watcher, tick closes, sync), as two backend commits.
 - **Outcome:** ✅ build and lint clean; the operator checked the screen and the demo save. 🕐 Progress display checked after the backend deploy (task 9).
 - **Est vs Actual:** 2 SP · 1.25 SP.
+
+## Task 8 · [docs] Docs
+
+- **Mechanism:** manual review of the diff.
+- **Steps:** `ea/docs/deploy.md` (`symbols` managed from the app, live reload, `symbols-available.json`); `backend/docs/architecture.md` (`/broker-symbols`, scoped sync replace, new-pair sync with its states, time-0 candles, `hiddenSymbols` unused); `.claude/CLAUDE.md` (bridge files, 20 routers, a "Pares de cada broker" section, `hiddenSymbols` unused).
+- **Outcome:** ✅ the three documents agree.
+- **Est vs Actual:** 0.5 SP · 0.25 SP.
