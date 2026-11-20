@@ -141,6 +141,11 @@
   min-width: 0;
 }
 
+.maInput {
+  display: flex;
+  gap: 6px;
+}
+
 .label {
   font-family: var(--font-sans);
   font-size: var(--text-2xs);

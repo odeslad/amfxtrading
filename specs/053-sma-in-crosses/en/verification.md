@@ -34,3 +34,10 @@
 - **Steps:** `EmaTradesSettings` gains `fastType`/`slowType` (optional on input, default ema; equal periods only rejected for the same type), read from and written to `emaTradesFastType`/`emaTradesSlowType`; tests for the types, the default and the equal-period rule.
 - **Outcome:** ✅ 207 tests green (flaky `pipe-reader` again passed on rerun), typecheck, build and lint clean.
 - **Est vs Actual:** 0.25 SP · 0.25 SP.
+
+## Task 6 · [frontend] Average types in the cross alerts panel
+
+- **Mechanism:** `npm run build` + eslint; local check (Vite 5174 against the production API).
+- **Steps:** shared `MaTypeToggle` (EMA | SMA); `useEmaAlerts` carries `fastType`/`slowType`; `AlertsPanel` has a toggle before each period, threshold on its own row, tab "MA cross", list rows labelled with `maLabel` ("EMA 24 / SMA 48 ≤2p").
+- **Outcome:** ✅ build and lint clean; the operator created an EMA 24 / SMA 48 alert on FTMO EURUSD H1 and saw it listed with the right label.
+- **Est vs Actual:** 1.25 SP · 0.5 SP.

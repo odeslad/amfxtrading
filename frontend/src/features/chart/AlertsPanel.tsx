@@ -6,6 +6,9 @@ import type { PriceAlert } from '../../lib/useAlerts';
 import { AlertPriceEdit } from './AlertPriceEdit';
 import { AlertRow } from './AlertRow';
 import type { EmaCrossAlert, NewEmaAlert, EmaAlertDirection } from '../../lib/useEmaAlerts';
+import type { MaType } from './chart.types';
+import { MaTypeToggle } from './MaTypeToggle';
+import { maLabel } from './movingAverages';
 import styles from './AlertsPanel.module.css';
 
 const TIMEFRAMES = ['M5', 'M15', 'H1', 'H4', 'D1'];
@@ -51,6 +54,8 @@ export const AlertsPanel = memo(function AlertsPanel({ open, onClose, broker, sy
   const [emaTf, setEmaTf] = useState('H1');
   const [emaFast, setEmaFast] = useState('24');
   const [emaSlow, setEmaSlow] = useState('48');
+  const [fastType, setFastType] = useState<MaType>('ema');
+  const [slowType, setSlowType] = useState<MaType>('ema');
   const [emaDir, setEmaDir] = useState<EmaAlertDirection>('both');
   const [emaThreshold, setEmaThreshold] = useState('2');
   const [emaAllSymbols, setEmaAllSymbols] = useState(false);
@@ -85,15 +90,15 @@ export const AlertsPanel = memo(function AlertsPanel({ open, onClose, broker, sy
     const threshold = parseFloat(emaThreshold);
     const targets = emaAllSymbols ? symbols : [formSymbol];
     if (!formBroker || targets.length === 0 || !Number.isInteger(fast) || !Number.isInteger(slow)
-      || fast <= 0 || slow <= 0 || fast === slow || !Number.isFinite(threshold) || threshold <= 0) return;
+      || fast <= 0 || slow <= 0 || (fast === slow && fastType === slowType) || !Number.isFinite(threshold) || threshold <= 0) return;
     setEmaSaving(true);
     try {
       // One alert per symbol so each fires and re-arms independently.
       for (const sym of targets) {
-        await onCreateEma({ broker: formBroker, symbol: sym, timeframe: emaTf, emaFast: fast, emaSlow: slow, direction: emaDir, thresholdPips: threshold });
+        await onCreateEma({ broker: formBroker, symbol: sym, timeframe: emaTf, emaFast: fast, emaSlow: slow, fastType, slowType, direction: emaDir, thresholdPips: threshold });
       }
     } catch (err) {
-      addToast(errorMessage(err, 'Failed to create EMA alert'), 'error');
+      addToast(errorMessage(err, 'Failed to create cross alert'), 'error');
     } finally {
       setEmaSaving(false);
     }
@@ -102,8 +107,8 @@ export const AlertsPanel = memo(function AlertsPanel({ open, onClose, broker, sy
   const reportFailure = (fallback: string) => (err: unknown) => addToast(errorMessage(err, fallback), 'error');
   const handleToggle = (a: PriceAlert) => onToggle(a).catch(reportFailure('Failed to update alert'));
   const handleDelete = (id: number) => onDelete(id).catch(reportFailure('Failed to delete alert'));
-  const handleToggleEma = (a: EmaCrossAlert) => onToggleEma(a).catch(reportFailure('Failed to update EMA alert'));
-  const handleDeleteEma = (id: number) => onDeleteEma(id).catch(reportFailure('Failed to delete EMA alert'));
+  const handleToggleEma = (a: EmaCrossAlert) => onToggleEma(a).catch(reportFailure('Failed to update cross alert'));
+  const handleDeleteEma = (id: number) => onDeleteEma(id).catch(reportFailure('Failed to delete cross alert'));
 
   return (
     <>
@@ -124,7 +129,7 @@ export const AlertsPanel = memo(function AlertsPanel({ open, onClose, broker, sy
             type="button"
             className={`${styles.tab} ${tab === 'ema' ? styles.tabActive : ''}`}
             onClick={() => setTab('ema')}
-          >EMA cross</button>
+          >MA cross</button>
         </div>
 
         {pushStatus !== 'subscribed' && (
@@ -259,13 +264,22 @@ export const AlertsPanel = memo(function AlertsPanel({ open, onClose, broker, sy
 
           <div className={styles.row}>
             <div className={styles.field}>
-              <label className={styles.label}>EMA fast</label>
-              <input className={styles.input} type="number" inputMode="numeric" step="1" value={emaFast} onChange={e => setEmaFast(e.target.value)} />
+              <label className={styles.label}>Fast</label>
+              <div className={styles.maInput}>
+                <MaTypeToggle value={fastType} onChange={setFastType} label="Fast average type" />
+                <input className={styles.input} type="number" inputMode="numeric" step="1" value={emaFast} aria-label="Fast period" onChange={e => setEmaFast(e.target.value)} />
+              </div>
             </div>
             <div className={styles.field}>
-              <label className={styles.label}>EMA slow</label>
-              <input className={styles.input} type="number" inputMode="numeric" step="1" value={emaSlow} onChange={e => setEmaSlow(e.target.value)} />
+              <label className={styles.label}>Slow</label>
+              <div className={styles.maInput}>
+                <MaTypeToggle value={slowType} onChange={setSlowType} label="Slow average type" />
+                <input className={styles.input} type="number" inputMode="numeric" step="1" value={emaSlow} aria-label="Slow period" onChange={e => setEmaSlow(e.target.value)} />
+              </div>
             </div>
+          </div>
+
+          <div className={styles.row}>
             <div className={styles.field}>
               <label className={styles.label}>Threshold</label>
               <input className={styles.input} type="number" inputMode="decimal" step="0.1" value={emaThreshold} placeholder="pips" onChange={e => setEmaThreshold(e.target.value)} />
@@ -273,17 +287,17 @@ export const AlertsPanel = memo(function AlertsPanel({ open, onClose, broker, sy
           </div>
 
           <button type="button" className={styles.addBtn} onClick={handleCreateEma} disabled={emaSaving}>
-            {emaSaving ? 'Adding…' : emaAllSymbols ? `+ Add for ${symbols.length} symbols` : '+ Add EMA alert'}
+            {emaSaving ? 'Adding…' : emaAllSymbols ? `+ Add for ${symbols.length} symbols` : '+ Add cross alert'}
           </button>
         </div>
 
         <div className={styles.list}>
-          {emaAlerts.length === 0 && <div className={styles.empty}>No EMA alerts</div>}
+          {emaAlerts.length === 0 && <div className={styles.empty}>No cross alerts</div>}
           {emaAlerts.map(a => (
             <AlertRow
               key={a.id}
               off={!a.enabled}
-              label={`${a.symbol} EMA alert`}
+              label={`${a.symbol} cross alert`}
               actions={<>
                 <button type="button" className={styles.toggleBtn} onClick={() => handleToggleEma(a)}>{a.enabled ? 'Off' : 'On'}</button>
                 <button type="button" className={styles.deleteBtn} onClick={() => handleDeleteEma(a.id)}>Delete</button>
@@ -295,7 +309,7 @@ export const AlertsPanel = memo(function AlertsPanel({ open, onClose, broker, sy
               </span>
               <span className={styles.itemPrice}>
                 <span className={a.direction === 'buy' ? styles.above : a.direction === 'sell' ? styles.below : ''}>
-                  {a.direction === 'buy' ? '▲' : a.direction === 'sell' ? '▼' : '⇅'} {a.emaFast}/{a.emaSlow} ≤{a.thresholdPips}p
+                  {a.direction === 'buy' ? '▲' : a.direction === 'sell' ? '▼' : '⇅'} {maLabel({ type: a.fastType, period: a.emaFast })} / {maLabel({ type: a.slowType, period: a.emaSlow })} ≤{a.thresholdPips}p
                 </span>
                 {a.triggeredAt && <span className={styles.triggered}>triggered</span>}
               </span>

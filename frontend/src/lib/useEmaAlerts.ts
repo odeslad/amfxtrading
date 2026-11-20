@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { apiSend } from './api';
 import { useRemoteList } from './useRemoteList';
+import type { MaType } from '../features/chart/chart.types';
 
 export type EmaAlertDirection = 'buy' | 'sell' | 'both';
 
@@ -11,6 +12,8 @@ export interface EmaCrossAlert {
   timeframe: string;
   emaFast: number;
   emaSlow: number;
+  fastType: MaType;
+  slowType: MaType;
   direction: EmaAlertDirection;
   thresholdPips: number;
   note: string | null;
@@ -24,6 +27,8 @@ export interface NewEmaAlert {
   timeframe: string;
   emaFast: number;
   emaSlow: number;
+  fastType: MaType;
+  slowType: MaType;
   direction: EmaAlertDirection;
   thresholdPips: number;
 }

@@ -34,3 +34,10 @@
 - **Pasos:** `EmaTradesSettings` añade `fastType`/`slowType` (opcionales al recibir, por defecto ema; periodos iguales solo se rechazan con el mismo tipo), leídos y escritos en `emaTradesFastType`/`emaTradesSlowType`; tests de los tipos, el valor por defecto y la regla de periodos iguales.
 - **Resultado:** ✅ 207 tests en verde (el inestable `pipe-reader` pasó de nuevo al repetir), typecheck, build y lint limpios.
 - **Est vs Real:** 0.25 SP · 0.25 SP.
+
+## Tarea 6 · [frontend] Tipos de media en el panel de alertas de cruce
+
+- **Mecanismo:** `npm run build` + eslint; prueba local (Vite 5174 contra el API de producción).
+- **Pasos:** componente compartido `MaTypeToggle` (EMA | SMA); `useEmaAlerts` lleva `fastType`/`slowType`; `AlertsPanel` tiene un selector delante de cada periodo, el umbral en su propia fila, pestaña "MA cross", filas de la lista con `maLabel` ("EMA 24 / SMA 48 ≤2p").
+- **Resultado:** ✅ build y lint limpios; el operador creó una alerta EMA 24 / SMA 48 en FTMO EURUSD H1 y la vio en la lista con la etiqueta correcta.
+- **Est vs Real:** 1.25 SP · 0.5 SP.
