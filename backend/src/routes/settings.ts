@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { db } from '../db/client';
 import { asyncRoute } from '../middleware/asyncRoute';
 import { BadRequest } from '../middleware/errors';
@@ -7,6 +7,7 @@ import {
   bodyRecord, nonEmptyString, finiteNumber, integer, oneOf, optionalOneOf, optionalString, optionalInteger, optionalBoolean,
 } from '../middleware/parse';
 import { MA_TYPES, type MaType } from '../indicators/moving-average';
+import { parseQuickOrders, readQuickOrders, type QuickOrders } from './quick-orders';
 
 const LOTS_MODES = ['fixed', 'risk_pct'] as const;
 const PNL_MODES = ['net', 'gross', 'pips', 'pct'] as const;
@@ -61,6 +62,7 @@ interface DisplayInput {
   setupLevels?: SetupLevelKey[];
   fibLevels?: number[];
   emaTrades?: EmaTradesSettings;
+  quickOrders?: QuickOrders | null;
 }
 
 interface Visibility {
@@ -88,6 +90,7 @@ interface DisplayRow {
   emaTradesLabels: string[];
   hiddenBrokers: string[];
   hiddenSymbols: Prisma.JsonValue;
+  quickOrders: Prisma.JsonValue;
 }
 
 function parseMirror(value: unknown, prefix: string): MirrorItem[] {
@@ -207,6 +210,9 @@ function emaTradesColumns(value: EmaTradesSettings) {
   };
 }
 
+const quickOrdersColumn = (value: QuickOrders | null): Prisma.InputJsonValue | typeof Prisma.DbNull =>
+  value === null ? Prisma.DbNull : (value as unknown as Prisma.InputJsonValue);
+
 export function parseDisplay(value: unknown): DisplayInput {
   const row = bodyRecord(value);
   return {
@@ -219,6 +225,7 @@ export function parseDisplay(value: unknown): DisplayInput {
     setupLevels: parseSetupLevels(row.setupLevels),
     fibLevels: parseFibLevels(row.fibLevels),
     emaTrades: parseEmaTrades(row.emaTrades),
+    quickOrders: parseQuickOrders(row.quickOrders),
   };
 }
 
@@ -273,6 +280,7 @@ function toResponse(presets: PresetRow[], display: DisplayRow | null) {
       setupLevels: display?.setupLevels ?? [...SETUP_LEVEL_KEYS],
       fibLevels: display?.fibLevels ?? DEFAULT_FIB_LEVELS,
       emaTrades: emaTradesOf(display),
+      quickOrders: readQuickOrders(display?.quickOrders, presets.map(p => p.id)),
     },
     visibility: {
       hiddenBrokers: display?.hiddenBrokers ?? [],
@@ -302,6 +310,14 @@ router.put('/', asyncRoute(async (req, res) => {
   const display = body.display !== undefined ? parseDisplay(body.display) : undefined;
   const visibility = body.visibility !== undefined ? parseVisibility(body.visibility) : undefined;
 
+  const quickPreset = display?.quickOrders?.mirrorPresetId;
+  if (quickPreset !== undefined && quickPreset !== null) {
+    const exists = presets !== undefined
+      ? presets.some(p => p.id === quickPreset)
+      : (await db.mirrorPreset.count({ where: { id: quickPreset } })) > 0;
+    if (!exists) throw new BadRequest('display.quickOrders.mirrorPresetId must be an existing preset');
+  }
+
   const ops: Promise<unknown>[] = [];
 
   if (presets !== undefined) {
@@ -329,6 +345,7 @@ router.put('/', asyncRoute(async (req, res) => {
       ...(display.setupLevels !== undefined ? { setupLevels: display.setupLevels } : {}),
       ...(display.fibLevels !== undefined ? { fibLevels: display.fibLevels } : {}),
       ...(display.emaTrades !== undefined ? emaTradesColumns(display.emaTrades) : {}),
+      ...(display.quickOrders !== undefined ? { quickOrders: quickOrdersColumn(display.quickOrders) } : {}),
     };
     const visibilityFields = visibility === undefined ? {} : {
       hiddenBrokers: visibility.hiddenBrokers,
@@ -349,6 +366,7 @@ router.put('/', asyncRoute(async (req, res) => {
           setupLevels: display?.setupLevels ?? [...SETUP_LEVEL_KEYS],
           fibLevels: display?.fibLevels ?? DEFAULT_FIB_LEVELS,
           ...emaTradesColumns(display?.emaTrades ?? DEFAULT_EMA_TRADES),
+          ...(display?.quickOrders ? { quickOrders: quickOrdersColumn(display.quickOrders) } : {}),
           ...visibilityFields,
         },
       })
