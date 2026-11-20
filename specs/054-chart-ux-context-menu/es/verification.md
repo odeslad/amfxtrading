@@ -35,3 +35,10 @@
 - **Pasos:** `ChartContextMenu` (secciones de opciones, dentro del gráfico y ajustado a él; se cierra con Esc, al pulsar fuera, con la rueda, al redimensionar, al perder el foco y al elegir); `LightweightChart` informa del clic derecho en el área (`ChartContextRequest`: posición, precio en el puntero, bid/ask) y bloquea el menú del navegador, ignorando la escala de precios y las etiquetas interactivas; `chartMenu.ts` arma Buy at / Sell at (tipo con `orderTypeAt`), New trade y Price alert at; `ChartSlot` guarda el menú; `NewTradePanel.initialOrder` aplica la acción y el precio elegidos una vez por petición; `ChartPage` pasa la orden y `createAlert`.
 - **Resultado:** ✅ build y lint limpios; el operador comprobó cada opción y las reglas de cierre.
 - **Est vs Real:** 2.5 SP · 1 SP.
+
+## Tarea 6 · [frontend] Objetivos del menú y botones flotantes quitados
+
+- **Mecanismo:** `npm run build` + eslint; prueba local en escritorio.
+- **Pasos:** `LightweightChart` guarda cada línea de posición/orden (entrada, SL, TP) y resuelve el objetivo bajo el puntero (línea a menos de 6 px, si no un dibujo con el nuevo `TrendlineManager.drawingAt`); la petición lleva el número de dibujos y las acciones de borrar / borrar todos; `chartMenu.ts` añade la sección de posición (Editar, Quitar SL / TP si existen, Cerrar / Cancelar; oculta con el gráfico bloqueado) y la de dibujos (Borrar dibujo, Borrar todos los dibujos… con `ConfirmPanel`); el botón derecho ya no empieza un arrastre de nivel ni un punto de dibujo; quitados los botones flotantes "+ New Trade", "Delete" y "Clear all" y su CSS (la tecla Supr se queda).
+- **Resultado:** ✅ build y lint limpios; el operador comprobó las acciones de posición y de dibujo.
+- **Est vs Real:** 2 SP · 1 SP.

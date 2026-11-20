@@ -237,7 +237,17 @@ export interface ChartContextRequest {
   price: number;
   bid: number | null;
   ask: number | null;
+  target: ChartMenuTarget | null;
+  drawingCount: number;
+  deleteDrawing: (id: string) => void;
+  clearDrawings: () => void;
 }
+
+export type ChartMenuTarget =
+  | { kind: 'position'; ticket: number; line: 'entry' | 'sl' | 'tp' }
+  | { kind: 'drawing'; id: string };
+
+const MENU_HIT_PX = 6;
 
 interface LightweightChartExtendedProps extends LightweightChartProps {
   drawMode?: DrawMode | null;
@@ -255,15 +265,13 @@ interface LightweightChartExtendedProps extends LightweightChartProps {
   alerts?: ChartAlert[];
   onMoveAlert?: (alertId: number, price: number) => Promise<void>;
   onSelectAlert?: (alertId: number | null) => void;
-  showNewTrade?: boolean;
-  onNewTrade?: () => void;
   locked?: boolean;
   // EMA cross trades overlay (spec 039), painted on the overlay canvas; never a drawing.
   emaCrossTrades?: EmaCrossTrade[];
   onContextMenu?: (request: ChartContextRequest) => void;
 }
 
-export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLoadMore, emas, drawMode, onDrawDone, positions, onEditPosition, onModifyPosition, initialDrawings, onDrawingsChange, trendlineAppearance, accountBalance, pnlMode = 'net', showSpread = false, alerts, onMoveAlert, onSelectAlert, showNewTrade, onNewTrade, onClosePosition, locked = false, emaCrossTrades, onContextMenu }: LightweightChartExtendedProps) {
+export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLoadMore, emas, drawMode, onDrawDone, positions, onEditPosition, onModifyPosition, initialDrawings, onDrawingsChange, trendlineAppearance, accountBalance, pnlMode = 'net', showSpread = false, alerts, onMoveAlert, onSelectAlert, onClosePosition, locked = false, emaCrossTrades, onContextMenu }: LightweightChartExtendedProps) {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -350,8 +358,8 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
   useEffect(() => { onModifyRef.current = onModifyPosition; }, [onModifyPosition]);
   const onDrawingsChangeRef = useRef(onDrawingsChange);
   useEffect(() => { onDrawingsChangeRef.current = onDrawingsChange; }, [onDrawingsChange]);
-  const [hasSelection, setHasSelection] = useState(false);
-  const [hasDrawings, setHasDrawings] = useState(false);
+  // Spec 054: every position/order line (entry, SL, TP), for the context menu target.
+  const positionLinesRef = useRef<Array<{ ticket: number; line: 'entry' | 'sl' | 'tp'; price: number }>>([]);
   const [positionLabels, setPositionLabels] = useState<PositionLabel[]>([]);
   const [hoverOhlc, setHoverOhlc] = useState<{ open: number; high: number; low: number; close: number } | null>(null);
 
@@ -925,8 +933,6 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
       trendlineCanvas.width = containerRef.current.clientWidth;
       trendlineCanvas.height = containerRef.current.clientHeight;
       const manager = new DrawingManager(trendlineCanvas, chart, series);
-      manager.setOnSelectionChange(setHasSelection);
-      manager.setOnCountChange(count => setHasDrawings(count > 0));
       manager.setOnChange(() => onDrawingsChangeRef.current?.(manager.getPersisted()));
       if (trendlineAppearanceRef.current) manager.setAppearance(trendlineAppearanceRef.current);
       manager.setLocked(lockedRef.current);
@@ -1255,6 +1261,7 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     const levels: Omit<PositionLabel, 'top' | 'visible'>[] = [];
     const markers: SeriesMarker<Time>[] = [];
     const draggable: DraggableLevel[] = [];
+    const lines: Array<{ ticket: number; line: 'entry' | 'sl' | 'tp'; price: number }> = [];
     const precision = precisionRef.current;
     const candleData = candlesRef.current;
 
@@ -1314,6 +1321,9 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
       if (tpPrice) addLine(tpId, tpPrice, '#8fd9bd', pending ? tpText : withPnl(tpText, formatLevelPnl(p, pnlMode, accountBalance, tpPrice)));
 
       const base = { ticket: p.ticket, broker: p.broker ?? '', symbol: p.symbol, lots: p.lots, sl: slPrice, tp: tpPrice };
+      lines.push({ ticket: p.ticket, line: 'entry', price: p.openPrice });
+      if (slPrice) lines.push({ ticket: p.ticket, line: 'sl', price: slPrice });
+      if (tpPrice) lines.push({ ticket: p.ticket, line: 'tp', price: tpPrice });
       if (slPrice) draggable.push({ ...base, id: slId, kind: 'sl', price: slPrice });
       if (tpPrice) draggable.push({ ...base, id: tpId, kind: 'tp', price: tpPrice });
 
@@ -1354,6 +1364,7 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
       selectedLevelIdRef.current = null;
     }
     draggableRef.current = draggable;
+    positionLinesRef.current = lines;
     positionLevelsRef.current = levels;
     repositionLabels();
   }, [positions, candles, repositionLabels, accountBalance, pnlMode]);
@@ -1528,6 +1539,7 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     };
 
     const onMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return;
       if (startDrag(e.clientX, e.clientY)) { e.preventDefault(); e.stopPropagation(); return; }
       if (e.button === 0) beginPanePan(e.clientX, e.clientY);
     };
@@ -1607,7 +1619,34 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     if (raw === null) return;
     const last = candlesRef.current[candlesRef.current.length - 1]?.close ?? null;
     const { bid, ask } = quoteRef.current;
-    onContextMenu({ x, y, price: Number(raw.toFixed(getPricePrecision(symbol))), bid: bid ?? last, ask: ask ?? bid ?? last });
+    const manager = trendlineManagerRef.current;
+    onContextMenu({
+      x, y,
+      price: Number(raw.toFixed(getPricePrecision(symbol))),
+      bid: bid ?? last,
+      ask: ask ?? bid ?? last,
+      target: menuTargetAt(e.clientX, y),
+      drawingCount: manager?.drawingCount ?? 0,
+      deleteDrawing: id => manager?.deleteDrawing(id),
+      clearDrawings: () => manager?.clearAll(),
+    });
+  };
+
+  // A position/order line within a few pixels wins over a drawing.
+  const menuTargetAt = (clientX: number, y: number, tolerance = MENU_HIT_PX): ChartMenuTarget | null => {
+    const series = seriesRef.current;
+    let best: ChartMenuTarget | null = null;
+    let bestDist = tolerance;
+    for (const l of positionLinesRef.current) {
+      const ly = series?.priceToCoordinate(l.price);
+      if (ly === null || ly === undefined) continue;
+      const dist = Math.abs(ly - y);
+      if (dist < bestDist) { bestDist = dist; best = { kind: 'position', ticket: l.ticket, line: l.line }; }
+    }
+    if (best) return best;
+    const rect = containerRef.current?.getBoundingClientRect();
+    const id = rect ? trendlineManagerRef.current?.drawingAt(clientX, rect.top + y) ?? null : null;
+    return id ? { kind: 'drawing', id } : null;
   };
 
   const legendPrecision = getPricePrecision(symbol);
@@ -1670,40 +1709,6 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
           )}
         </div>
       ))}
-      {(showNewTrade || hasSelection || hasDrawings) && (
-        <div className={styles.drawingActions}>
-          {showNewTrade && (
-            <button
-              type="button"
-              className={styles.newTradeChartBtn}
-              onClick={onNewTrade}
-              title="New trade"
-            >
-              + New Trade
-            </button>
-          )}
-          {hasSelection && (
-            <button
-              type="button"
-              className={styles.deleteTrendlineBtn}
-              onClick={() => trendlineManagerRef.current?.deleteSelected()}
-              title="Delete selected drawing"
-            >
-              Delete
-            </button>
-          )}
-          {hasDrawings && (
-            <button
-              type="button"
-              className={styles.clearDrawingsBtn}
-              onClick={() => trendlineManagerRef.current?.clearAll()}
-              title="Clear all drawings on this chart"
-            >
-              Clear all
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 }

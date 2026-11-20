@@ -841,6 +841,7 @@ export class DrawingManager {
   }
 
   private onMouseDown(e: MouseEvent) {
+    if (e.button !== 0) return;
     const consumed = this.handleDown(e.clientX, e.clientY, e.shiftKey, e.ctrlKey || e.metaKey, false, e.target);
     if (consumed) {
       e.preventDefault();
@@ -1390,6 +1391,22 @@ export class DrawingManager {
     this.redraw();
     this.notifyCount();
     this.onChange?.();
+  }
+
+  // Spec 054: the drawing under a point (not the ruler), for the context menu.
+  drawingAt(clientX: number, clientY: number, touch = false): string | null {
+    if (!this.inside(clientX, clientY)) return null;
+    const hit = this.hitTest(this.toCanvas(clientX, clientY), touch);
+    return hit && hit.id !== RULER_ID ? hit.id : null;
+  }
+
+  deleteDrawing(id: string) {
+    this.setSelected(id);
+    this.deleteSelected();
+  }
+
+  get drawingCount(): number {
+    return this.drawings.length;
   }
 
   clearAll() {

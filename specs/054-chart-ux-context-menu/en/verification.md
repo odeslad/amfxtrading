@@ -35,3 +35,10 @@
 - **Steps:** `ChartContextMenu` (sections of items, rendered inside the chart, clamped to it; closes on Esc, outside pointer down, wheel, resize, blur and on choosing); `LightweightChart` reports right clicks in the pane (`ChartContextRequest`: position, price at the pointer, bid/ask) and blocks the browser menu, ignoring the price scale and interactive labels; `chartMenu.ts` builds Buy at / Sell at (type from `orderTypeAt`), New trade and Price alert at; `ChartSlot` holds the menu; `NewTradePanel.initialOrder` applies the chosen action and price once per request; `ChartPage` passes the order and `createAlert`.
 - **Outcome:** ✅ build and lint clean; the operator checked every item and the closing rules.
 - **Est vs Actual:** 2.5 SP · 1 SP.
+
+## Task 6 · [frontend] Menu targets and floating buttons removed
+
+- **Mechanism:** `npm run build` + eslint; local check on desktop.
+- **Steps:** `LightweightChart` records every position/order line (entry, SL, TP) and resolves the target under the pointer (line within 6 px, else a drawing via the new `TrendlineManager.drawingAt`); the request carries the drawing count and the delete / clear actions; `chartMenu.ts` adds the position section (Edit, Remove SL / TP when present, Close / Cancel; hidden when locked) and the drawing section (Delete drawing, Clear all drawings… with a `ConfirmPanel`); right mouse button no longer starts a level drag or a drawing anchor; the floating "+ New Trade", "Delete" and "Clear all" buttons and their CSS are gone (the Delete key stays).
+- **Outcome:** ✅ build and lint clean; the operator checked the position and drawing actions.
+- **Est vs Actual:** 2 SP · 1 SP.

@@ -8,6 +8,7 @@ import { ChartToolbar, type PositionsMode } from './ChartToolbar';
 import { AlertActionBar } from './AlertActionBar';
 import { LightweightChart, type ChartContextRequest, type ChartHandle, type DrawMode } from './LightweightChart';
 import { ChartContextMenu } from './ChartContextMenu';
+import { ConfirmPanel } from '../journal/ConfirmPanel';
 import { buildChartMenu } from './chartMenu';
 import type { CommandAction } from '../../lib/commands';
 import type { NewAlert } from '../../lib/useAlerts';
@@ -318,12 +319,19 @@ export function ChartSlot({
   const cyclePositions = useCallback(() => setPositionsMode(prev => POSITIONS_MODE_CYCLE[prev] ?? 'all'), [setPositionsMode]);
   // New Trade preselects the timeframe of the chart it was opened from (AC 7).
   const openNewTrade = useCallback(() => onNewTrade(timeframe), [onNewTrade, timeframe]);
-  const menuSections = menu ? buildChartMenu(symbol, menu, {
+  const [confirmClear, setConfirmClear] = useState<(() => void) | null>(null);
+  const menuTicket = menu?.target?.kind === 'position' ? menu.target.ticket : null;
+  const menuPosition = menuTicket !== null ? chartPositions.find(p => p.ticket === menuTicket) ?? null : null;
+  const menuSections = menu ? buildChartMenu({ symbol, request: menu, position: menuPosition, locked }, {
     onOrderAt: (action, price) => onNewTrade(timeframe, { action, price }),
     onNewTrade: openNewTrade,
     onAlertAt: (price, direction) => {
       onCreateAlert({ broker, symbol, price, direction }).catch(err => addToast(errorMessage(err, 'Failed to create alert'), 'error'));
     },
+    onEditPosition,
+    onClosePosition,
+    onModifyPosition,
+    onClearDrawings: () => setConfirmClear(() => menu.clearDrawings),
   }) : [];
 
   return (
@@ -361,7 +369,7 @@ export function ChartSlot({
       <div className={styles.slotChart}>
         {broker && symbol
           ? <ChartErrorBoundary resetKey={`${broker}-${symbol}-${timeframe}`}>
-              <LightweightChart ref={chartRef} candles={candles} broker={broker} symbol={symbol} timeframe={timeframe} onLoadMore={hasMore ? loadMoreCandles : undefined} emas={emas} drawMode={drawMode} onDrawDone={clearDrawMode} positions={chartPositions} onEditPosition={onEditPosition} onClosePosition={onClosePosition} onModifyPosition={onModifyPosition} initialDrawings={drawings ?? undefined} onDrawingsChange={handleDrawingsChange} trendlineAppearance={trendlineAppearance} accountBalance={balance} pnlMode={pnlMode} showSpread={showSpread} alerts={chartAlerts} onMoveAlert={onMoveAlert} onSelectAlert={setSelectedAlertId} showNewTrade={positionsMode !== 'none'} onNewTrade={openNewTrade} locked={locked} emaCrossTrades={emaCrossTrades} onContextMenu={setMenu} />
+              <LightweightChart ref={chartRef} candles={candles} broker={broker} symbol={symbol} timeframe={timeframe} onLoadMore={hasMore ? loadMoreCandles : undefined} emas={emas} drawMode={drawMode} onDrawDone={clearDrawMode} positions={chartPositions} onEditPosition={onEditPosition} onClosePosition={onClosePosition} onModifyPosition={onModifyPosition} initialDrawings={drawings ?? undefined} onDrawingsChange={handleDrawingsChange} trendlineAppearance={trendlineAppearance} accountBalance={balance} pnlMode={pnlMode} showSpread={showSpread} alerts={chartAlerts} onMoveAlert={onMoveAlert} onSelectAlert={setSelectedAlertId} locked={locked} emaCrossTrades={emaCrossTrades} onContextMenu={setMenu} />
               {menu && <ChartContextMenu x={menu.x} y={menu.y} sections={menuSections} onClose={closeMenu} />}
               {chartLoading && <div className={styles.chartLoadingOverlay} />}
               {selectedAlert && (
@@ -371,6 +379,14 @@ export function ChartSlot({
           : <div className={styles.empty}>Select a broker and symbol</div>
         }
       </div>
+      <ConfirmPanel
+        open={confirmClear !== null}
+        title="Clear all drawings"
+        description={`Delete every drawing on ${symbol} ${timeframe}?`}
+        confirmLabel="Clear all"
+        onConfirm={() => { confirmClear?.(); setConfirmClear(null); }}
+        onClose={() => setConfirmClear(null)}
+      />
     </div>
   );
 }
