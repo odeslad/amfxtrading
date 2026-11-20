@@ -8,6 +8,8 @@ export const SYNC_DIR = 'sync';
 export interface SyncCommand {
   id: string;
   timeframes: { tf: string; target: number }[];
+  // Spec 056: only these symbols (pairs just turned on); absent = every symbol the EA streams.
+  symbols?: string[];
 }
 
 // Temp file + rename, so the EA never reads a half-written command.

@@ -150,7 +150,8 @@ export class SyncWatcher {
     await this.replaceTimeframe(row.timeframe, row.candleCount, row.lastSyncAt);
   }
 
-  // One transaction: the pair's rows in the new table are replaced by the delivered files.
+  // One transaction: the delivered symbols of the timeframe are replaced by their files (spec 056: other
+  // symbols, such as pairs turned off or not part of a one-symbol sync, keep their candles).
   // On any failure the transaction rolls back and the previous history stays as it was.
   private async replaceTimeframe(timeframe: string, prevCount: number | null, prevSync: Date | null): Promise<void> {
     const where = { broker_timeframe: { broker: this.broker, timeframe } };
@@ -167,7 +168,7 @@ export class SyncWatcher {
       const lastSyncAt = new Date(this.now());
 
       await db.$transaction(async (tx) => {
-        await tx.candle.deleteMany({ where: { broker: this.broker, timeframe } });
+        await tx.candle.deleteMany({ where: { broker: this.broker, timeframe, symbol: { in: files.map((f) => f.symbol) } } });
         for (const batch of chunks(rows)) await tx.candle.createMany({ data: batch, skipDuplicates: true });
         await tx.candleSync.update({ where, data: { state: 'done', detail, candleCount, lastSyncAt } });
       }, { timeout: TRANSACTION_TIMEOUT_MS, maxWait: 10_000 });

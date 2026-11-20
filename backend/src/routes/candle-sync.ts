@@ -7,6 +7,7 @@ import { BadRequest, Conflict, NotFound } from '../middleware/errors';
 import { bodyRecord, integer, nonEmptyString, oneOf } from '../middleware/parse';
 import { pipeStateOf } from '../store/liveness';
 import { writeSyncCommand } from '../bridge/sync-io';
+import { getBid } from '../store/ticks';
 
 export const SYNC_TIMEFRAMES = ['M5', 'M15', 'H1', 'H4', 'D1'] as const;
 export type SyncTimeframe = (typeof SYNC_TIMEFRAMES)[number];
@@ -65,6 +66,42 @@ async function ensureRows(): Promise<void> {
     ),
     skipDuplicates: true,
   });
+}
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+export interface SymbolSyncTiming {
+  tickWaitMs: number;
+  busyWaitMs: number;
+  pollMs: number;
+}
+
+const SYMBOL_SYNC_TIMING: SymbolSyncTiming = { tickWaitMs: 120_000, busyWaitMs: 30 * 60_000, pollMs: 5_000 };
+
+// Spec 056: pairs just turned on get their history on every timeframe. Waits for the EA to stream them
+// (first tick) and for any sync in progress to end, then asks the EA for those symbols only.
+export async function syncNewSymbols(broker: string, symbols: string[], timing: SymbolSyncTiming = SYMBOL_SYNC_TIMING): Promise<'queued' | 'no-ticks' | 'busy' | 'disconnected'> {
+  const bridgePath = bridgePathOf(broker);
+  const tickDeadline = Date.now() + timing.tickWaitMs;
+  while (symbols.some((s) => getBid(broker, s) === null)) {
+    if (Date.now() > tickDeadline) return 'no-ticks';
+    await sleep(timing.pollMs);
+  }
+  await ensureRows();
+  const busyDeadline = Date.now() + timing.busyWaitMs;
+  let rows = await db.candleSync.findMany({ where: { broker } });
+  while (rows.some((r) => BUSY_STATES.has(r.state))) {
+    if (Date.now() > busyDeadline) return 'busy';
+    await sleep(timing.pollMs);
+    rows = await db.candleSync.findMany({ where: { broker } });
+  }
+  if (pipeStateOf(broker) !== 'connected') return 'disconnected';
+
+  const id = randomUUID();
+  const targetOf = (tf: string): number => rows.find((r) => r.timeframe === tf)?.target ?? TARGET_DEFAULT;
+  await db.candleSync.updateMany({ where: { broker }, data: { state: 'queued', detail: symbols.join(', '), requestId: id } });
+  writeSyncCommand(bridgePath, { id, timeframes: SYNC_TIMEFRAMES.map((tf) => ({ tf, target: targetOf(tf) })), symbols });
+  return 'queued';
 }
 
 const router = Router();

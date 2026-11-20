@@ -8,7 +8,7 @@ import express from 'express';
 
 const bridge = fs.mkdtempSync(path.join(os.tmpdir(), 'candle-sync-'));
 
-const { db, liveness, cfg } = vi.hoisted(() => ({
+const { db, liveness, ticks, cfg } = vi.hoisted(() => ({
   db: {
     candleSync: {
       createMany: vi.fn(),
@@ -18,14 +18,16 @@ const { db, liveness, cfg } = vi.hoisted(() => ({
     },
   },
   liveness: { pipeStateOf: vi.fn() },
+  ticks: { getBid: vi.fn() },
   cfg: { brokers: [] as { name: string; bridgePath: string }[] },
 }));
 vi.mock('../db/client', () => ({ db }));
 vi.mock('../store/liveness', () => liveness);
 vi.mock('../config', () => ({ config: cfg }));
+vi.mock('../store/ticks', () => ticks);
 cfg.brokers.push({ name: 'demo', bridgePath: bridge });
 
-import router, { parseSyncRequest, parseTargets } from './candle-sync';
+import router, { parseSyncRequest, parseTargets, syncNewSymbols } from './candle-sync';
 import { BadRequest, errorHandler } from '../middleware/errors';
 
 let server: http.Server;
@@ -142,5 +144,33 @@ describe('PUT /candle-sync/targets', () => {
     expect(db.candleSync.update).toHaveBeenCalledWith({
       where: { broker_timeframe: { broker: 'demo', timeframe: 'H4' } }, data: { target: 5000 },
     });
+  });
+});
+
+describe('syncNewSymbols (spec 056)', () => {
+  const fast = { tickWaitMs: 30, busyWaitMs: 30, pollMs: 5 };
+  const rows = (state: string) => ['M5', 'M15', 'H1', 'H4', 'D1'].map((timeframe) => ({ broker: 'demo', timeframe, target: 2000, state }));
+
+  it('asks the EA for the new symbols only, on every timeframe, once they tick', async () => {
+    ticks.getBid.mockReturnValue(1.1);
+    liveness.pipeStateOf.mockReturnValue('connected');
+    db.candleSync.findMany.mockResolvedValue(rows('done'));
+    expect(await syncNewSymbols('demo', ['AUDCAD'], fast)).toBe('queued');
+    const command = JSON.parse(fs.readFileSync(path.join(bridge, 'sync-command.json'), 'utf8'));
+    expect(command.symbols).toEqual(['AUDCAD']);
+    expect(command.timeframes).toEqual(['M5', 'M15', 'H1', 'H4', 'D1'].map((tf) => ({ tf, target: 2000 })));
+    fs.unlinkSync(path.join(bridge, 'sync-command.json'));
+  });
+
+  it('gives up without ticks, while busy or disconnected', async () => {
+    ticks.getBid.mockReturnValue(null);
+    expect(await syncNewSymbols('demo', ['AUDCAD'], fast)).toBe('no-ticks');
+    ticks.getBid.mockReturnValue(1.1);
+    db.candleSync.findMany.mockResolvedValue(rows('running'));
+    expect(await syncNewSymbols('demo', ['AUDCAD'], fast)).toBe('busy');
+    db.candleSync.findMany.mockResolvedValue(rows('done'));
+    liveness.pipeStateOf.mockReturnValue('down');
+    expect(await syncNewSymbols('demo', ['AUDCAD'], fast)).toBe('disconnected');
+    expect(fs.existsSync(path.join(bridge, 'sync-command.json'))).toBe(false);
   });
 });

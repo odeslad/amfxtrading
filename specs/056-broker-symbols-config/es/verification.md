@@ -13,3 +13,10 @@
 - **Pasos:** `routes/broker-symbols.ts` (bajo `requireAuth`): `GET` devuelve `{ broker, available, active }` de cada broker de `brokers.json`; `PUT /:broker { symbols }` valida la lista (400), rechaza símbolos que el broker no ofrece (400) y apagar símbolos con posiciones u órdenes abiertas (409, `openSymbols` del store de posiciones), escribe `config.json` (un fallo de escritura es un 409 claro), avisa por WS con `broker_symbols` y pasa los símbolos recién activados a un manejador (conectado en la tarea 3); `parseSymbols` y `planChange` con tests.
 - **Resultado:** ✅ 223 tests en verde, typecheck, build y lint limpios.
 - **Est vs Real:** 1.5 SP · 0.5 SP.
+
+## Tarea 3 · [backend] Sincronización del histórico de los pares activados
+
+- **Mecanismo:** lint + typecheck + test + build.
+- **Pasos:** `SyncCommand.symbols` (opcional); `syncNewSymbols` en `routes/candle-sync.ts` espera al primer tick de cada par nuevo (2 min), a que acabe cualquier sincronización en curso (30 min) y al pipe, y entonces marca las filas del broker como en cola y escribe `sync-command.json` con cada temporalidad de Data a su objetivo y `symbols`; conectado desde `PUT /broker-symbols` en `index.ts` (el resultado queda en el log). `sync-watcher` ahora sustituye solo los símbolos entregados de una temporalidad, así una sincronización de un par no toca el resto y un par apagado conserva sus velas (AC 11). Tests del encargo, los tres casos en que se abandona y el borrado acotado.
+- **Resultado:** ✅ suite completa en verde, typecheck, build y lint limpios.
+- **Est vs Real:** 2 SP · 0.75 SP.

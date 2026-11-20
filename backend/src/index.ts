@@ -26,7 +26,8 @@ import { evaluateEmaNotifications, setEmaNotificationBroadcaster } from './alert
 import { refreshEmaNotifications, startEmaNotificationRefresh } from './alerts/ema-notification-store';
 import { startServerMonitor } from './services/server-monitor';
 import { setMaTemplatesBroadcaster } from './routes/ma-templates';
-import { setBrokerSymbolsBroadcaster } from './routes/broker-symbols';
+import { setBrokerSymbolsBroadcaster, setSymbolsTurnedOnHandler } from './routes/broker-symbols';
+import { syncNewSymbols } from './routes/candle-sync';
 
 type Wss = ReturnType<typeof createWss>;
 
@@ -127,6 +128,11 @@ async function main() {
   setEmaNotificationBroadcaster((fire) => wss.broadcastEmaNotification(fire.userId, { ...fire }));
   setMaTemplatesBroadcaster((userId) => wss.broadcastMaTemplates(userId));
   setBrokerSymbolsBroadcaster((state) => wss.broadcastBrokerSymbols(state));
+  setSymbolsTurnedOnHandler((broker, symbols) => {
+    syncNewSymbols(broker, symbols)
+      .then((outcome) => console.log(`[SYMBOLS] ${broker}: history sync of ${symbols.join(', ')} → ${outcome}`))
+      .catch((err) => console.error(`[SYMBOLS] ${broker}: history sync failed:`, err));
+  });
 
   const watchers = config.brokers.map(({ name, bridgePath }) =>
     startBroker(name, bridgePath, wss),

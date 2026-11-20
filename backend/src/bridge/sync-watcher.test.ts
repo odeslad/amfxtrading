@@ -74,7 +74,7 @@ describe('SyncWatcher', () => {
     await watcher().poll();
 
     expect(db.$transaction).toHaveBeenCalledTimes(1);
-    expect(db.candle.deleteMany).toHaveBeenCalledWith({ where: { broker: 'demo', timeframe: 'M5' } });
+    expect(db.candle.deleteMany).toHaveBeenCalledWith({ where: { broker: 'demo', timeframe: 'M5', symbol: { in: ['EURUSD', 'GBPUSD'] } } });
     const inserted = db.candle.createMany.mock.calls.reduce((n, [arg]) => n + (arg as { data: unknown[] }).data.length, 0);
     expect(inserted).toBe(16212);
     expect(db.candleSync.update).toHaveBeenCalledWith({
