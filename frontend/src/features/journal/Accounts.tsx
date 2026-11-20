@@ -5,6 +5,8 @@ import { useSort, type SortColumn } from '../../lib/useSort';
 import { useVisibility, visibleBrokers } from '../../lib/visibility';
 import { fmt, currencySymbol } from './utils/position';
 import { AccountCard } from './AccountCard';
+import { ColorSwatchButton } from './ColorBadge';
+import { apiSend } from '../../lib/api';
 import styles from './JournalPage.module.css';
 
 interface Balance {
@@ -20,6 +22,7 @@ interface Balance {
   name: string;
   number: number;
   timestamp: string;
+  color: string;
 }
 
 const DAY_PNL_POLL_MS = 5000;
@@ -84,12 +87,19 @@ export function Accounts({ onSelectBroker }: AccountsProps) {
     if (msg.type !== 'account') return;
     setBalances(prev => {
       const withoutBroker = prev.filter(b => b.broker !== msg.broker);
-      return [...withoutBroker, { ...msg.account, broker: msg.broker }]
+      // The colour is not in the EA's account message: keep the one loaded from /balances.
+      const color = prev.find(b => b.broker === msg.broker)?.color ?? '';
+      return [...withoutBroker, { ...msg.account, broker: msg.broker, color }]
         .sort((a, b) => a.broker.localeCompare(b.broker));
     });
   }, []);
 
   useWs(handleWsMessage);
+
+  const setColor = useCallback((broker: string, color: string) => {
+    setBalances(prev => prev.map(b => (b.broker === broker ? { ...b, color } : b)));
+  }, []);
+  const saveColor = (broker: string) => (color: string) => apiSend('/balances/color', 'PATCH', { broker, color });
 
   const visibility = useVisibility();
   const visible = useMemo(() => visibleBrokers(visibility, balances), [visibility, balances]);
@@ -131,7 +141,12 @@ export function Accounts({ onSelectBroker }: AccountsProps) {
                 title={onSelectBroker ? 'Double-click to see positions' : undefined}
               >
                 <td className={styles.broker}>{b.broker}</td>
-                <td>{b.name}</td>
+                <td>
+                  <span className={styles.symbolCell}>
+                    <ColorSwatchButton color={b.color} label={`${b.broker} colour`} onChange={c => setColor(b.broker, c)} onCycle={saveColor(b.broker)} />
+                    {b.name}
+                  </span>
+                </td>
                 <td>{b.number}</td>
                 <td>{fmt(b.balance, 2)} {currencySymbol(b.currency)}</td>
                 <td>{fmt(b.equity, 2)} {currencySymbol(b.currency)}</td>
@@ -155,7 +170,7 @@ export function Accounts({ onSelectBroker }: AccountsProps) {
 
       <div className={styles.cards}>
         {sorted.map(b => (
-          <AccountCard key={b.broker} balance={b} dayPnl={dayPnl[b.broker]} onSelect={onSelectBroker ? () => onSelectBroker(b.broker) : undefined} />
+          <AccountCard key={b.broker} balance={b} dayPnl={dayPnl[b.broker]} colorBadge={<ColorSwatchButton color={b.color} label={`${b.broker} colour`} onChange={c => setColor(b.broker, c)} onCycle={saveColor(b.broker)} />} onSelect={onSelectBroker ? () => onSelectBroker(b.broker) : undefined} />
         ))}
       </div>
     </>

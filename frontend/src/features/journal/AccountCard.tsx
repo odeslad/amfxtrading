@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { fmt, currencySymbol } from './utils/position';
 import styles from './JournalPage.module.css';
 import accountStyles from './Accounts.module.css';
@@ -25,9 +25,10 @@ interface AccountCardProps {
   balance: Balance;
   dayPnl?: number;
   onSelect?: () => void;
+  colorBadge?: ReactNode;
 }
 
-export function AccountCard({ balance: b, dayPnl, onSelect }: AccountCardProps) {
+export function AccountCard({ balance: b, dayPnl, onSelect, colorBadge }: AccountCardProps) {
   const [expanded, setExpanded] = useState(false);
   const lastTapTime = useRef(0);
 
@@ -45,6 +46,7 @@ export function AccountCard({ balance: b, dayPnl, onSelect }: AccountCardProps) 
 
   return (
     <div className={`${accountStyles.card} ${expanded ? accountStyles.cardExpanded : ''} ${dayPnl == null ? accountStyles.cardInactive : ''}`}>
+      {colorBadge && <span className={accountStyles.badge}>{colorBadge}</span>}
       <button
         type="button"
         className={`${accountStyles.summary} ${expanded ? accountStyles.summaryActive : ''}`}
