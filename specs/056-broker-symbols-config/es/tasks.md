@@ -2,7 +2,7 @@
 
 Cada tarea es un commit convencional. El proyecto debe compilar tras cada tarea. Tareas de capas distintas nunca comparten commit. Orden de despliegue: backend → EA → frontend (los cambios del EA son compatibles hacia atrás; el frontend necesita los dos).
 
-- [ ] 1. [backend] `services/broker-symbols.ts` (leer `symbols-available.json` filtrado a los cruces de AUD, EUR, NZD, USD, CAD, GBP, JPY; leer `config.json`; escribir solo `symbols` con `.tmp` + rename) con tests sobre una carpeta temporal · **Verificar:** lint + typecheck + test + build · **Est:** 1.5 SP
+- [x] 1. [backend] `services/broker-symbols.ts` (leer `symbols-available.json` filtrado a los cruces de AUD, EUR, NZD, USD, CAD, GBP, JPY; leer `config.json`; escribir solo `symbols` con `.tmp` + rename) con tests sobre una carpeta temporal · **Verificar:** lint + typecheck + test + build · **Est:** 1.5 SP
 - [ ] 2. [backend] `GET /broker-symbols` y `PUT /broker-symbols/:broker` (validación, 409 para símbolos con posiciones/órdenes abiertas, WS `broker_symbols`) con tests · **Verificar:** lint + typecheck + test + build · **Est:** 1.5 SP
 - [ ] 3. [backend] Sincronización de velas de algunos símbolos: `symbols` en la petición y en `sync-command.json`, esperar al primer tick, `sync-watcher` sustituye solo esos símbolos; lanzada por el `PUT` para los pares recién activados · **Verificar:** lint + typecheck + test + build · **Est:** 2 SP
 - [ ] 4. [backend] Paso de `hiddenSymbols` al arrancar (quitar de `config.json` salvo símbolos con posiciones, vaciar el campo, log); `/settings` ignora el `hiddenSymbols` que reciba · **Verificar:** lint + typecheck + test + build · **Est:** 1 SP
