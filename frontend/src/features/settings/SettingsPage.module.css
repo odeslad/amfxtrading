@@ -622,3 +622,9 @@
   opacity: 0.35;
   cursor: default;
 }
+
+.maInput {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}

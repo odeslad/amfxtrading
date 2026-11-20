@@ -48,3 +48,10 @@
 - **Pasos:** `useEmaNotifications` lleva `fastType`/`slowType` y añade `averagesLabel`; `NotificationPanel` tiene un `MaTypeToggle` delante de cada periodo; la tabla (columna "Averages"), las tarjetas del móvil y la confirmación de borrado muestran "SMA 20 / EMA 48". Arreglado además un fallo de maquetación previo visto en la prueba: los campos del panel se estiraban a todo el alto (`.field { flex: 1 }` compartido); el panel ahora los deja a su altura sin tocar el panel del diario.
 - **Resultado:** ✅ build y lint limpios; el operador revisó el formulario y el arreglo.
 - **Est vs Real:** 1 SP · 0.5 SP.
+
+## Tarea 8 · [frontend] Tipos de media en el overlay de operaciones por cruce
+
+- **Mecanismo:** `npm run build` + eslint; prueba local (Vite 5174 contra el API de producción).
+- **Pasos:** `EmaTradesSettings` lleva `fastType`/`slowType` (por defecto ema); Settings › Display muestra un `MaTypeToggle` delante de los periodos rápido y lento; `useEmaCrossTrades` envía los tipos a `/setup-levels` y recarga cuando cambian.
+- **Resultado:** ✅ build y lint limpios; el operador comprobó el overlay con una media SMA y de vuelta a EMA.
+- **Est vs Real:** 0.75 SP · 0.5 SP.

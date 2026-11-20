@@ -1,6 +1,8 @@
 import { SETUP_LEVEL_KEYS, type PnlMode, type SetupLevelKey } from '../journal/utils/position';
 import { FIB_LEVEL_ANCHORS, FIB_LEVEL_CATALOGUE, type TrendlineStyle } from '../chart/DrawingTools';
-import { EMA_TRADES_LABEL_KEYS, EMA_TRADES_LABEL_NAMES, EMA_TRADES_LIMITS, type EmaTradesLabel, type EmaTradesSettings } from '../chart/emaTrades';
+import { EMA_TRADES_LABEL_KEYS, EMA_TRADES_LABEL_NAMES, EMA_TRADES_LIMITS, type EmaTradesLabel, type EmaTradesNumberKey, type EmaTradesSettings } from '../chart/emaTrades';
+import type { MaType } from '../chart/chart.types';
+import { MaTypeToggle } from '../chart/MaTypeToggle';
 import { MaTemplatesSection } from './MaTemplatesSection';
 import styles from './SettingsPage.module.css';
 
@@ -17,7 +19,8 @@ export interface DisplaySettingsForm {
 }
 
 interface EmaTradesField {
-  key: Exclude<keyof EmaTradesSettings, 'labels'>;
+  key: EmaTradesNumberKey;
+  typeKey?: 'fastType' | 'slowType';
   label: string;
   hint?: string;
   min: number;
@@ -26,8 +29,8 @@ interface EmaTradesField {
 }
 
 const EMA_TRADES_FIELDS: EmaTradesField[] = [
-  { key: 'fast', label: 'Fast EMA', min: 1, step: 1 },
-  { key: 'slow', label: 'Slow EMA', min: 1, step: 1 },
+  { key: 'fast', typeKey: 'fastType', label: 'Fast average', min: 1, step: 1 },
+  { key: 'slow', typeKey: 'slowType', label: 'Slow average', min: 1, step: 1 },
   { key: 'entryPips', label: 'Entry offset (pips)', hint: 'Above the cross-candle close for a buy, below it for a sell', min: 0, step: 0.1 },
   { key: 'candles', label: 'Max duration (candles)', hint: 'Candles of the chart timeframe; lines end here or at the next opposite cross, whichever comes first', min: EMA_TRADES_LIMITS.candles.min, max: EMA_TRADES_LIMITS.candles.max, step: 1 },
   { key: 'count', label: 'Trades shown', hint: 'Most recent crosses, both directions', min: EMA_TRADES_LIMITS.count.min, max: EMA_TRADES_LIMITS.count.max, step: 1 },
@@ -55,11 +58,14 @@ export function DisplayTab({ display, onChange }: DisplayTabProps) {
     onChange({ setupLevels: next });
   };
 
-  const updateEmaTrades = (key: Exclude<keyof EmaTradesSettings, 'labels'>, raw: string) => {
+  const updateEmaTrades = (key: EmaTradesNumberKey, raw: string) => {
     const value = Number(raw);
     if (raw === '' || !Number.isFinite(value)) return;
     onChange({ emaTrades: { ...display.emaTrades, [key]: value } });
   };
+
+  const updateEmaTradesType = (key: 'fastType' | 'slowType') => (value: MaType) =>
+    onChange({ emaTrades: { ...display.emaTrades, [key]: value } });
 
   // At least one part stays on so an SL / TP label is never blank.
   const toggleEmaTradesLabel = (key: EmaTradesLabel, on: boolean) => {
@@ -158,7 +164,7 @@ export function DisplayTab({ display, onChange }: DisplayTabProps) {
         <div className={`${styles.displayRow} ${styles.displayRowGroup}`}>
           <span className={styles.displayLabel}>
             EMA cross trades
-            <span className={styles.displayHint}>Drawn on the chart by the toolbar button: the last crosses of these EMAs, each with its entry and its SL.</span>
+            <span className={styles.displayHint}>Drawn on the chart by the toolbar button: the last crosses of these averages, each with its entry and its SL.</span>
           </span>
           <div className={styles.emaTradesGrid}>
             {EMA_TRADES_FIELDS.map(field => (
@@ -167,15 +173,25 @@ export function DisplayTab({ display, onChange }: DisplayTabProps) {
                   {field.label}
                   {field.hint && <span className={styles.displayHint}>{field.hint}</span>}
                 </span>
-                <input
-                  type="number"
-                  className={`${styles.input} ${styles.numberInput}`}
-                  value={display.emaTrades[field.key]}
-                  min={field.min}
-                  max={field.max}
-                  step={field.step}
-                  onChange={e => updateEmaTrades(field.key, e.target.value)}
-                />
+                <span className={styles.maInput}>
+                  {field.typeKey && (
+                    <MaTypeToggle
+                      value={display.emaTrades[field.typeKey]}
+                      onChange={updateEmaTradesType(field.typeKey)}
+                      label={`${field.label} type`}
+                    />
+                  )}
+                  <input
+                    type="number"
+                    className={`${styles.input} ${styles.numberInput}`}
+                    value={display.emaTrades[field.key]}
+                    min={field.min}
+                    max={field.max}
+                    step={field.step}
+                    aria-label={field.label}
+                    onChange={e => updateEmaTrades(field.key, e.target.value)}
+                  />
+                </span>
               </label>
             ))}
           </div>

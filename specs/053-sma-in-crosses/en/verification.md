@@ -48,3 +48,10 @@
 - **Steps:** `useEmaNotifications` carries `fastType`/`slowType` and adds `averagesLabel`; `NotificationPanel` has a `MaTypeToggle` before each period; the table (column "Averages"), the phone cards and the delete confirmation show "SMA 20 / EMA 48". Also fixed a pre-existing layout bug seen while testing: the panel's fields stretched over the whole height (shared `.field { flex: 1 }`); the panel now keeps them at their own height without touching the journal panel.
 - **Outcome:** ✅ build and lint clean; the operator checked the form and the layout fix.
 - **Est vs Actual:** 1 SP · 0.5 SP.
+
+## Task 8 · [frontend] Average types in the cross trades overlay
+
+- **Mechanism:** `npm run build` + eslint; local check (Vite 5174 against the production API).
+- **Steps:** `EmaTradesSettings` carries `fastType`/`slowType` (default ema); Settings › Display shows a `MaTypeToggle` before the fast and slow periods; `useEmaCrossTrades` sends the types to `/setup-levels` and refetches when they change.
+- **Outcome:** ✅ build and lint clean; the operator checked the overlay with an SMA side and back to EMA.
+- **Est vs Actual:** 0.75 SP · 0.5 SP.

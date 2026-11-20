@@ -72,21 +72,21 @@ export function useEmaCrossTrades(
   // The result carries the key it was fetched for, so a stale list is never shown for a
   // new selection while its request is in flight.
   const [result, setResult] = useState<{ key: string; trades: EmaCrossTrade[] }>({ key: '', trades: [] });
-  const { fast, slow, entryPips, candles, count, tpRatio, labels } = settings;
+  const { fast, slow, fastType, slowType, entryPips, candles, count, tpRatio, labels } = settings;
   const labelsKey = labels.join(',');
   const active = enabled && Boolean(broker) && Boolean(symbol);
-  const key = `${broker}|${symbol}|${timeframe}|${fast}|${slow}|${entryPips}|${candles}|${count}|${tpRatio}|${labelsKey}|${lastClosedTime ?? ''}`;
+  const key = `${broker}|${symbol}|${timeframe}|${fastType}${fast}|${slowType}${slow}|${entryPips}|${candles}|${count}|${tpRatio}|${labelsKey}|${lastClosedTime ?? ''}`;
 
   useEffect(() => {
     if (!active) return;
     const ac = new AbortController();
     const query = `broker=${encodeURIComponent(broker)}&symbol=${encodeURIComponent(symbol)}&tf=${timeframe}`
-      + `&emaFast=${fast}&emaSlow=${slow}&limit=${count}`;
+      + `&emaFast=${fast}&emaSlow=${slow}&fastType=${fastType}&slowType=${slowType}&limit=${count}`;
     apiFetch<{ setups?: SetupRow[] }>(`/setup-levels?${query}`, { signal: ac.signal })
-      .then(data => setResult({ key, trades: toEmaCrossTrades(data.setups ?? [], timeframe, { fast, slow, entryPips, candles, count, tpRatio, labels }) }))
+      .then(data => setResult({ key, trades: toEmaCrossTrades(data.setups ?? [], timeframe, { fast, slow, fastType, slowType, entryPips, candles, count, tpRatio, labels }) }))
       .catch(err => { if (!isAbortError(err)) setResult({ key, trades: [] }); });
     return () => ac.abort();
-  }, [active, key, broker, symbol, timeframe, fast, slow, entryPips, candles, count, tpRatio, labels]);
+  }, [active, key, broker, symbol, timeframe, fast, slow, fastType, slowType, entryPips, candles, count, tpRatio, labels]);
 
   return active && result.key === key ? result.trades : EMPTY;
 }
