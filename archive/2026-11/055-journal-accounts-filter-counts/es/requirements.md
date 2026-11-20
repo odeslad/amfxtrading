@@ -1,6 +1,6 @@
 # 055 — Cuentas del diario: color, filtro y número de trades/órdenes
 
-> Estado: **aprobado**
+> Estado: **cerrado**
 
 ## Contexto
 Diario › Accounts lista todas las cuentas de broker (tabla en escritorio, tarjetas en el móvil) con broker, nombre de cuenta, número, balance, equity, P&L y el resto. Con muchas cuentas no hay forma de acotar la lista ni de agrupar cuentas a la vista, y la lista no dice cuántas posiciones y órdenes pendientes tiene abiertas cada cuenta; eso solo se ve en las pestañas Positions y Orders. Las posiciones y órdenes ya tienen un distintivo de color (`position_colors`) por el que filtran las otras pestañas del diario.

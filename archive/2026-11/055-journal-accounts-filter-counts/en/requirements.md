@@ -1,6 +1,6 @@
 # 055 — Journal accounts: colour, filter and trade/order counts
 
-> Status: **approved**
+> Status: **closed**
 
 ## Context
 Journal › Accounts lists every broker account (a table on desktop, cards on the phone) with broker, account name, number, balance, equity, P&L and the rest. With many accounts there is no way to narrow the list, nor to group accounts visually, and the list does not say how many positions and pending orders each account has open; that is only visible in the Positions and Orders tabs. Positions and orders already have a colour badge (`position_colors`) that the other journal tabs filter on.

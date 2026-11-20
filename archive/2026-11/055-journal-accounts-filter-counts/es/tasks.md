@@ -8,7 +8,7 @@ Cada tarea es un commit convencional. El proyecto debe compilar tras cada tarea.
 - [x] 4. [frontend] "Trades / Orders" por cuenta desde las posiciones en vivo (columna en escritorio, ordenable; en la tarjeta del móvil en lugar de Number, Number en los detalles) · **Verificar:** build + eslint; local: los contadores coinciden con las pestañas Positions y Orders y cambian en vivo · **Est:** 1 SP
 - [x] 5. [frontend] Filtros de cuentas: `fields` en `FiltersPanel`, botón Filters en Accounts, Broker y Color, guardados en `localStorage`, mensaje vacío · **Verificar:** build + eslint; local: cada filtro, borrar, estado activo, recargar · **Est:** 1 SP
 - [x] 6. [docs] `.claude/CLAUDE.md` y `backend/docs/architecture.md`: `account_colors` y `PATCH /balances/color` · **Verificar:** manual · **Est:** 0.25 SP
-- [ ] 7. [infra] Push del backend (tareas 1–2) solo, luego frontend cuando lo pida el usuario; **validar en producción**, escritorio y móvil: colores, filtros, Trades / Orders, distintivos de posiciones/órdenes sin cambios · **Verificar:** manual (validación del usuario) · **Est:** 0.5 SP
-- [ ] 8. [specs] Est vs Real en `verification.md` (ambos idiomas), cerrar y archivar en `archive/YYYY-MM/` · **Verificar:** manual · **Est:** 0.25 SP
+- [x] 7. [infra] Push del backend (tareas 1–2) solo, luego frontend cuando lo pida el usuario; **validar en producción**, escritorio y móvil: colores, filtros, Trades / Orders, distintivos de posiciones/órdenes sin cambios · **Verificar:** manual (validación del usuario) · **Est:** 0.5 SP
+- [x] 8. [specs] Est vs Real en `verification.md` (ambos idiomas), cerrar y archivar en `archive/YYYY-MM/` · **Verificar:** manual · **Est:** 0.25 SP
 
 **Estimación total**: 5 SP

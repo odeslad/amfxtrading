@@ -47,3 +47,30 @@
 - Tarjetas del móvil: mismas columnas en todas, los nombres largos de broker pasan de línea dentro de su columna, la tarjeta nunca es más ancha que la pantalla, menos margen a la izquierda (`f597e51`).
 - Filtro Name: campo de texto sin la flecha de desplegable (`38aa1cc`).
 - AC 10: filtro de varios colores en Accounts, Positions y Orders (`ColorFilterField`, `utils/colorFilter.ts`; el filtro conserva su forma de texto como "orange,blue", así los filtros guardados siguen valiendo).
+
+## Tarea 7 · [infra] Despliegue y validación en producción
+
+- **Pushes (20-nov-2026):** backend + db `cb306dd` + `ae57ab7` (tareas 1–2); frontend `139b009`…`aeadb4b` (tareas 3–5); después, a petición del operador, la documentación `7a207c3` con los arreglos `f597e51` y `38aa1cc` en un solo push (los dos pipelines), y `777bde4` (filtro de varios colores) solo.
+- **Validación del operador en `amfxtrading.com`, escritorio y móvil:** colores de cuenta, filtros Broker / Name / varios colores, Tr. / Or. contra Positions y Orders, tarjetas del móvil alineadas, distintivos y filtros de posiciones y órdenes.
+- **Resultado:** ✅ AC 1–10.
+- **Est vs Real:** 0.5 SP · 0.75 SP (los arreglos de las tarjetas del móvil y el filtro de varios colores se añadieron durante la prueba).
+
+## Tarea 8 · [specs] Cierre
+
+- **Est vs Real:** 0.25 SP · 0.25 SP.
+
+## Est vs Real
+
+| Tarea | Est | Real |
+|---|---|---|
+| 1 | 0.25 | 0.15 |
+| 2 | 0.75 | 0.25 |
+| 3 | 1 | 0.5 |
+| 4 | 1 | 0.35 |
+| 5 | 1 | 0.5 |
+| 6 | 0.25 | 0.1 |
+| 7 | 0.5 | 0.75 |
+| 8 | 0.25 | 0.25 |
+| **Total** | **5** | **2.85** |
+
+Calibración: las tareas pequeñas de frontend sobre componentes existentes costaron cerca de la mitad de lo estimado; la validación llevó más de lo previsto porque la maquetación se ajustó en el móvil con el operador.
