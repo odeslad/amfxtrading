@@ -6,7 +6,7 @@ import { Toaster } from '../../components/Toaster';
 import { subscribe } from '../../lib/ws';
 import { addToast } from '../../lib/toast';
 import { useBuildInfo } from '../../lib/useBuildInfo';
-import { loadVisibility } from '../../lib/visibility';
+import { loadVisibility, setBrokerSymbols, type BrokerSymbolsState } from '../../lib/visibility';
 import styles from './AppLayout.module.css';
 
 const NAV = [
@@ -30,6 +30,10 @@ export function AppLayout() {
   useEffect(() => subscribe((data) => {
     if (typeof data !== 'object' || data === null) return;
     const msg = data as { type: string; id: string; status: string; ticket?: number; error?: string };
+    if (msg.type === 'broker_symbols') {
+      setBrokerSymbols(data as BrokerSymbolsState);
+      return;
+    }
     if (msg.type === 'ema_notification') {
       const n = data as { symbol: string; timeframe: string; broker: string; kind: 'cross' | 'approach'; direction: 'buy' | 'sell'; gapPips: number };
       const side = n.direction === 'buy' ? 'bullish' : 'bearish';

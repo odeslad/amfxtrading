@@ -34,3 +34,10 @@
 - **Pasos:** `HttpBridgeState` 3.16: `SelectSymbols` (Observación del mercado), `WriteAvailableSymbols` (`symbols-available.json` con los nombres de `SymbolsTotal(false)`, al arrancar y cuando cambia el número, mirado cada 60 s), `ReloadConfigIfChanged` cada 5 s por la hora de modificación de `config.json` (`FileGetInteger`, `FILE_MODIFY_DATE`), conservando el nombre de broker del pipe. `HttpBridgeCommands` 2.24: la misma recarga cada 5 s; `ExtractStringArray` lee `symbols` de `sync-command.json` y la sincronización recorre esa lista (si no, todos los símbolos enviados). Visto al escribirlo: un `symbols` vacío hace que el EA vuelva a su lista interna por defecto, así que el backend ya no deja guardar una lista vacía ("Keep at least one pair on", arreglo aparte del backend).
 - **Resultado:** 🕐 pendiente de la compilación del pipeline y la prueba en el terminal.
 - **Est vs Real:** 3 SP · 1 SP (código).
+
+## Tarea 6 · [frontend] La visibilidad sigue a los pares enviados
+
+- **Mecanismo:** `npm run build` + eslint; prueba local contra producción.
+- **Pasos:** `lib/visibility.ts`: `activeSymbols` cargado de `GET /broker-symbols` junto a `/settings`, `isSymbolVisible` = está en la lista activa del broker (sin distinguir mayúsculas; un broker sin lista lo muestra todo), `setBrokerSymbols` para el mensaje WS `broker_symbols` (conectado en `AppLayout`), `publishVisibility` conserva las listas activas al guardar Settings; `hiddenSymbols` ya no filtra.
+- **Resultado:** ✅ build y lint limpios; el operador comprobó que solidary y solidary II solo listan EURUSD y que FTMO / darwinex conservan sus 15 pares.
+- **Est vs Real:** 1 SP · 0.4 SP.

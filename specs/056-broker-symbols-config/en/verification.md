@@ -34,3 +34,10 @@
 - **Steps:** `HttpBridgeState` 3.16: `SelectSymbols` (Market Watch), `WriteAvailableSymbols` (`symbols-available.json` with `SymbolsTotal(false)` names, at start and when the count changes, checked every 60 s), `ReloadConfigIfChanged` every 5 s by `config.json` modification time (`FileGetInteger`, `FILE_MODIFY_DATE`), keeping the pipe broker name. `HttpBridgeCommands` 2.24: the same config reload every 5 s; `ExtractStringArray` reads `symbols` from `sync-command.json` and the sync walks that list (else every streamed symbol). Found while writing it: an empty `symbols` makes the EA fall back to its built-in input list, so the backend now refuses to save an empty list ("Keep at least one pair on", separate backend fix).
 - **Outcome:** 🕐 pending the pipeline compile and the terminal check.
 - **Est vs Actual:** 3 SP · 1 SP (code).
+
+## Task 6 · [frontend] Visibility follows the streamed pairs
+
+- **Mechanism:** `npm run build` + eslint; local check against production.
+- **Steps:** `lib/visibility.ts`: `activeSymbols` loaded from `GET /broker-symbols` with `/settings`, `isSymbolVisible` = in the broker's active list (case-insensitive; a broker without a list shows everything), `setBrokerSymbols` for the `broker_symbols` WS message (wired in `AppLayout`), `publishVisibility` keeps the active lists when Settings saves; `hiddenSymbols` no longer filters.
+- **Outcome:** ✅ build and lint clean; the operator checked that solidary and solidary II only list EURUSD and FTMO / darwinex keep their 15 pairs.
+- **Est vs Actual:** 1 SP · 0.4 SP.

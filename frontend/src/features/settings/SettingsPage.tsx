@@ -21,7 +21,7 @@ import { ServerTab } from './ServerTab';
 import { ServerCharts } from './ServerCharts';
 import { useServerStatus } from '../../lib/useServerStatus';
 import { usePushDevices } from '../../lib/usePushDevices';
-import { EMPTY_VISIBILITY, isBrokerVisible, setVisibility as publishVisibility, useVisibility, type Visibility } from '../../lib/visibility';
+import { EMPTY_VISIBILITY, isBrokerVisible, publishVisibility, useVisibility, type Visibility } from '../../lib/visibility';
 import styles from './SettingsPage.module.css';
 
 const TABS = ['mirror', 'display', 'notifications', 'visibility', 'data', 'server'] as const;
@@ -186,7 +186,7 @@ export function SettingsPage() {
       const savedPresets = saved.presets.map(p => toFormPreset(p, brokerNames));
       setPresets(savedPresets);
       setSelectedPresetKey(savedPresets[selectedIndex]?.key ?? savedPresets[0]?.key ?? '');
-      publishVisibility({ ...EMPTY_VISIBILITY, ...saved.visibility });
+      publishVisibility({ hiddenBrokers: saved.visibility?.hiddenBrokers ?? [], hiddenSymbols: saved.visibility?.hiddenSymbols ?? {} });
       setDirty(false);
       addToast('Settings saved', 'success');
     } catch (err) {
