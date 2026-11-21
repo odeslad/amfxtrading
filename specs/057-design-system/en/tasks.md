@@ -15,7 +15,7 @@ Component tasks are verified on a dev-only catalog page (`/dev/ui`, built only w
 - [x] 9. [frontend] Migrate Notifications tab (NotificationsTab, NotificationPanel, DevicesPanel) · **Verify:** build + local: create/edit/pause/delete a rule, devices panel · **Est:** 3 SP
 - [x] 10. [frontend] Migrate Visibility tab (VisibilityTab, SymbolsPanel) · **Verify:** build + local: broker visibility, pairs panel on/off/locked, Save to EA (against local backend with flags off) · **Est:** 1.5 SP
 - [x] 11. [frontend] Migrate Data tab (DataSyncTab) · **Verify:** build + local: targets, selection, sync progress states · **Est:** 2 SP
-- [ ] 12. [frontend] Migrate Server tab (ServerTab, ServerCharts) · **Verify:** build + local: gauges, tables, 24h/7d, collapse · **Est:** 2.5 SP
+- [x] 12. [frontend] Migrate Server tab (ServerTab, ServerCharts) · **Verify:** build + local: gauges, tables, 24h/7d, collapse · **Est:** 2.5 SP
 - [ ] 13. [specs] Update the design-system section of `.claude/CLAUDE.md` (tokens, component list, `--text-3xl` 24px) · **Verify:** manual review · **Est:** 0.5 SP
 - [ ] 14. [infra] Push `master` and deploy the frontend when the user asks; **validate on production**: every Settings tab on desktop and phone (same settings, same saves), focus ring with Tab, tables as cards on mobile, secondary text #8a8a8a elsewhere in the app · **Verify:** manual (user validation) · **Est:** 1 SP
 - [ ] 15. [specs] Record Est vs Actual in `verification.md` (both languages), mark the spec closed and archive it under `archive/2026-11/` (or the closing month) · **Verify:** manual · **Est:** 0.25 SP

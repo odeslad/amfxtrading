@@ -1,5 +1,6 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import type { ServerEvent, ServerReport, ServerTerminal } from '../../lib/useServerStatus';
+import { Badge, Card, Gauge, Hint, IconButton, Loading, Section, StatusDot, Table, type DotState, type TableColumn, type Tone as UiTone } from '../../shared/ui';
 import styles from './ServerTab.module.css';
 
 interface ServerTabProps {
@@ -81,61 +82,65 @@ function useCollapsed() {
   return { collapsed, toggle };
 }
 
-function Section({ title, shortTitle, summary, tone, open, onToggle, children }: {
+const GAUGE_TONE: Record<Tone, UiTone> = { ok: 'green', warn: 'gold', error: 'red', muted: 'neutral' };
+const DOT_STATE: Record<Tone, DotState> = { ok: 'ok', warn: 'busy', error: 'off', muted: 'muted' };
+
+interface ListRow {
+  key: string;
+  label: ReactNode;
+  value: ReactNode;
+}
+
+const LIST_COLUMNS: TableColumn<ListRow>[] = [
+  { key: 'label', label: 'Name', render: r => r.label },
+  { key: 'value', label: 'State', align: 'right', mono: true, render: r => r.value },
+];
+
+function CollapsibleSection({ title, shortTitle, summary, tone, open, onToggle, children }: {
   title: string; shortTitle?: string; summary?: string; tone?: Tone; open: boolean; onToggle: () => void; children: ReactNode;
 }) {
   return (
-    <section className={styles.section}>
-      <div className={styles.sectionHeader}>
-        {shortTitle
-          ? <span className={styles.label}><span className={styles.titleLong}>{title}</span><span className={styles.titleShort}>{shortTitle}</span></span>
-          : <span className={styles.label}>{title}</span>}
-        <span className={styles.sectionRight}>
+    <Section
+      title={shortTitle
+        ? <><span className={styles.titleLong}>{title}</span><span className={styles.titleShort}>{shortTitle}</span></>
+        : title}
+      actions={
+        <>
           {summary && <span className={`${styles.summary} ${tone ? styles[tone] : ''}`}>{summary}</span>}
-          <button type="button" className={styles.collapseBtn} aria-expanded={open} aria-label={open ? `Collapse ${title}` : `Expand ${title}`} onClick={onToggle}>
-            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-              <path d={open ? 'M2 6.5 L5 3.5 L8 6.5' : 'M2 3.5 L5 6.5 L8 3.5'} fill="none" stroke="currentColor" strokeWidth="1.3" />
-            </svg>
-          </button>
-        </span>
-      </div>
-      {open && children}
-    </section>
+          <IconButton
+            icon={open ? '▴' : '▾'}
+            label={open ? `Collapse ${title}` : `Expand ${title}`}
+            aria-expanded={open}
+            onClick={onToggle}
+          />
+        </>
+      }
+    >
+      {open && <div className={styles.sectionBody}>{children}</div>}
+    </Section>
   );
 }
 
-function Gauge({ label, value, unit, pct }: { label: string; value: string; unit?: string; pct: number | null }) {
+function UsageGauge({ label, value, unit, pct }: { label: string; value: string; unit?: string; pct: number | null }) {
   const tone = pct === null ? 'muted' : usageTone(pct);
-  return (
-    <div className={styles.gauge}>
-      <span className={styles.label}>{label}</span>
-      <span className={styles.gaugeValue}>{value}{unit && <span className={styles.gaugeUnit}> {unit}</span>}</span>
-      <span className={styles.bar} role="meter" aria-label={label} aria-valuenow={pct ?? 0} aria-valuemin={0} aria-valuemax={100}>
-        <span className={`${styles.barFill} ${styles[`fill_${tone}`]}`} style={{ width: `${Math.min(100, pct ?? 0)}%` }} />
-      </span>
-    </div>
-  );
+  return <Gauge label={label} value={pct ?? 0} display={value} unit={unit ?? ''} tone={GAUGE_TONE[tone]} />;
 }
 
 function eventLabel(e: ServerEvent): { text: string; tone: Tone } {
   return e.kind === 'bugcheck' ? { text: 'Crash (bugcheck)', tone: 'error' } : { text: 'Unexpected shutdown', tone: 'warn' };
 }
 
+type TerminalRow = ServerTerminal & { state: { text: string; tone: Tone } };
+
 export function ServerTab({ report, lastOkAt, checkedAt, failing, charts }: ServerTabProps) {
   const { collapsed, toggle } = useCollapsed();
 
-  if (!report) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.loading}>{failing ? 'The server monitor is not answering' : 'Reading the server…'}</div>
-      </div>
-    );
-  }
+  if (!report) return <Loading label={failing ? 'The server monitor is not answering' : 'Reading the server…'} />;
 
   const memPct = (report.memUsedMb / report.memTotalMb) * 100;
   const pagePct = report.pageFileMb === null ? null : (report.pageFileMb / report.memTotalMb) * 100;
   const diskUsedPct = report.diskFreeGb === null || !report.diskTotalGb ? null : (1 - report.diskFreeGb / report.diskTotalGb) * 100;
-  const terminals = sortTerminals(report.terminals);
+  const terminals: TerminalRow[] = sortTerminals(report.terminals);
   const running = report.terminals.filter(t => t.running).length;
   const terminalsTone: Tone = terminals.some(t => t.state.tone === 'error') ? 'error' : terminals.some(t => t.state.tone === 'warn') ? 'warn' : 'ok';
   const servicesUp = report.services.filter(s => s.state === 'running').length;
@@ -146,118 +151,105 @@ export function ServerTab({ report, lastOkAt, checkedAt, failing, charts }: Serv
   const probeStale = report.staleS !== null && report.staleS > STALE_REPORT_S;
   const headerTone: Tone = report.lastBootAfterCrash || terminalsTone === 'error' ? 'error' : terminalsTone === 'warn' || probeStale ? 'warn' : 'ok';
 
+  const serviceRows: ListRow[] = report.services.map(s => ({
+    key: s.name,
+    label: SERVICE_LABELS[s.name] ?? s.name,
+    value: <span className={s.state === 'running' ? styles.ok : styles.error}>● {s.state}</span>,
+  }));
+  const backendRows: ListRow[] = [
+    { key: 'uptime', label: 'Uptime', value: formatDuration(report.backend.uptimeS) },
+    { key: 'memory', label: 'Memory', value: `${report.backend.rssMb} MB` },
+    { key: 'restarts', label: 'Restarts', value: report.backend.restarts ?? '—' },
+  ];
+
+  const terminalColumns: TableColumn<TerminalRow>[] = [
+    { key: 'broker', label: 'Broker', render: t => <span className={t.state.tone === 'muted' ? styles.muted : undefined}>{t.broker}</span> },
+    { key: 'terminal', label: 'Terminal', mono: true, render: t => <span className={styles[t.state.tone]}>● {t.state.text}</span> },
+    { key: 'pipe', label: 'Pipe', mono: true, render: t => <span className={t.state.tone === 'ok' ? undefined : styles[t.state.tone]}>{t.pipe ?? '—'}</span> },
+    { key: 'tick', label: 'Last tick', align: 'right', mono: true, render: t => <span className={t.state.tone === 'ok' ? undefined : styles[t.state.tone]}>{formatAge(t.tickAgeS)}</span> },
+    { key: 'memory', label: 'Memory', align: 'right', mono: true, render: t => (t.memMb === null ? '—' : `${t.memMb} MB`) },
+  ];
+
+  const eventColumns: TableColumn<ServerEvent>[] = [
+    { key: 'at', label: 'When', mono: true, render: e => formatDate(e.at) },
+    { key: 'kind', label: 'Event', render: e => <span className={styles[eventLabel(e).tone]}>{eventLabel(e).text}</span> },
+    { key: 'code', label: 'Code', align: 'right', mono: true, render: e => <span className={styles.muted}>{e.code ? `${e.code} · ${e.param1}` : '—'}</span> },
+  ];
+
+  const staleTitle = outOfDateS !== null ? `The server has not answered for ${formatAge(outOfDateS)}` : `Windows figures are ${formatAge(report.staleS)} old`;
+
   return (
     <div className={styles.page}>
       {(outOfDateS !== null || probeStale) && (
-        <div className={styles.stale} role="status">
-          <span className={styles.warn}>
-            {outOfDateS !== null ? `The server has not answered for ${formatAge(outOfDateS)}` : `Windows figures are ${formatAge(report.staleS)} old`}
-          </span>
-          <span className={styles.muted}>Showing the last figures received. They update by themselves when it answers again.</span>
-        </div>
+        <Hint tone="warning" boxed title={staleTitle}>
+          Showing the last figures received. They update by themselves when it answers again.
+        </Hint>
       )}
 
-      <header className={styles.machine}>
-        <div className={styles.machineName}>
+      <Section
+        accent="orange"
+        title={
           <span className={styles.hostLine}>
-            <span className={`${styles.dot} ${styles[`dot_${headerTone}`]}`} aria-hidden="true" />
+            <StatusDot state={DOT_STATE[headerTone]} />
             <span className={styles.host}>{report.host ?? '—'}</span>
           </span>
-          <span className={styles.muted}>{report.os ?? ''} · {report.cores} cores · {gb(report.memTotalMb)} GB</span>
-        </div>
-        <div className={styles.machineFacts}>
-          <div className={styles.fact}><span className={styles.label}>Last boot</span><span className={styles.mono}>{formatDate(report.bootAt)}</span></div>
-          <div className={styles.fact}><span className={styles.label}>Uptime</span><span className={styles.mono}>{formatDuration(report.uptimeS)}</span></div>
-          {lastCrash && (
-            <span className={styles.crashBadge}>AFTER A {lastCrash.kind === 'bugcheck' ? `CRASH · ${lastCrash.code}` : 'SHUTDOWN'}</span>
-          )}
-        </div>
-      </header>
+        }
+        description={`${report.os ?? ''} · ${report.cores} cores · ${gb(report.memTotalMb)} GB`}
+        actions={
+          <span className={styles.facts}>
+            <span className={styles.fact}><span className={styles.factLabel}>Last boot</span><span className={styles.mono}>{formatDate(report.bootAt)}</span></span>
+            <span className={styles.fact}><span className={styles.factLabel}>Uptime</span><span className={styles.mono}>{formatDuration(report.uptimeS)}</span></span>
+            {lastCrash && <Badge tone="red">After a {lastCrash.kind === 'bugcheck' ? `crash · ${lastCrash.code}` : 'shutdown'}</Badge>}
+          </span>
+        }
+      />
 
       <div className={styles.gauges}>
-        <Gauge label="CPU" value={report.cpu === null ? '—' : `${report.cpu.toFixed(1)} %`} pct={report.cpu} />
-        <Gauge label="Memory" value={gb(report.memUsedMb)} unit={`/ ${gb(report.memTotalMb)} GB`} pct={memPct} />
-        <Gauge label="Page file" value={report.pageFileMb === null ? '—' : gb(report.pageFileMb)} unit="GB" pct={pagePct} />
-        <Gauge label="Disk C: free" value={report.diskFreeGb === null ? '—' : report.diskFreeGb.toFixed(0)} unit={report.diskTotalGb ? `/ ${report.diskTotalGb.toFixed(0)} GB` : undefined} pct={diskUsedPct} />
+        <UsageGauge label="CPU" value={report.cpu === null ? '—' : `${report.cpu.toFixed(1)} %`} pct={report.cpu} />
+        <UsageGauge label="Memory" value={gb(report.memUsedMb)} unit={`/ ${gb(report.memTotalMb)} GB`} pct={memPct} />
+        <UsageGauge label="Page file" value={report.pageFileMb === null ? '—' : gb(report.pageFileMb)} unit="GB" pct={pagePct} />
+        <UsageGauge label="Disk C: free" value={report.diskFreeGb === null ? '—' : report.diskFreeGb.toFixed(0)} unit={report.diskTotalGb ? `/ ${report.diskTotalGb.toFixed(0)} GB` : undefined} pct={diskUsedPct} />
       </div>
 
       {charts && (
-        <Section title="CPU and memory" open={!collapsed.charts} onToggle={() => toggle('charts')}>
+        <CollapsibleSection title="CPU and memory" open={!collapsed.charts} onToggle={() => toggle('charts')}>
           {charts}
-        </Section>
+        </CollapsibleSection>
       )}
 
       <div className={styles.columns}>
-        <Section title="Services" summary={`${servicesUp} / ${report.services.length} running`} tone={servicesUp === report.services.length ? 'ok' : 'error'} open={!collapsed.services} onToggle={() => toggle('services')}>
-          <ul className={styles.list}>
-            {report.services.map(s => (
-              <li key={s.name} className={styles.row}>
-                <span>{SERVICE_LABELS[s.name] ?? s.name}</span>
-                <span className={`${styles.state} ${s.state === 'running' ? styles.ok : styles.error}`}>● {s.state}</span>
-              </li>
-            ))}
-          </ul>
-          <span className={`${styles.label} ${styles.subLabel}`}>Backend</span>
-          <ul className={styles.list}>
-            <li className={styles.row}><span className={styles.muted}>Uptime</span><span className={styles.mono}>{formatDuration(report.backend.uptimeS)}</span></li>
-            <li className={styles.row}><span className={styles.muted}>Memory</span><span className={styles.mono}>{report.backend.rssMb} MB</span></li>
-            <li className={styles.row}><span className={styles.muted}>Restarts</span><span className={styles.mono}>{report.backend.restarts ?? '—'}</span></li>
-          </ul>
-        </Section>
+        <CollapsibleSection title="Services" summary={`${servicesUp} / ${report.services.length} running`} tone={servicesUp === report.services.length ? 'ok' : 'error'} open={!collapsed.services} onToggle={() => toggle('services')}>
+          <Table caption="Services" columns={LIST_COLUMNS} rows={serviceRows} rowKey={r => r.key} />
+          <span className={styles.subLabel}>Backend</span>
+          <Table caption="Backend" columns={LIST_COLUMNS} rows={backendRows} rowKey={r => r.key} />
+        </CollapsibleSection>
 
-        <Section title="Terminals" summary={`${running} / ${report.terminals.length} running`} tone={terminalsTone} open={!collapsed.terminals} onToggle={() => toggle('terminals')}>
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr><th>Broker</th><th>Terminal</th><th>Pipe</th><th className={styles.num}>Last tick</th><th className={styles.num}>Memory</th></tr>
-              </thead>
-              <tbody>
-                {terminals.map(t => (
-                  <tr key={t.broker} className={t.state.tone === 'error' ? styles.rowError : undefined}>
-                    <td className={t.state.tone === 'muted' ? styles.muted : undefined}>{t.broker}</td>
-                    <td className={`${styles.mono} ${styles[t.state.tone]}`}>● {t.state.text}</td>
-                    <td className={`${styles.mono} ${t.state.tone === 'ok' ? '' : styles[t.state.tone]}`}>{t.pipe ?? '—'}</td>
-                    <td className={`${styles.mono} ${styles.num} ${t.state.tone === 'ok' ? '' : styles[t.state.tone]}`}>{formatAge(t.tickAgeS)}</td>
-                    <td className={`${styles.mono} ${styles.num}`}>{t.memMb === null ? '—' : `${t.memMb} MB`}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className={styles.cards}>
-            {terminals.map(t => (
-              <div key={t.broker} className={`${styles.card} ${t.state.tone === 'error' ? styles.cardError : ''}`}>
-                <div className={styles.row}><span className={styles.cardTitle}>{t.broker}</span><span className={`${styles.mono} ${styles[t.state.tone]}`}>● {t.state.text}</span></div>
-                <div className={`${styles.row} ${styles.muted}`}>
-                  <span>Pipe {t.pipe ?? '—'}{t.memMb === null ? '' : ` · ${t.memMb} MB`}</span>
-                  <span className={styles.mono}>last tick {formatAge(t.tickAgeS)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
+        <CollapsibleSection title="Terminals" summary={`${running} / ${report.terminals.length} running`} tone={terminalsTone} open={!collapsed.terminals} onToggle={() => toggle('terminals')}>
+          <Table
+            caption="Terminals"
+            columns={terminalColumns}
+            rows={terminals}
+            rowKey={t => t.broker}
+            rowTone={t => (t.state.tone === 'error' ? 'error' : undefined)}
+            renderCard={t => (
+              <Card
+                title={t.broker}
+                accent={t.state.tone === 'error' ? 'red' : 'none'}
+                meta={`Pipe ${t.pipe ?? '—'}${t.memMb === null ? '' : ` · ${t.memMb} MB`} · last tick ${formatAge(t.tickAgeS)}`}
+                actions={<span className={`${styles.mono} ${styles[t.state.tone]}`}>● {t.state.text}</span>}
+              />
+            )}
+          />
+        </CollapsibleSection>
       </div>
 
-      <Section title="Crashes and unexpected shutdowns · last 30 days" shortTitle="Crashes · 30 days" summary={report.events === null ? 'not read yet' : `${events.length} ${events.length === 1 ? 'event' : 'events'}`} tone={events.length > 0 ? 'error' : 'ok'} open={!collapsed.events} onToggle={() => toggle('events')}>
+      <CollapsibleSection title="Crashes and unexpected shutdowns · last 30 days" shortTitle="Crashes · 30 days" summary={report.events === null ? 'not read yet' : `${events.length} ${events.length === 1 ? 'event' : 'events'}`} tone={events.length > 0 ? 'error' : 'ok'} open={!collapsed.events} onToggle={() => toggle('events')}>
         {events.length === 0
-          ? <p className={styles.muted}>{report.events === null ? 'The event log is read every 10 minutes.' : 'None in the last 30 days.'}</p>
-          : (
-            <ul className={styles.list}>
-              {events.map(e => {
-                const label = eventLabel(e);
-                return (
-                  <li key={e.at} className={styles.row}>
-                    <span className={styles.mono}>{formatDate(e.at)}</span>
-                    <span className={styles[label.tone]}>{label.text}</span>
-                    <span className={`${styles.mono} ${styles.muted}`}>{e.code ? `${e.code} · ${e.param1}` : '—'}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-      </Section>
+          ? <Hint>{report.events === null ? 'The event log is read every 10 minutes.' : 'None in the last 30 days.'}</Hint>
+          : <Table caption="Events" columns={eventColumns} rows={events} rowKey={e => e.at} />}
+      </CollapsibleSection>
 
-      <p className={styles.footer}>Updated {formatAge(sampleAgeS)} ago · refreshes every 15 s</p>
+      <Hint>Updated {formatAge(sampleAgeS)} ago · refreshes every 15 s</Hint>
     </div>
   );
 }

@@ -4,7 +4,10 @@ import {
   type IChartApi, type Time, type LineData, type WhitespaceData,
 } from 'lightweight-charts';
 import type { HistoryGap, HistoryPoint, HistoryRange, ServerEvent } from '../../lib/useServerStatus';
+import { Legend, Segmented, Toolbar, type SegmentOption } from '../../shared/ui';
 import styles from './ServerCharts.module.css';
+
+const RANGE_OPTIONS: SegmentOption<HistoryRange>[] = [{ value: '24h', label: '24H' }, { value: '7d', label: '7D' }];
 
 interface ServerChartsProps {
   history: HistoryPoint[] | null;
@@ -202,20 +205,18 @@ export function ServerCharts({ history, gaps, range, onRange, events }: ServerCh
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.toolbar}>
-        <div className={styles.legend}>
-          <span><i style={{ background: COLORS.cpu }} />CPU %</span>
-          <span><i style={{ background: COLORS.mem }} />Memory GB</span>
-          <span><i style={{ background: COLORS.page }} />Page file GB</span>
-        </div>
-        <div className={styles.ranges} role="group" aria-label="Range">
-          {(['24h', '7d'] as const).map(r => (
-            <button key={r} type="button" className={`${styles.range} ${r === range ? styles.rangeActive : ''}`} aria-pressed={r === range} onClick={() => onRange(r)}>
-              {r.toUpperCase()}
-            </button>
-          ))}
-        </div>
-      </div>
+      <Toolbar
+        start={
+          <Legend
+            items={[
+              { label: 'CPU %', color: COLORS.cpu },
+              { label: 'Memory GB', color: COLORS.mem },
+              { label: 'Page file GB', color: COLORS.page },
+            ]}
+          />
+        }
+        end={<Segmented size="sm" label="Range" options={RANGE_OPTIONS} value={range} onChange={onRange} />}
+      />
       <div className={styles.chartBox} style={{ height }}>
         <div ref={containerRef} className={styles.chart} />
         {!history && <div className={styles.overlayText}>Loading…</div>}
