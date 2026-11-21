@@ -30,6 +30,8 @@
   --tint-blue: rgba(58, 123, 213, 0.18);
   --tint-hover: rgba(255, 255, 255, 0.03);
   --tint-selected: rgba(245, 166, 35, 0.08);
+  --tint-warning: rgba(200, 168, 64, 0.08);
+  --tint-error: rgba(224, 92, 92, 0.08);
   --backdrop: rgba(0, 0, 0, 0.5);
   --shadow-menu: 0 8px 24px rgba(0, 0, 0, 0.5);
 

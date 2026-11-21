@@ -1,7 +1,17 @@
 import { useState, type CSSProperties } from 'react';
 import {
   Button,
+  Card,
+  CardField,
   Checkbox,
+  EmptyState,
+  ExpandableCard,
+  Hint,
+  Loading,
+  Row,
+  Section,
+  Tabs,
+  Toolbar,
   Chip,
   ColorPicker,
   DateInput,
@@ -46,6 +56,7 @@ const CATALOG_PALETTE = ['#f5a623', '#3a7bd5', '#4caf84', '#e05c5c', '#c8a840', 
 type MaType = 'ema' | 'sma';
 type Side = 'buy' | 'sell';
 type Range = '24h' | '7d';
+type CatalogTab = 'mirror' | 'display' | 'notifications' | 'data';
 
 export function UiCatalogPage() {
   const [toggleOn, setToggleOn] = useState(true);
@@ -58,6 +69,8 @@ export function UiCatalogPage() {
   const [color, setColor] = useState('#3a7bd5');
   const [dateTime, setDateTime] = useState('21/11/2026 09:30');
   const [isoDate, setIsoDate] = useState('2026-11-21');
+  const [tab, setTab] = useState<CatalogTab>('mirror');
+  const [spread, setSpread] = useState(true);
 
   return (
     <main className={styles.page}>
@@ -266,6 +279,127 @@ export function UiCatalogPage() {
           <Field label="Invalid" htmlFor="cat-date-invalid">
             <DateInput id="cat-date-invalid" mode="date" value="31/02/2026" onChange={() => undefined} invalid />
           </Field>
+        </div>
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.heading}>Tabs</h2>
+        <Tabs
+          label="Catalog tabs"
+          active={tab}
+          onChange={setTab}
+          tabs={[
+            { id: 'mirror', label: 'Mirror' },
+            { id: 'display', label: 'Display' },
+            { id: 'notifications', label: 'Notifications', shortLabel: 'Notif.' },
+            { id: 'data', label: 'Data' },
+          ]}
+          actions={<Button variant="primary" size="sm">Save</Button>}
+        />
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.heading}>Section · Row · Toolbar</h2>
+        <div className={styles.columns}>
+          <Section
+            title="Spread"
+            description="ASK and BID lines on the chart."
+            actions={<Button size="sm">Reset</Button>}
+          >
+            <Row label="Spread lines" hint="Draws ASK and BID" htmlFor="cat-spread">
+              <Toggle id="cat-spread" label="Spread lines" checked={spread} onChange={setSpread} />
+            </Row>
+            <Row label="Line width" htmlFor="cat-width">
+              <NumberInput id="cat-width" size="sm" unit="px" defaultValue={1} />
+            </Row>
+            <Row label="Inline on mobile" inline>
+              <Checkbox aria-label="Inline" defaultChecked />
+            </Row>
+          </Section>
+          <div className={styles.stack}>
+            <Section title="[Broker 1]" accent="green" flush />
+            <Section title="[Broker 2]" accent="orange" flush />
+            <Section title="[Broker 3]" accent="red" flush />
+            <Toolbar
+              start={
+                <>
+                  <Button variant="buyOutline" size="sm">+ New</Button>
+                  <Button size="sm">Filters</Button>
+                </>
+              }
+              end={<span className={styles.name}>12 items</span>}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.heading}>Card</h2>
+        <div className={styles.columns}>
+          <div className={styles.stack}>
+            <Card
+              title="ENTRY"
+              meta="Fast MA touch"
+              actions={
+                <>
+                  <IconButton icon="✎" label="Edit" />
+                  <IconButton icon={CLOSE_ICON} label="Delete" tone="danger" />
+                </>
+              }
+            />
+            <Card title="#12" accent="green" meta="+2.4R" />
+            <Card title="Inactive" inactive />
+          </div>
+          <div className={styles.stack}>
+            <ExpandableCard
+              defaultOpen
+              summary={
+                <>
+                  <span className={styles.buyText}>BUY</span>
+                  <span>EURUSD</span>
+                  <span className={styles.pnl}>+124.50</span>
+                </>
+              }
+              actions={
+                <>
+                  <Button variant="edit">Edit</Button>
+                  <Button variant="danger">Close</Button>
+                </>
+              }
+            >
+              <CardField label="Broker">[BROKER 1]</CardField>
+              <CardField label="Lots">0.50</CardField>
+              <CardField label="Open">1.08452</CardField>
+            </ExpandableCard>
+            <ExpandableCard
+              summary={
+                <>
+                  <span className={styles.sellText}>SELL</span>
+                  <span>GBPJPY</span>
+                  <span className={styles.pnl}>−38.10</span>
+                </>
+              }
+            >
+              <CardField label="Lots">0.20</CardField>
+            </ExpandableCard>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.heading}>Hint · EmptyState · Loading</h2>
+        <div className={styles.columns}>
+          <div className={styles.stack}>
+            <Hint>Each change is saved to the EA.</Hint>
+            <Hint tone="warning">A pair with open positions cannot be turned off.</Hint>
+            <Hint tone="error">Could not save.</Hint>
+            <Hint tone="warning" boxed title="Push disabled">Enable notifications on this device.</Hint>
+            <Hint tone="error" boxed>Price too close to market.</Hint>
+          </div>
+          <div className={styles.stack}>
+            <EmptyState>No open positions</EmptyState>
+            <Loading />
+          </div>
         </div>
       </section>
     </main>
