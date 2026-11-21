@@ -3,16 +3,19 @@ import { errorMessage } from '../../lib/api';
 import { addToast } from '../../lib/toast';
 import { usePush } from '../../lib/usePush';
 import { type PushDevice } from '../../lib/usePushDevices';
-import { Badge, Button, EmptyState, FieldLabel, Hint, SidePanel } from '../../shared/ui';
-import own from './DevicesPanel.module.css';
+import { Badge, Button, EmptyState, FieldLabel, Hint, Section, SidePanel } from '../../shared/ui';
+import own from './DevicesSection.module.css';
 
-interface DevicesPanelProps {
-  open: boolean;
+interface DevicesProps {
   devices: PushDevice[];
   currentHash: string | null;
   thisDeviceSubscribed: boolean;
   onRemove: (id: number) => Promise<unknown>;
   onChanged: () => Promise<unknown>;
+}
+
+interface DevicesPanelProps extends DevicesProps {
+  open: boolean;
   onClose: () => void;
 }
 
@@ -20,7 +23,7 @@ const p = (n: number) => String(n).padStart(2, '0');
 const fmtDate = (iso: string): string => { const d = new Date(iso); return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`; };
 const fmtDateTime = (iso: string): string => { const d = new Date(iso); return `${fmtDate(iso)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 
-export function DevicesPanel({ open, devices, currentHash, thisDeviceSubscribed, onRemove, onChanged, onClose }: DevicesPanelProps) {
+function DevicesContent({ devices, currentHash, thisDeviceSubscribed, onRemove, onChanged }: DevicesProps) {
   const { status, busy, subscribe } = usePush();
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [removing, setRemoving] = useState(false);
@@ -46,7 +49,6 @@ export function DevicesPanel({ open, devices, currentHash, thisDeviceSubscribed,
   };
 
   return (
-    <SidePanel open={open} title="Devices" onClose={onClose}>
       <div className={own.body}>
         {!thisDeviceSubscribed && (
           <Hint tone="warning" boxed title="This device · notifications off">
@@ -88,6 +90,24 @@ export function DevicesPanel({ open, devices, currentHash, thisDeviceSubscribed,
           ))}
         </div>
       </div>
+  );
+}
+
+// Settings › Alerts & notifications › Devices: the devices that receive push notifications.
+export function DevicesSection(props: DevicesProps) {
+  return (
+    <Section title="Devices" description="Devices that receive the push notifications.">
+      <div className={own.inline}>
+        <DevicesContent {...props} />
+      </div>
+    </Section>
+  );
+}
+
+export function DevicesPanel({ open, onClose, ...props }: DevicesPanelProps) {
+  return (
+    <SidePanel open={open} title="Devices" onClose={onClose}>
+      <DevicesContent {...props} />
     </SidePanel>
   );
 }

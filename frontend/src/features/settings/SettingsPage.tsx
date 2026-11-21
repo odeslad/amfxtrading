@@ -12,7 +12,7 @@ import { MirrorTab, type AccountInfo, type MirrorBroker, type MirrorPreset } fro
 import { DisplayTab, type DisplaySettingsForm } from './DisplayTab';
 import { NotificationsTab } from './NotificationsTab';
 import { NotificationPanel } from './NotificationPanel';
-import { DevicesPanel } from './DevicesPanel';
+import { DevicesPanel } from './DevicesSection';
 import { VisibilityTab } from './VisibilityTab';
 import { SymbolsPanel } from './SymbolsPanel';
 import { useBrokerSymbols } from '../../lib/useBrokerSymbols';

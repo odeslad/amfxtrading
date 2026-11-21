@@ -52,3 +52,7 @@
     font-size: var(--text-xl);
   }
 }
+
+.inline {
+  padding: 12px 0;
+}
