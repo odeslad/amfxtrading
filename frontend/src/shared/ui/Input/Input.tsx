@@ -1,15 +1,12 @@
 import type { InputHTMLAttributes, SelectHTMLAttributes } from 'react';
 import styles from './Input.module.css';
+import { controlClasses, type ControlSize } from './controlClasses';
 
-export type ControlSize = 'sm' | 'md';
+export type { ControlSize };
 
 export interface TextInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
   size?: ControlSize;
   invalid?: boolean;
-}
-
-function controlClasses(size: ControlSize, invalid: boolean, extra?: string): string {
-  return [styles.control, styles[size], invalid ? styles.invalid : '', extra].filter(Boolean).join(' ');
 }
 
 export function TextInput({ size = 'md', invalid = false, type = 'text', className, ...rest }: TextInputProps) {

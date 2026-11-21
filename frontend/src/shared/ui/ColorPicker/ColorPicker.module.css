@@ -1,0 +1,75 @@
+.wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.swatch {
+  display: block;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border-bright);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+
+.swatch:hover {
+  border-color: var(--text);
+}
+
+.swatch:focus-visible,
+.cell:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(4, 20px);
+  gap: 4px;
+  padding: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border-bright);
+  box-shadow: var(--shadow-menu);
+}
+
+.cell {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+
+.cell:hover {
+  border-color: var(--border-bright);
+}
+
+.cellActive,
+.cellActive:hover {
+  border-color: #fff;
+}
+
+@media (max-width: 768px) {
+  .swatch {
+    width: var(--h-touch);
+    height: var(--h-touch);
+  }
+
+  .popover {
+    grid-template-columns: repeat(4, 32px);
+    gap: 6px;
+  }
+
+  .cell {
+    width: 32px;
+    height: 32px;
+  }
+}

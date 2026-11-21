@@ -2,7 +2,12 @@ import { useState, type CSSProperties } from 'react';
 import {
   Button,
   Checkbox,
+  Chip,
+  ColorPicker,
+  DateInput,
   Field,
+  IsoDateInput,
+  Segmented,
   IconButton,
   NumberInput,
   Select,
@@ -36,9 +41,23 @@ const BUTTON_VARIANTS: ButtonVariant[] = [
 
 const CLOSE_ICON = '×';
 
+const CATALOG_PALETTE = ['#f5a623', '#3a7bd5', '#4caf84', '#e05c5c', '#c8a840', '#e8e8e8', '#9b59b6', '#1abc9c'];
+
+type MaType = 'ema' | 'sma';
+type Side = 'buy' | 'sell';
+type Range = '24h' | '7d';
+
 export function UiCatalogPage() {
   const [toggleOn, setToggleOn] = useState(true);
   const [toggleOff, setToggleOff] = useState(false);
+  const [maType, setMaType] = useState<MaType>('ema');
+  const [side, setSide] = useState<Side>('buy');
+  const [range, setRange] = useState<Range>('24h');
+  const [preset, setPreset] = useState('A');
+  const [ratios, setRatios] = useState(['1:2', '1:3']);
+  const [color, setColor] = useState('#3a7bd5');
+  const [dateTime, setDateTime] = useState('21/11/2026 09:30');
+  const [isoDate, setIsoDate] = useState('2026-11-21');
 
   return (
     <main className={styles.page}>
@@ -171,6 +190,82 @@ export function UiCatalogPage() {
           <Toggle label="On" checked={toggleOn} onChange={setToggleOn} />
           <Toggle label="Off" checked={toggleOff} onChange={setToggleOff} />
           <Toggle label="Disabled" checked disabled onChange={() => undefined} />
+        </div>
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.heading}>Segmented</h2>
+        <div className={styles.swatches}>
+          <Segmented
+            label="MA type"
+            value={maType}
+            onChange={setMaType}
+            options={[{ value: 'ema', label: 'EMA' }, { value: 'sma', label: 'SMA' }]}
+          />
+          <Segmented
+            label="Side"
+            value={side}
+            onChange={setSide}
+            options={[
+              { value: 'buy', label: 'BUY', tone: 'buy' },
+              { value: 'sell', label: 'SELL', tone: 'sell' },
+            ]}
+          />
+          <Segmented
+            label="Range"
+            size="sm"
+            value={range}
+            onChange={setRange}
+            options={[{ value: '24h', label: '24H' }, { value: '7d', label: '7D' }]}
+          />
+          <Segmented
+            label="Disabled"
+            value={maType}
+            onChange={setMaType}
+            disabled
+            options={[{ value: 'ema', label: 'EMA' }, { value: 'sma', label: 'SMA' }]}
+          />
+        </div>
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.heading}>Chip</h2>
+        <div className={styles.swatches}>
+          {['A', 'B', 'C'].map((name) => (
+            <Chip key={name} selected={preset === name} onClick={() => setPreset(name)}>
+              Preset {name}
+            </Chip>
+          ))}
+          {ratios.map((ratio) => (
+            <Chip
+              key={ratio}
+              selected
+              onRemove={() => setRatios((current) => current.filter((item) => item !== ratio))}
+              removeLabel={`Remove ${ratio}`}
+            >
+              {ratio}
+            </Chip>
+          ))}
+          <Chip locked title="Has open positions">GBPJPY</Chip>
+          <Chip disabled>Disabled</Chip>
+        </div>
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.heading}>ColorPicker · DateInput</h2>
+        <div className={styles.fieldGrid}>
+          <Field label="Colour">
+            <ColorPicker value={color} onChange={setColor} palette={CATALOG_PALETTE} />
+          </Field>
+          <Field label="Date and time" htmlFor="cat-datetime">
+            <DateInput id="cat-datetime" mode="datetime" value={dateTime} onChange={setDateTime} />
+          </Field>
+          <Field label="Date sm (ISO)" htmlFor="cat-isodate">
+            <IsoDateInput id="cat-isodate" size="sm" value={isoDate} onChange={setIsoDate} />
+          </Field>
+          <Field label="Invalid" htmlFor="cat-date-invalid">
+            <DateInput id="cat-date-invalid" mode="date" value="31/02/2026" onChange={() => undefined} invalid />
+          </Field>
         </div>
       </section>
     </main>

@@ -30,6 +30,14 @@
 
 .nav:hover { border-color: var(--text); }
 
+.nav:focus-visible,
+.day:focus-visible,
+.link:focus-visible,
+.accept:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
 .month {
   font-family: var(--font-mono);
   font-size: var(--text-md);
@@ -105,7 +113,7 @@
 }
 
 .time:focus { border-color: var(--orange); }
-.time:disabled { opacity: 0.4; }
+.time:disabled { opacity: var(--disabled-opacity); }
 
 .foot {
   display: flex;
@@ -130,7 +138,7 @@
 
 .accept {
   flex: 2;
-  height: 44px;
+  height: var(--h-touch);
   border: none;
   background: var(--orange);
   color: #000;
