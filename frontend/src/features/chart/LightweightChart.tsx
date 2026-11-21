@@ -1161,13 +1161,15 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     if (interval <= 0) return;
 
     // Use the tick's real candle time so the live candle advances even when the
-    // historical feed lags (it persists closed candles only every ~30s). m5_time/
-    // h1_time arrive in ms on the same broker-time base as candles[].time (which
-    // is in seconds), so convert to seconds and snap to the timeframe grid. Floor
-    // at lastTime+interval so it never overlaps the last closed historical candle.
+    // historical feed lags. m5_time/h1_time arrive in ms on the same broker-time base
+    // as candles[].time (in seconds), so convert and snap to the timeframe grid.
+    // The tick's candle is drawn where MT4 has it: when it is already stored (e.g. the
+    // last candle of the week, with the market closed) it updates that candle instead
+    // of opening one MT4 does not have.
+    const tfSec = TF_SECONDS[timeframeRef.current] ?? interval;
     const rawSec = Math.floor(liveCandle.time / 1000);
-    const aligned = Math.floor(rawSec / interval) * interval;
-    const liveTime = Math.max(aligned, lastTime + interval);
+    const liveTime = Math.floor(rawSec / tfSec) * tfSec;
+    if (liveTime < lastTime) return;
     // The market is closed on weekends: like the history, no live candle on Saturday or Sunday.
     const liveDay = new Date(liveTime * 1000).getUTCDay();
     if (liveDay === 0 || liveDay === 6) return;
