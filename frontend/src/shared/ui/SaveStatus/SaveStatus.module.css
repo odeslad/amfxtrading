@@ -1,0 +1,25 @@
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--h-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.pending,
+.saving {
+  color: var(--muted);
+}
+
+.saved {
+  color: var(--green);
+}
+
+.invalid {
+  color: var(--gold);
+}
+
+.error {
+  color: var(--red);
+}

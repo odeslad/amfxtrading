@@ -42,6 +42,7 @@ import {
   type ButtonVariant,
 } from '../shared/ui';
 import { addToast } from '../lib/toast';
+import { AutosaveDemo } from './AutosaveDemo';
 import styles from './UiCatalogPage.module.css';
 
 interface Token {
@@ -605,6 +606,11 @@ export function UiCatalogPage() {
             </Field>
           </SidePanel>
         </div>
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.heading}>Autosave · SaveStatus · NavList</h2>
+        <AutosaveDemo />
       </section>
 
       <SidePanel
