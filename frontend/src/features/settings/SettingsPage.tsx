@@ -31,6 +31,7 @@ import { useMediaQuery } from '../../lib/useMediaQuery';
 import { combineSaves, useAutosave } from '../../lib/useAutosave';
 import { IconButton, NavList, SaveStatus, type NavItem } from '../../shared/ui';
 import styles from './SettingsPage.module.css';
+import { IconChevron } from '../../shared/ui/icons';
 
 const SECTIONS = ['trading', 'chart', 'indicators', 'alerts', 'brokers', 'system'] as const;
 type SettingsSection = (typeof SECTIONS)[number];
@@ -355,7 +356,7 @@ export function SettingsPage() {
         <main className={styles.content}>
           <header className={styles.header}>
             <span className={styles.titleLine}>
-              {phone && <IconButton icon="‹" label="Back to Settings" variant="bare" onClick={() => { pageSave.flush(); setSearchParams({}); }} />}
+              {phone && <IconButton icon={<IconChevron size={18} direction="left" />} label="Back to Settings" variant="bare" onClick={() => { pageSave.flush(); setSearchParams({}); }} />}
               <h1 className={styles.title}>{current?.label}</h1>
             </span>
             <span className={styles.actions}>{actions}</span>

@@ -31,7 +31,7 @@
 
 .table td {
   position: relative;
-  padding: 8px 12px;
+  padding: 12px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
   white-space: nowrap;
@@ -64,6 +64,10 @@
 
 .mono {
   font-family: var(--font-mono);
+}
+
+.table td.wrap {
+  white-space: normal;
 }
 
 .selected td {
@@ -121,25 +125,32 @@
   padding: 0 !important;
 }
 
+/* Like the journal's positions: the actions slide in only when the pointer reaches the row's right edge. */
 .actions {
   position: absolute;
-  top: 50%;
+  top: 0;
   right: 0;
+  bottom: 0;
   display: flex;
-  gap: 6px;
-  padding-left: 16px;
-  background: var(--bg);
-  transform: translate(16px, -50%);
-  opacity: 0;
-  pointer-events: none;
-  transition: transform 0.18s ease, opacity 0.18s ease;
+  align-items: center;
+  min-width: 48px;
+  overflow: hidden;
 }
 
-.table tbody tr:hover .actions,
-.actions:focus-within {
-  transform: translate(0, -50%);
-  opacity: 1;
-  pointer-events: auto;
+.actionsInner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 12px 0 16px;
+  background: linear-gradient(var(--tint-hover), var(--tint-hover)), var(--surface);
+  transform: translateX(100%);
+  transition: transform 0.18s ease;
+}
+
+.actions:hover .actionsInner,
+.actions:focus-within .actionsInner {
+  transform: translateX(0);
 }
 
 .cards {
@@ -154,5 +165,9 @@
   .cards {
     display: flex;
     flex-direction: column;
+  }
+
+  .cards > :not(:last-child) > :first-child {
+    border-bottom: none;
   }
 }

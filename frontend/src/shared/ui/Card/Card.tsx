@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import styles from './Card.module.css';
 
-export type CardAccent = 'none' | 'green' | 'red' | 'gold' | 'neutral';
+export type CardAccent = 'none' | 'orange' | 'green' | 'red' | 'gold' | 'neutral';
 
 export interface CardProps {
   title?: ReactNode;
@@ -46,18 +46,23 @@ export function CardField({ label, children }: CardFieldProps) {
 
 export interface ExpandableCardProps {
   summary: ReactNode;
+  /** A control beside the summary, outside the toggle button (e.g. an on/off switch). */
+  aside?: ReactNode;
   actions?: ReactNode;
   defaultOpen?: boolean;
   children: ReactNode;
 }
 
-export function ExpandableCard({ summary, actions, defaultOpen = false, children }: ExpandableCardProps) {
+export function ExpandableCard({ summary, aside, actions, defaultOpen = false, children }: ExpandableCardProps) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className={`${styles.expandable} ${open ? styles.open : ''}`}>
-      <button type="button" className={styles.summary} aria-expanded={open} onClick={() => setOpen((current) => !current)}>
-        {summary}
-      </button>
+      <div className={styles.summaryRow}>
+        <button type="button" className={styles.summary} aria-expanded={open} onClick={() => setOpen((current) => !current)}>
+          {summary}
+        </button>
+        {aside && <div className={styles.aside}>{aside}</div>}
+      </div>
       {open && (
         <div className={styles.details}>
           {children}

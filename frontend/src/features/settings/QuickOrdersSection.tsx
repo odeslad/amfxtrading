@@ -28,7 +28,6 @@ export function QuickOrdersSection({ value, presets, onChange }: QuickOrdersSect
     <Section
       title="Quick market / orders"
       description="Chart menu: Quick buy / sell at market opens a position; at the clicked price it places a pending order. Each one asks for confirmation."
-      accent="orange"
       actions={value
         ? <Button size="sm" onClick={() => onChange(null)}>Clear</Button>
         : <Button variant="primary" size="sm" onClick={() => onChange(DEFAULT_QUICK_ORDERS)}>Set up</Button>}
@@ -55,7 +54,7 @@ export function QuickOrdersSection({ value, presets, onChange }: QuickOrdersSect
 
             <Field label="Stop loss · pips (optional)">
               <TextInput
-                inputMode="decimal" aria-label="Stop loss in pips" placeholder="none"
+                inputMode="decimal" aria-label="Stop loss in pips" placeholder="optional"
                 defaultValue={value.slPips ?? ''}
                 onChange={e => patch({ slPips: numberOrNull(e.target.value) })}
               />
@@ -70,7 +69,7 @@ export function QuickOrdersSection({ value, presets, onChange }: QuickOrdersSect
                   onChange={tpMode => patch(value.tpMode === tpMode ? { tpMode: null, tp: null } : { tpMode })}
                 />
                 <TextInput
-                  inputMode="decimal" aria-label="Take profit" placeholder="none"
+                  inputMode="decimal" aria-label="Take profit" placeholder="optional"
                   disabled={value.tpMode === null} defaultValue={value.tp ?? ''} key={`tp-${value.tpMode ?? 'none'}`}
                   onChange={e => patch({ tp: numberOrNull(e.target.value) })}
                 />

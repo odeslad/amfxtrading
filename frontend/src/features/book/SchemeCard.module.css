@@ -131,8 +131,8 @@
 }
 
 .chevron {
-  color: var(--muted);
-  font-size: var(--text-xl);
+  display: inline-flex;
+  color: var(--text);
 }
 
 .actions {

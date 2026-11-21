@@ -8,6 +8,7 @@ export interface SegmentOption<T extends string> {
   label: ReactNode;
   tone?: SegmentTone;
   disabled?: boolean;
+  stretch?: boolean;
 }
 
 export interface SegmentedProps<T extends string> {
@@ -17,6 +18,7 @@ export interface SegmentedProps<T extends string> {
   label: string;
   size?: 'sm' | 'md';
   disabled?: boolean;
+  stretch?: boolean;
 }
 
 export function Segmented<T extends string>({
@@ -26,9 +28,10 @@ export function Segmented<T extends string>({
   label,
   size = 'md',
   disabled = false,
+  stretch = false,
 }: SegmentedProps<T>) {
   return (
-    <div role="radiogroup" aria-label={label} className={`${styles.group} ${styles[size]}`}>
+    <div role="radiogroup" aria-label={label} className={[styles.group, styles[size], stretch ? styles.stretch : ''].filter(Boolean).join(' ')}>
       {options.map((option) => {
         const selected = option.value === value;
         const classes = [styles.option, selected ? styles[option.tone ?? 'default'] : ''].filter(Boolean).join(' ');

@@ -1,84 +1,58 @@
 .layout {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 12px;
   padding: 12px 0;
-}
-
-.mobilePick {
-  display: none;
 }
 
 .editor {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 12px;
   min-width: 0;
 }
 
-.editorHead {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  flex-wrap: wrap;
-}
-
-.name {
-  flex: 1;
-  max-width: 320px;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.rows {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-
-.row {
+.templateBar {
   display: grid;
-  grid-template-columns: max-content 90px 60px 110px 70px max-content;
-  justify-content: start;
+  grid-template-columns: 240px 240px max-content;
   align-items: end;
   gap: 12px;
-  padding: 10px 0;
-  border-top: 1px solid var(--border);
+  width: 100%;
+}
+
+.templateActions {
+  display: flex;
+  gap: 8px;
+}
+
+.addRow {
+  display: flex;
+}
+
+.period {
+  width: 80px;
+}
+
+.cardControls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.cardControls .period {
+  width: 100%;
 }
 
 @media (max-width: 768px) {
-  .layout {
+  .templateBar {
     grid-template-columns: 1fr;
   }
 
-  .list {
-    display: none;
+  .templateActions {
+    flex-wrap: wrap;
   }
 
-  .mobilePick {
-    display: block;
+  .addRow > button {
+    flex: 1;
   }
 
-  .name {
-    max-width: none;
-    width: 100%;
-  }
-
-  .row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    padding: 12px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-  }
-
-  .editor > button {
-    width: 100%;
-  }
 }

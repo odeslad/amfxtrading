@@ -4,21 +4,16 @@
   gap: 16px;
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
 .presetBar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 240px 240px max-content;
+  align-items: end;
+  gap: 12px;
 }
 
-.presetName {
-  flex: 1;
-  max-width: 320px;
+.presetActions {
+  display: flex;
+  gap: 8px;
 }
 
 .broker {
@@ -44,17 +39,17 @@
 
 .cardControls {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr auto;
   gap: 8px;
 }
 
 .cardControls .lotsInput {
-  width: 100%;
+  width: 96px;
 }
 
 @media (max-width: 768px) {
-  .presetName {
-    max-width: none;
+  .presetBar {
+    grid-template-columns: 1fr;
   }
 }
 

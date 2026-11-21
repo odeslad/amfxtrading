@@ -235,3 +235,17 @@ export function IconJournal({ size = 14, color = 'currentColor' }: IconProps) {
     </svg>
   );
 }
+
+export function IconChevron({ size = 14, color = 'currentColor', direction = 'right' }: IconProps & { direction?: 'left' | 'right' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <polyline
+        points={direction === 'right' ? '6,3 11,8 6,13' : '10,3 5,8 10,13'}
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

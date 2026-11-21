@@ -1,5 +1,6 @@
 import type { MouseEvent, ReactNode } from 'react';
 import styles from './NavList.module.css';
+import { IconChevron } from '../icons';
 
 export interface NavItem<T extends string> {
   id: T;
@@ -42,7 +43,7 @@ export function NavList<T extends string>({ items, current, hrefOf, onSelect, la
               <span className={styles.label}>{item.label}</span>
               {mode === 'list' && item.summary && <span className={styles.summary}>{item.summary}</span>}
             </span>
-            {mode === 'list' && <span className={styles.chevron} aria-hidden="true">›</span>}
+            {mode === 'list' && <span className={styles.chevron}><IconChevron size={16} /></span>}
           </a>
         );
       })}

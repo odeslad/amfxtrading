@@ -13,10 +13,11 @@
 .heading {
   padding: 8px 16px 12px;
   font-family: var(--font-sans);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-wide);
+  font-size: var(--text-md);
+  font-weight: 500;
+  letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .item {
@@ -85,6 +86,6 @@
 }
 
 .chevron {
-  font-size: var(--text-xl);
-  color: var(--muted);
+  display: inline-flex;
+  color: var(--text);
 }

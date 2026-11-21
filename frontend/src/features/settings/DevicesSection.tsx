@@ -3,7 +3,7 @@ import { errorMessage } from '../../lib/api';
 import { addToast } from '../../lib/toast';
 import { usePush } from '../../lib/usePush';
 import { type PushDevice } from '../../lib/usePushDevices';
-import { Badge, Button, EmptyState, FieldLabel, Hint, Section } from '../../shared/ui';
+import { Badge, Button, Card, EmptyState, FieldLabel, Hint, Section, Table, type TableColumn } from '../../shared/ui';
 import own from './DevicesSection.module.css';
 
 interface DevicesProps {
@@ -43,6 +43,31 @@ function DevicesContent({ devices, currentHash, thisDeviceSubscribed, onRemove, 
     }
   };
 
+  const deviceTitle = (d: PushDevice) => (
+    <span className={own.rowTitle}>
+      {d.label}
+      {d.endpointHash === currentHash && <Badge tone="green">This device</Badge>}
+    </span>
+  );
+  const deviceMeta = (d: PushDevice): string =>
+    `since ${fmtDate(d.createdAt)}${d.lastPushAt ? ` · last push ${fmtDateTime(d.lastPushAt)}` : ' · no push yet'}`;
+  const removeButton = (d: PushDevice) => (
+    <Button
+      variant={confirmId === d.id ? 'sell' : 'danger'}
+      size="sm"
+      onClick={() => remove(d.id)}
+      onBlur={() => { if (confirmId === d.id && !removing) setConfirmId(null); }}
+      disabled={removing}
+    >
+      {confirmId === d.id ? (removing ? 'Removing…' : 'Confirm') : 'Remove'}
+    </Button>
+  );
+  const columns: TableColumn<PushDevice>[] = [
+    { key: 'device', label: 'Device', render: deviceTitle },
+    { key: 'since', label: 'Since', mono: true, render: d => fmtDate(d.createdAt) },
+    { key: 'push', label: 'Last push', mono: true, render: d => (d.lastPushAt ? fmtDateTime(d.lastPushAt) : '—'), width: '100%' },
+  ];
+
   return (
       <div className={own.body}>
         {!thisDeviceSubscribed && (
@@ -55,34 +80,25 @@ function DevicesContent({ devices, currentHash, thisDeviceSubscribed, onRemove, 
           </Hint>
         )}
         {!thisDeviceSubscribed && status !== 'unsupported' && status !== 'denied' && (
-          <Button variant="primary" size="lg" onClick={enable} disabled={busy}>
-            {busy ? 'Enabling…' : 'Enable this device'}
-          </Button>
+          <div className={own.enable}>
+            <Button variant="primary" onClick={enable} disabled={busy}>
+              {busy ? 'Enabling…' : 'Enable this device'}
+            </Button>
+          </div>
         )}
 
         <div className={own.list}>
           <FieldLabel>Subscribed devices · {devices.length}</FieldLabel>
           {devices.length === 0 && <EmptyState>No device receives pushes yet.</EmptyState>}
-          {devices.map(d => (
-            <div key={d.id} className={own.row}>
-              <span className={own.rowMain}>
-                <span className={own.rowTitle}>
-                  {d.label}
-                  {d.endpointHash === currentHash && <Badge tone="green">This device</Badge>}
-                </span>
-                <span className={own.rowMeta}>since {fmtDate(d.createdAt)}{d.lastPushAt ? ` · last push ${fmtDateTime(d.lastPushAt)}` : ' · no push yet'}</span>
-              </span>
-              <Button
-                variant={confirmId === d.id ? 'sell' : 'danger'}
-                size="sm"
-                onClick={() => remove(d.id)}
-                onBlur={() => { if (confirmId === d.id && !removing) setConfirmId(null); }}
-                disabled={removing}
-              >
-                {confirmId === d.id ? (removing ? 'Removing…' : 'Confirm') : 'Remove'}
-              </Button>
-            </div>
-          ))}
+          <Table
+            caption="Subscribed devices"
+            columns={columns}
+            rows={devices}
+            rowKey={d => String(d.id)}
+            rowActions={removeButton}
+            swipeCardActions
+            renderCard={d => <Card title={deviceTitle(d)} meta={deviceMeta(d)}>{null}</Card>}
+          />
         </div>
       </div>
   );

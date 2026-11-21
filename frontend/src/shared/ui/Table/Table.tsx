@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { SwipeRow } from '../SwipeRow/SwipeRow';
 import styles from './Table.module.css';
 
 export type ColumnAlign = 'left' | 'right' | 'center';
@@ -11,6 +12,8 @@ export interface TableColumn<Row> {
   render: (row: Row) => ReactNode;
   align?: ColumnAlign;
   mono?: boolean;
+  /** Let long values wrap instead of widening the table. */
+  wrap?: boolean;
   sortable?: boolean;
   width?: string;
 }
@@ -29,6 +32,8 @@ export interface TableProps<Row> {
   rowActions?: (row: Row) => ReactNode;
   rowTone?: (row: Row) => RowTone | undefined;
   renderCard?: (row: Row) => ReactNode;
+  /** On mobile the row actions are revealed by swiping a card left. */
+  swipeCardActions?: boolean;
   empty?: ReactNode;
   caption?: string;
 }
@@ -42,6 +47,7 @@ export function Table<Row>({
   rowActions,
   rowTone,
   renderCard,
+  swipeCardActions = false,
   empty,
   caption,
 }: TableProps<Row>) {
@@ -68,7 +74,7 @@ export function Table<Row>({
                   {columns.map((column) => (
                     <td
                       key={column.key}
-                      className={[styles[column.align ?? 'left'], column.mono ? styles.mono : ''].filter(Boolean).join(' ')}
+                      className={[styles[column.align ?? 'left'], column.mono ? styles.mono : '', column.wrap ? styles.wrap : ''].filter(Boolean).join(' ')}
                       style={column.width ? { width: column.width } : undefined}
                     >
                       {column.render(row)}
@@ -76,7 +82,9 @@ export function Table<Row>({
                   ))}
                   {rowActions && (
                     <td className={styles.actionsCell}>
-                      <div className={styles.actions}>{rowActions(row)}</div>
+                      <div className={styles.actions}>
+                        <div className={styles.actionsInner}>{rowActions(row)}</div>
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -88,7 +96,9 @@ export function Table<Row>({
       {renderCard && (
         <div className={styles.cards}>
           {rows.map((row) => (
-            <div key={rowKey(row)}>{renderCard(row)}</div>
+            swipeCardActions && rowActions
+              ? <SwipeRow key={rowKey(row)} actions={rowActions(row)}>{renderCard(row)}</SwipeRow>
+              : <div key={rowKey(row)}>{renderCard(row)}</div>
           ))}
         </div>
       )}

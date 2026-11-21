@@ -9,18 +9,19 @@ import { ConfirmPanel } from '../journal/ConfirmPanel';
 import { useAutosave } from '../../lib/useAutosave';
 import {
   Button,
+  Card,
   EmptyState,
   Field,
   Hint,
-  IconButton,
   NumberInput,
   SaveStatus,
   Section,
   Segmented,
   Select,
-  SelectList,
+  Table,
   TextInput,
   type SegmentOption,
+  type TableColumn,
 } from '../../shared/ui';
 import styles from './MaTemplatesSection.module.css';
 
@@ -118,52 +119,72 @@ export function MaTemplatesSection() {
     setDraft(d => d && { ...d, averages: d.averages.map(a => (a.id === id ? { ...a, ...patch } : a)) });
 
   if (!draft || !selected) return null;
+  const draftNow = draft;
+
+  const typeControl = (a: MovingAverage, stretch = false) => (
+    <Segmented label={`Type of ${maLabel(a)}`} size="sm" stretch={stretch} options={MA_TYPE_OPTIONS} value={a.type} onChange={type => updateAverage(a.id, { type })} />
+  );
+  const periodControl = (a: MovingAverage) => (
+    <NumberInput
+      size="sm"
+      className={styles.period}
+      aria-label={`Period of ${maLabel(a)}`}
+      inputMode="numeric"
+      min={1}
+      step={1}
+      invalid={!validPeriod(a.period)}
+      value={Number.isNaN(a.period) ? '' : a.period}
+      onChange={e => updateAverage(a.id, { period: e.target.value === '' ? NaN : Number(e.target.value) })}
+    />
+  );
+  const colourControl = (a: MovingAverage) => (
+    <ColorPicker value={a.color} onChange={color => updateAverage(a.id, { color })} label={`Colour of ${maLabel(a)}`} />
+  );
+  const styleControl = (a: MovingAverage) => (
+    <Select size="sm" aria-label={`Style of ${maLabel(a)}`} value={a.style} onChange={e => updateAverage(a.id, { style: e.target.value as MovingAverage['style'] })}>
+      {STYLES.map(s => <option key={s} value={s}>{s}</option>)}
+    </Select>
+  );
+  const widthControl = (a: MovingAverage) => (
+    <Select size="sm" aria-label={`Width of ${maLabel(a)}`} value={a.width} onChange={e => updateAverage(a.id, { width: Number(e.target.value) as MovingAverage['width'] })}>
+      {WIDTHS.map(w => <option key={w} value={w}>{w}</option>)}
+    </Select>
+  );
+  const removeButton = (a: MovingAverage) => (
+    <Button variant="danger" size="sm" aria-label={`Delete ${maLabel(a)}`} onClick={() => setDraft({ ...draftNow, averages: draftNow.averages.filter(x => x.id !== a.id) })}>Delete</Button>
+  );
+
+  const columns: TableColumn<MovingAverage>[] = [
+    { key: 'type', label: 'Type', render: a => typeControl(a) },
+    { key: 'period', label: 'Period', render: periodControl },
+    { key: 'colour', label: 'Colour', render: colourControl },
+    { key: 'style', label: 'Style', render: styleControl },
+    { key: 'width', label: 'Width', render: widthControl, width: '100%' },
+  ];
   const usedBy = brokersOf.get(selected.id) ?? [];
   const defaultTemplate = templates.find(t => t.isDefault);
 
   return (
     <Section
       title="Moving average templates"
-      actions={
-        <>
-          <SaveStatus state={templateSave.state} error={templateSave.error} onRetry={templateSave.retry} />
-          <Button variant="buyOutline" size="sm" onClick={create} disabled={busy}>+ New template</Button>
-        </>
-      }
+      description="Sets of moving averages the chart draws. Each broker, or a broker and timeframe, can use its own; the rest use the default."
+      actions={<SaveStatus state={templateSave.state} error={templateSave.error} onRetry={templateSave.retry} />}
     >
       <div className={styles.layout}>
-        <div className={styles.list}>
-          <SelectList
-            label="Templates"
-            selected={selected.id}
-            onSelect={setSelectedId}
-            items={templates.map(t => ({
-              id: t.id,
-              title: `${t.isDefault ? '★ ' : ''}${t.name}`,
-              aside: `${t.averages.length} MA`,
-              meta: t.isDefault ? 'Brokers without a template' : (brokersOf.get(t.id) ?? []).join(' · ') || 'Not used',
-            }))}
-          />
-        </div>
-
-        <div className={styles.mobilePick}>
-          <Field label="Template" htmlFor="ma-template-pick">
-            <Select id="ma-template-pick" value={selected.id} onChange={e => setSelectedId(Number(e.target.value))}>
-              {templates.map(t => <option key={t.id} value={t.id}>{t.isDefault ? '★ ' : ''}{t.name} · {t.averages.length} MA</option>)}
-            </Select>
-          </Field>
-        </div>
-
         <div className={styles.editor}>
-          <div className={styles.editorHead}>
-            <div className={styles.name}>
-              <Field label="Name" htmlFor="ma-template-name">
-                <TextInput id="ma-template-name" value={draft.name} maxLength={40} onChange={e => setDraft({ ...draft, name: e.target.value })} />
-              </Field>
-            </div>
-            <div className={styles.actions}>
-              {!selected.isDefault && <Button size="sm" onClick={makeDefault} disabled={busy}>★ Make default</Button>}
-              {!selected.isDefault && <Button variant="danger" size="sm" onClick={() => setDeleting(true)} disabled={busy}>Delete</Button>}
+          <div className={styles.templateBar}>
+            <Field label="Template" htmlFor="ma-template-pick">
+              <Select id="ma-template-pick" value={selected.id} onChange={e => setSelectedId(Number(e.target.value))}>
+                {templates.map(t => <option key={t.id} value={t.id}>{t.isDefault ? '★ ' : ''}{t.name} · {t.averages.length} MA</option>)}
+              </Select>
+            </Field>
+            <Field label="Name" htmlFor="ma-template-name">
+              <TextInput id="ma-template-name" value={draft.name} maxLength={40} onChange={e => setDraft({ ...draft, name: e.target.value })} />
+            </Field>
+            <div className={styles.templateActions}>
+              <Button variant="buyOutline" onClick={create} disabled={busy}>+ New</Button>
+              <Button variant="danger" onClick={() => setDeleting(true)} disabled={busy || selected.isDefault}>Delete</Button>
+              <Button onClick={makeDefault} disabled={busy || selected.isDefault}>★ Default</Button>
             </div>
           </div>
           <Hint>
@@ -171,50 +192,28 @@ export function MaTemplatesSection() {
           </Hint>
 
           {draft.averages.length === 0 && <EmptyState>No moving averages yet.</EmptyState>}
-          <div className={styles.rows}>
-            {draft.averages.map(a => (
-              <div key={a.id} className={styles.row}>
-                <Segmented
-                  label={`Type of ${maLabel(a)}`}
-                  options={MA_TYPE_OPTIONS}
-                  value={a.type}
-                  onChange={type => updateAverage(a.id, { type })}
-                />
-                <Field label="Period" htmlFor={`ma-period-${a.id}`}>
-                  <NumberInput
-                    id={`ma-period-${a.id}`}
-                    inputMode="numeric"
-                    min={1}
-                    step={1}
-                    invalid={!validPeriod(a.period)}
-                    value={Number.isNaN(a.period) ? '' : a.period}
-                    onChange={e => updateAverage(a.id, { period: e.target.value === '' ? NaN : Number(e.target.value) })}
-                  />
-                </Field>
-                <Field label="Colour">
-                  <ColorPicker value={a.color} onChange={color => updateAverage(a.id, { color })} label={`Colour of ${maLabel(a)}`} />
-                </Field>
-                <Field label="Style" htmlFor={`ma-style-${a.id}`}>
-                  <Select id={`ma-style-${a.id}`} value={a.style} onChange={e => updateAverage(a.id, { style: e.target.value as MovingAverage['style'] })}>
-                    {STYLES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </Select>
-                </Field>
-                <Field label="Width" htmlFor={`ma-width-${a.id}`}>
-                  <Select id={`ma-width-${a.id}`} value={a.width} onChange={e => updateAverage(a.id, { width: Number(e.target.value) as MovingAverage['width'] })}>
-                    {WIDTHS.map(w => <option key={w} value={w}>{w}</option>)}
-                  </Select>
-                </Field>
-                <IconButton
-                  icon="×"
-                  label={`Remove ${maLabel(a)}`}
-                  tone="danger"
-                  size="md"
-                  onClick={() => setDraft({ ...draft, averages: draft.averages.filter(x => x.id !== a.id) })}
-                />
-              </div>
-            ))}
+          <Table
+            caption="Moving averages"
+            columns={columns}
+            rows={draft.averages}
+            rowKey={a => a.id}
+            rowActions={removeButton}
+            swipeCardActions
+            renderCard={a => (
+              <Card accent="neutral">
+                <div className={styles.cardControls}>
+                  {typeControl(a, true)}
+                  {periodControl(a)}
+                  {colourControl(a)}
+                  {styleControl(a)}
+                  {widthControl(a)}
+                </div>
+              </Card>
+            )}
+          />
+          <div className={styles.addRow}>
+            <Button variant="buyOutline" onClick={() => setDraft({ ...draft, averages: [...draft.averages, newAverage(draft.averages)] })}>+ Add moving average</Button>
           </div>
-          <Button variant="dashed" onClick={() => setDraft({ ...draft, averages: [...draft.averages, newAverage(draft.averages)] })}>+ Add moving average</Button>
         </div>
       </div>
 

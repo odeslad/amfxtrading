@@ -187,7 +187,6 @@ export function ServerTab({ report, lastOkAt, checkedAt, failing, charts }: Serv
       )}
 
       <Section
-        accent="orange"
         title={
           <span className={styles.hostLine}>
             <StatusDot state={DOT_STATE[headerTone]} />

@@ -112,7 +112,7 @@ export function VisibilityTab({ brokers, accounts, brokerSymbols, syncs, onOpenD
           <Card
             title={row.broker}
             meta={<Summary row={row} />}
-            accent={row.visible ? 'none' : 'neutral'}
+            accent={row.visible ? 'orange' : 'neutral'}
             actions={
               <>
                 {row.visible && <SymbolsButton row={row} onClick={() => onOpenSymbols(row.broker)} />}

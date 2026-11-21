@@ -11,7 +11,7 @@
 }
 
 .control::placeholder {
-  color: var(--placeholder);
+  color: var(--muted);
 }
 
 .control:focus,
@@ -20,6 +20,8 @@
 }
 
 .control:disabled {
+  background: transparent;
+  border-style: dashed;
   opacity: var(--disabled-opacity);
   cursor: not-allowed;
 }

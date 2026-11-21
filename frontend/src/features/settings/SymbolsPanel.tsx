@@ -79,8 +79,8 @@ export function SymbolsPanel({ open, state, onSave, onClose }: SymbolsPanelProps
       width="wide"
       footer={
         <div className={own.footer}>
-          <Button size="sm" onClick={allOn}>All on</Button>
-          <Button size="sm" onClick={allOff}>All off</Button>
+          <Button onClick={allOn}>All on</Button>
+          <Button onClick={allOff}>All off</Button>
           <Button variant="primary" className={own.save} onClick={save} disabled={!changed || saving}>
             {saving ? 'Saving…' : 'Save to EA'}
           </Button>

@@ -2,8 +2,8 @@ import type { QuickOrders } from '../../lib/quickOrders';
 import {
   Button,
   Card,
-  Chip,
   EmptyState,
+  Field,
   Section,
   Select,
   Table,
@@ -103,27 +103,20 @@ function PresetBar({ presets, selected, onSelect, onAdd, onRename, onDelete }: {
   onDelete: () => void;
 }) {
   return (
-    <>
-      <div className={styles.chips}>
-        {presets.map(p => (
-          <Chip key={p.key} selected={p.key === selected.key} onClick={() => onSelect(p.key)}>
-            {p.name.trim() || 'Untitled'}
-          </Chip>
-        ))}
-        <Button variant="dashed" size="sm" onClick={onAdd}>+ New</Button>
+    <div className={styles.presetBar}>
+      <Field label="Preset" htmlFor="mirror-preset-pick">
+        <Select id="mirror-preset-pick" value={selected.key} onChange={e => onSelect(e.target.value)}>
+          {presets.map(p => <option key={p.key} value={p.key}>{p.name.trim() || 'Untitled'}</option>)}
+        </Select>
+      </Field>
+      <Field label="Name" htmlFor="mirror-preset-name">
+        <TextInput id="mirror-preset-name" value={selected.name} maxLength={40} onChange={e => onRename(e.target.value)} />
+      </Field>
+      <div className={styles.presetActions}>
+        <Button variant="buyOutline" onClick={onAdd}>+ New</Button>
+        <Button variant="danger" onClick={onDelete} disabled={presets.length <= 1}>Delete</Button>
       </div>
-      <div className={styles.presetBar}>
-        <TextInput
-          size="sm"
-          className={styles.presetName}
-          value={selected.name}
-          maxLength={40}
-          onChange={e => onRename(e.target.value)}
-          aria-label="Preset name"
-        />
-        <Button variant="danger" size="sm" onClick={onDelete} disabled={presets.length <= 1}>Delete</Button>
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -159,8 +152,7 @@ export function MirrorTab({ presets, selectedKey, accounts, quickOrders, onQuick
         renderCard={m => (
           <Card
             title={m.broker}
-            meta={fmtBalance(accounts[m.broker])}
-            accent={m.enabled ? 'none' : 'neutral'}
+            accent={m.enabled ? 'orange' : 'neutral'}
             actions={<MirrorToggle m={m} onChange={change(m)} />}
           >
             <div className={styles.cardControls}>

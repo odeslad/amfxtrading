@@ -7,6 +7,10 @@
   border: 1px solid var(--border);
 }
 
+.orange {
+  border-left: 3px solid var(--orange);
+}
+
 .green {
   border-left: 3px solid var(--green);
 }
@@ -46,6 +50,7 @@
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
 }
 
 .meta {
@@ -70,6 +75,7 @@
 }
 
 .fieldLabel {
+  white-space: nowrap;
   font-family: var(--font-sans);
   font-size: var(--text-2xs);
   letter-spacing: var(--tracking-wide);
@@ -93,25 +99,39 @@
   border-left-color: var(--blue);
 }
 
+.summaryRow {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--border-bright);
+  background: var(--bg);
+}
+
+.open .summaryRow {
+  background: var(--tint-hover);
+}
+
+.aside {
+  display: flex;
+  align-items: center;
+  padding: 0 5px 0 8px;
+}
+
 .summary {
+  flex: 1;
+  min-width: 0;
   display: grid;
   grid-template-columns: auto auto 1fr;
   align-items: baseline;
   gap: 4px 14px;
   width: 100%;
   padding: 10px 5px;
-  background: var(--bg);
+  background: transparent;
   border: none;
-  border-top: 1px solid var(--border-bright);
   color: var(--text);
   font-family: var(--font-mono);
   font-size: var(--text-xl);
   text-align: left;
   cursor: pointer;
-}
-
-.open .summary {
-  background: var(--tint-hover);
 }
 
 .summary:focus-visible {

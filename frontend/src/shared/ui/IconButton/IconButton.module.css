@@ -55,9 +55,16 @@
   border-color: var(--orange);
 }
 
+.danger {
+  color: var(--red);
+  border-color: var(--red);
+  font-size: var(--text-3xl);
+}
+
 .danger:hover:not(:disabled) {
   color: var(--red);
   border-color: var(--red);
+  background: var(--tint-red);
 }
 
 @media (max-width: 768px) {
@@ -65,5 +72,9 @@
     width: var(--h-touch);
     height: var(--h-touch);
     font-size: var(--text-xl);
+  }
+
+  .danger {
+    font-size: var(--text-3xl);
   }
 }

@@ -6,6 +6,14 @@
   border: 1px solid var(--border-bright);
 }
 
+.stretch {
+  width: 100%;
+}
+
+.stretch .option {
+  flex: 1;
+}
+
 .sm {
   height: var(--h-sm);
 }

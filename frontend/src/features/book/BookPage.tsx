@@ -10,6 +10,7 @@ import { SchemesTable } from './SchemesTable';
 import { TradePanel } from './TradePanel';
 import { useBook } from './useBook';
 import styles from './BookPage.module.css';
+import { IconChevron } from '../../shared/ui/icons';
 
 type Panel =
   | { kind: 'scheme'; scheme: BookScheme | null; nonce: number }
@@ -135,16 +136,16 @@ export function BookPage() {
           <select id="book-page-size" className={styles.select} value={pageSize} onChange={e => selectPageSize(Number(e.target.value) as PageSize)}>
             {PAGE_SIZES.map(n => <option key={n} value={n}>{n}</option>)}
           </select>
-          <button type="button" className={styles.pageBtn} disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="Anterior">‹</button>
+          <button type="button" className={styles.pageBtn} disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="Anterior"><IconChevron direction="left" /></button>
           <span className={styles.pageNo}>{page} / {pages}</span>
-          <button type="button" className={styles.pageBtn} disabled={page >= pages} onClick={() => setPage(page + 1)} aria-label="Siguiente">›</button>
+          <button type="button" className={styles.pageBtn} disabled={page >= pages} onClick={() => setPage(page + 1)} aria-label="Siguiente"><IconChevron /></button>
         </div>
       </nav>
 
       <nav aria-label="Paginación" className={styles.paginationMobile}>
-        <button type="button" className={styles.pageBtnMobile} disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="Anterior">‹</button>
+        <button type="button" className={styles.pageBtnMobile} disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="Anterior"><IconChevron direction="left" /></button>
         <span className={styles.pageNo}>{page} / {pages} <span className={styles.muted}>· {pageSize} por pág.</span></span>
-        <button type="button" className={styles.pageBtnMobile} disabled={page >= pages} onClick={() => setPage(page + 1)} aria-label="Siguiente">›</button>
+        <button type="button" className={styles.pageBtnMobile} disabled={page >= pages} onClick={() => setPage(page + 1)} aria-label="Siguiente"><IconChevron /></button>
       </nav>
 
       <OperationsPanel

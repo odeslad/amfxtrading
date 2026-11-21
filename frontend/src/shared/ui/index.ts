@@ -39,3 +39,5 @@ export { NavList } from './NavList/NavList';
 export type { NavItem, NavListProps } from './NavList/NavList';
 export { SaveStatus } from './SaveStatus/SaveStatus';
 export type { SaveStatusState } from './SaveStatus/SaveStatus';
+export { SwipeRow } from './SwipeRow/SwipeRow';
+export type { SwipeRowProps } from './SwipeRow/SwipeRow';

@@ -1,5 +1,6 @@
 import { fmtEur, fmtR1, resultLabel, resultTone, type BookScheme, type ResultTone } from '../../lib/book';
 import styles from './SchemeCard.module.css';
+import { IconChevron } from '../../shared/ui/icons';
 
 interface SchemeCardProps {
   scheme: BookScheme;
@@ -44,7 +45,7 @@ export function SchemeCard({ scheme: s, open, onToggle, onOpenOperations, onNewT
               <span className={styles.opsLabel}>Ver operaciones <span className={styles.pill}>{s.trades.length}</span></span>
               <span className={styles.opsRight}>
                 {s.open > 0 && <span className={styles.gold}>{s.open} en curso</span>}
-                <span className={styles.chevron} aria-hidden="true">›</span>
+                <span className={styles.chevron}><IconChevron size={16} /></span>
               </span>
             </button>
           )}

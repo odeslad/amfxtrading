@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { formatTimeDigits, parseDisplay, toDisplay, type DateMode } from '../../lib/dateField';
 import styles from './Calendar.module.css';
+import { IconChevron } from './icons';
 
 interface CalendarProps {
   mode: DateMode;
@@ -69,9 +70,9 @@ export function Calendar({ mode, value, sheet, onChange, onClose }: CalendarProp
   return (
     <div className={`${styles.calendar} ${sheet ? styles.sheet : ''}`} role="dialog" aria-label="Calendario">
       <div className={styles.head}>
-        <button type="button" className={styles.nav} onClick={() => setView(v => v - 1)} aria-label="Mes anterior">‹</button>
+        <button type="button" className={styles.nav} onClick={() => setView(v => v - 1)} aria-label="Mes anterior"><IconChevron direction="left" /></button>
         <span className={styles.month}>{MONTHS[month]} {year}</span>
-        <button type="button" className={styles.nav} onClick={() => setView(v => v + 1)} aria-label="Mes siguiente">›</button>
+        <button type="button" className={styles.nav} onClick={() => setView(v => v + 1)} aria-label="Mes siguiente"><IconChevron /></button>
       </div>
 
       <div className={styles.grid}>
