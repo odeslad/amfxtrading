@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import fs from 'fs';
 import { execSync } from 'child_process';
+import type { ClientRequest, IncomingMessage } from 'http';
 
 // Commits on the current branch touching `dir` (relative to the repo root, one level up).
 function gitCommitCount(dir: string): number {
@@ -16,6 +17,23 @@ function gitCommitCount(dir: string): number {
 
 const KEY_PATH = './certs/local.amfxtrading.com-key.pem';
 const CERT_PATH = './certs/local.amfxtrading.com.pem';
+
+// The local session cookie gets its own name in the browser, so a production session
+// (token on .amfxtrading.com) never shadows it and both apps can stay signed in.
+const SESSION_COOKIE = 'token';
+const LOCAL_SESSION_COOKIE = 'token_local';
+
+function toBackendCookies(header: string): string {
+  return header
+    .split(/;\s*/)
+    .filter(pair => !pair.startsWith(`${SESSION_COOKIE}=`))
+    .map(pair => pair.startsWith(`${LOCAL_SESSION_COOKIE}=`) ? SESSION_COOKIE + pair.slice(LOCAL_SESSION_COOKIE.length) : pair)
+    .join('; ');
+}
+
+function renameSessionCookie(proxyReq: ClientRequest, req: IncomingMessage): void {
+  if (req.headers.cookie) proxyReq.setHeader('cookie', toBackendCookies(req.headers.cookie));
+}
 
 const hasCerts = fs.existsSync(KEY_PATH) && fs.existsSync(CERT_PATH);
 
@@ -54,6 +72,16 @@ export default defineConfig(({ command }) => ({
               cookieDomainRewrite: '',
               ws: true,
               rewrite: (path: string) => path.replace(/^\/__api/, ''),
+              configure: proxy => {
+                proxy.on('proxyReq', renameSessionCookie);
+                proxy.on('proxyReqWs', renameSessionCookie);
+                proxy.on('proxyRes', res => {
+                  const cookies = res.headers['set-cookie'];
+                  if (!cookies) return;
+                  res.headers['set-cookie'] = cookies.map(cookie =>
+                    cookie.startsWith(`${SESSION_COOKIE}=`) ? LOCAL_SESSION_COOKIE + cookie.slice(SESSION_COOKIE.length) : cookie);
+                });
+              },
             },
           },
         }
