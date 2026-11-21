@@ -22,3 +22,7 @@ export { Card, CardField, ExpandableCard } from './Card/Card';
 export type { CardAccent, CardProps } from './Card/Card';
 export { Toolbar, Hint, EmptyState, Loading } from './Feedback/Feedback';
 export type { HintTone } from './Feedback/Feedback';
+export { Table } from './Table/Table';
+export type { TableColumn, TableProps, TableSort, SortDirection, RowTone } from './Table/Table';
+export { Pager, Badge, StatusDot, ProgressBar, Gauge, StatTile, StatStrip, Legend } from './Data/Data';
+export type { Tone, DotState, LegendItem } from './Data/Data';

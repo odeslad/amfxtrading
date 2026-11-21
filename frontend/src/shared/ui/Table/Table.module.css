@@ -1,0 +1,154 @@
+.wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+}
+
+.caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.table th {
+  padding: 0 12px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-2xs);
+  font-weight: 400;
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.table td {
+  position: relative;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.table th:first-child,
+.table td:first-child {
+  padding-left: 0;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
+  background: var(--tint-hover);
+}
+
+.left {
+  text-align: left;
+}
+
+.right {
+  text-align: right;
+}
+
+.center {
+  text-align: center;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.selected td {
+  background: var(--tint-selected);
+}
+
+.error td {
+  background: var(--tint-error);
+}
+
+.marked td {
+  background: var(--tint-selected);
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortButton:hover,
+.sortActive {
+  color: var(--text);
+}
+
+.sortButton:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.sortArrow {
+  font-size: var(--text-2xs);
+}
+
+.actionsHead {
+  width: 0;
+  padding: 0;
+}
+
+.actionsCell {
+  width: 0;
+  padding: 0 !important;
+}
+
+.actions {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  display: flex;
+  gap: 6px;
+  padding-left: 16px;
+  background: var(--bg);
+  transform: translate(16px, -50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.table tbody tr:hover .actions,
+.actions:focus-within {
+  transform: translate(0, -50%);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cards {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .hideOnMobile {
+    display: none;
+  }
+
+  .cards {
+    display: flex;
+    flex-direction: column;
+  }
+}

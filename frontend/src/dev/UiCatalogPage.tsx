@@ -1,7 +1,18 @@
 import { useState, type CSSProperties } from 'react';
 import {
+  Badge,
   Button,
   Card,
+  Gauge,
+  Legend,
+  Pager,
+  ProgressBar,
+  StatStrip,
+  StatTile,
+  StatusDot,
+  Table,
+  type TableColumn,
+  type TableSort,
   CardField,
   Checkbox,
   EmptyState,
@@ -58,6 +69,47 @@ type Side = 'buy' | 'sell';
 type Range = '24h' | '7d';
 type CatalogTab = 'mirror' | 'display' | 'notifications' | 'data';
 
+interface DemoPosition {
+  id: string;
+  broker: string;
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  lots: number;
+  open: string;
+  pnl: number;
+}
+
+const POSITIONS: DemoPosition[] = [
+  { id: '1', broker: '[Broker 1]', symbol: 'EURUSD', side: 'BUY', lots: 0.5, open: '1.08452', pnl: 124.5 },
+  { id: '2', broker: '[Broker 2]', symbol: 'GBPJPY', side: 'SELL', lots: 0.2, open: '191.204', pnl: -38.1 },
+  { id: '3', broker: '[Broker 1]', symbol: 'AUDUSD', side: 'BUY', lots: 1, open: '0.65210', pnl: 12 },
+];
+
+const POSITION_COLUMNS: TableColumn<DemoPosition>[] = [
+  { key: 'broker', label: 'Broker', render: (row) => row.broker },
+  { key: 'symbol', label: 'Symbol', mono: true, sortable: true, render: (row) => row.symbol },
+  { key: 'side', label: 'Type', render: (row) => row.side },
+  { key: 'lots', label: 'Lots', align: 'right', mono: true, sortable: true, render: (row) => row.lots.toFixed(2) },
+  { key: 'open', label: 'Open', align: 'right', mono: true, render: (row) => row.open },
+  {
+    key: 'pnl',
+    label: 'P&L',
+    align: 'right',
+    mono: true,
+    sortable: true,
+    render: (row) => (row.pnl >= 0 ? `+${row.pnl.toFixed(2)}` : row.pnl.toFixed(2)),
+  },
+];
+
+function sortPositions(rows: DemoPosition[], sort: TableSort): DemoPosition[] {
+  const factor = sort.direction === 'asc' ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const left = a[sort.key as keyof DemoPosition];
+    const right = b[sort.key as keyof DemoPosition];
+    return (left > right ? 1 : left < right ? -1 : 0) * factor;
+  });
+}
+
 export function UiCatalogPage() {
   const [toggleOn, setToggleOn] = useState(true);
   const [toggleOff, setToggleOff] = useState(false);
@@ -71,6 +123,15 @@ export function UiCatalogPage() {
   const [isoDate, setIsoDate] = useState('2026-11-21');
   const [tab, setTab] = useState<CatalogTab>('mirror');
   const [spread, setSpread] = useState(true);
+  const [sort, setSort] = useState<TableSort>({ key: 'pnl', direction: 'desc' });
+  const [page, setPage] = useState(1);
+
+  function handleSort(key: string) {
+    setSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc',
+    }));
+  }
 
   return (
     <main className={styles.page}>
@@ -401,6 +462,89 @@ export function UiCatalogPage() {
             <Loading />
           </div>
         </div>
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.heading}>Table (cards ≤768) · Pager</h2>
+        <Table
+          caption="Open positions"
+          columns={POSITION_COLUMNS}
+          rows={sortPositions(POSITIONS, sort)}
+          rowKey={(row) => row.id}
+          sort={sort}
+          onSort={handleSort}
+          rowTone={(row) => (row.id === '3' ? 'selected' : undefined)}
+          rowActions={() => (
+            <>
+              <Button variant="edit" size="sm">Edit</Button>
+              <Button variant="danger" size="sm">Close</Button>
+            </>
+          )}
+          renderCard={(row) => (
+            <ExpandableCard
+              summary={
+                <>
+                  <span className={row.side === 'BUY' ? styles.buyText : styles.sellText}>{row.side}</span>
+                  <span>{row.symbol}</span>
+                  <span className={styles.pnl}>{row.pnl.toFixed(2)}</span>
+                </>
+              }
+            >
+              <CardField label="Broker">{row.broker}</CardField>
+              <CardField label="Lots">{row.lots.toFixed(2)}</CardField>
+            </ExpandableCard>
+          )}
+        />
+        <Pager page={page} pages={4} onChange={setPage} info={`Page ${page} / 4`} />
+        <Table caption="Empty" columns={POSITION_COLUMNS} rows={[]} rowKey={(row) => row.id} empty={<EmptyState>No open positions</EmptyState>} />
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.heading}>Badge · StatusDot · ProgressBar</h2>
+        <div className={styles.swatches}>
+          <Badge tone="green">Active</Badge>
+          <Badge>Paused</Badge>
+          <Badge tone="gold">Ended</Badge>
+          <Badge tone="red">3 crashes</Badge>
+          <Badge tone="blue">Default</Badge>
+          <StatusDot state="ok" label="Online" />
+          <StatusDot state="off" label="Offline" />
+          <StatusDot state="busy" label="Syncing" />
+          <StatusDot state="muted" label="Unknown" />
+          <StatusDot state="attention" label="Attention" />
+          <div className={styles.lgBox}>
+            <ProgressBar value={42} label="Sync" />
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.heading}>Gauge · StatStrip · Legend</h2>
+        <div className={styles.gauges}>
+          <Gauge label="CPU" value={23} tone="green" />
+          <Gauge label="Memory" value={68} tone="gold" />
+          <Gauge label="Pagefile" value={91} tone="red" />
+          <Gauge label="Disk" value={40} tone="green" />
+        </div>
+        <StatStrip>
+          <StatTile label="Trades" value="142" />
+          <StatTile label="Win rate" value="58.4%" />
+          <StatTile label="Profit factor" value="1.62" />
+          <StatTile label="Net" value="+3 412.80" tone="green" big push />
+        </StatStrip>
+        <Legend
+          items={[
+            { label: 'EURUSD · H1' },
+            { label: 'EMA 20', value: '1.08431', onClick: () => undefined },
+            { label: 'SMA 50', value: '1.08390', onClick: () => undefined },
+          ]}
+        />
+        <Legend
+          items={[
+            { label: 'CPU', color: 'var(--blue)' },
+            { label: 'Memory', color: 'var(--orange)' },
+          ]}
+        />
       </section>
     </main>
   );

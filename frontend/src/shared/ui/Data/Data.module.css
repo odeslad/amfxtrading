@@ -1,0 +1,300 @@
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.pagerInfo {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  font-family: var(--font-sans);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.neutral {
+  color: var(--muted);
+  border-color: var(--border-bright);
+}
+
+.green {
+  color: var(--green);
+}
+
+.red {
+  color: var(--red);
+}
+
+.gold {
+  color: var(--gold);
+}
+
+.blue {
+  color: var(--blue);
+}
+
+.orange {
+  color: var(--orange);
+}
+
+.dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot_ok {
+  background: var(--green);
+}
+
+.dot_off {
+  background: var(--red);
+}
+
+.dot_busy {
+  background: var(--gold);
+  animation: pulse 0.7s infinite alternate;
+}
+
+.dot_muted {
+  background: var(--disabled);
+}
+
+.dot_attention {
+  width: 5px;
+  height: 5px;
+  background: var(--orange);
+}
+
+@keyframes pulse {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.25;
+  }
+}
+
+.track {
+  width: 100%;
+  height: 3px;
+  background: var(--border);
+}
+
+.thick {
+  height: 4px;
+  background: var(--surface2);
+}
+
+.fill {
+  height: 100%;
+  transition: width 0.2s ease;
+}
+
+.fill_orange {
+  background: var(--orange);
+}
+
+.fill_green {
+  background: var(--green);
+}
+
+.fill_red {
+  background: var(--red);
+}
+
+.fill_gold {
+  background: var(--gold);
+}
+
+.fill_blue {
+  background: var(--blue);
+}
+
+.fill_neutral {
+  background: var(--disabled);
+}
+
+.gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--surface);
+}
+
+.gaugeLabel,
+.statLabel {
+  font-family: var(--font-sans);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.gaugeValue {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+}
+
+.gaugeUnit {
+  margin-left: 2px;
+  font-size: var(--text-base);
+  color: var(--muted);
+}
+
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 12px;
+  padding: 12px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 20px;
+  border-left: 1px solid var(--border);
+}
+
+.stat:first-child {
+  border-left: none;
+}
+
+.push {
+  margin-left: auto;
+}
+
+.statValue {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  white-space: nowrap;
+}
+
+.big {
+  font-size: var(--text-2xl);
+}
+
+.text_neutral {
+  color: var(--text);
+}
+
+.text_green {
+  color: var(--green);
+}
+
+.text_red {
+  color: var(--red);
+}
+
+.text_gold {
+  color: var(--gold);
+}
+
+.text_blue {
+  color: var(--blue);
+}
+
+.text_orange {
+  color: var(--orange);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-normal);
+  color: var(--muted);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.clickable {
+  color: var(--orange);
+  cursor: pointer;
+  transition: opacity 0.12s ease;
+}
+
+.clickable:hover {
+  opacity: 0.7;
+}
+
+.clickable:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.legendValue {
+  color: var(--text);
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 2px;
+}
+
+@media (max-width: 768px) {
+  .gauge {
+    padding: 12px;
+  }
+
+  .gaugeValue {
+    font-size: var(--text-xl);
+  }
+
+  .strip {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .stat {
+    padding: 0;
+    border-left: none;
+  }
+
+  .push {
+    margin-left: 0;
+  }
+
+  .big {
+    font-size: var(--text-3xl);
+  }
+
+  .legend {
+    gap: 10px;
+  }
+}
