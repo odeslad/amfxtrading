@@ -103,7 +103,7 @@ export const IndicatorsPanel = memo(function IndicatorsPanel({
             <p className={styles.note}>Hidden averages stay hidden on this device only.</p>
           </div>
 
-          <Link to="/settings?tab=display" className={styles.link} onClick={onClose}>Edit in Settings › Display →</Link>
+          <Link to="/settings?section=indicators" className={styles.link} onClick={onClose}>Edit in Settings › Indicators →</Link>
         </div>
       </div>
     </>

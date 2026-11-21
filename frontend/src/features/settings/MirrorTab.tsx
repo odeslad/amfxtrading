@@ -4,7 +4,7 @@ import {
   Card,
   Chip,
   EmptyState,
-  Hint,
+  Section,
   Select,
   Table,
   TextInput,
@@ -146,8 +146,8 @@ export function MirrorTab({ presets, selectedKey, accounts, quickOrders, onQuick
 
   return (
     <div className={styles.tab}>
-      <Hint>Replicate trades across brokers. Each preset sets lots per broker: fixed, or % risk over the SL distance.</Hint>
-
+      <Section title="Mirror presets" description="Replicate trades across brokers. Each preset sets lots per broker: fixed, or % risk over the SL distance.">
+      <div className={styles.presets}>
       <PresetBar presets={presets} selected={selected} onSelect={onSelect} onAdd={onAdd} onRename={onRename} onDelete={onDelete} />
 
       <Table
@@ -170,6 +170,8 @@ export function MirrorTab({ presets, selectedKey, accounts, quickOrders, onQuick
           </Card>
         )}
       />
+      </div>
+      </Section>
 
       <QuickOrdersSection value={quickOrders} presets={presets} onChange={onQuickOrdersChange} />
     </div>

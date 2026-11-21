@@ -9,10 +9,14 @@ import { DEFAULT_FIB_LEVELS } from '../chart/DrawingTools';
 import { DEFAULT_EMA_TRADES } from '../chart/emaTrades';
 import { quickOrdersError } from '../../lib/quickOrders';
 import { MirrorTab, type AccountInfo, type MirrorBroker, type MirrorPreset } from './MirrorTab';
-import { DisplayTab, type DisplaySettingsForm } from './DisplayTab';
+import type { DisplaySettingsForm } from './displaySettings';
+import { ChartSettings } from './ChartSettings';
+import { CrossTradesSettings } from './CrossTradesSettings';
+import { SetupLevelsSettings } from './SetupLevelsSettings';
+import { MaTemplatesSection } from './MaTemplatesSection';
 import { NotificationsTab } from './NotificationsTab';
 import { NotificationPanel } from './NotificationPanel';
-import { DevicesPanel } from './DevicesSection';
+import { DevicesSection } from './DevicesSection';
 import { VisibilityTab } from './VisibilityTab';
 import { SymbolsPanel } from './SymbolsPanel';
 import { useBrokerSymbols } from '../../lib/useBrokerSymbols';
@@ -23,20 +27,36 @@ import { ServerCharts } from './ServerCharts';
 import { useServerStatus } from '../../lib/useServerStatus';
 import { usePushDevices } from '../../lib/usePushDevices';
 import { EMPTY_VISIBILITY, isBrokerVisible, publishVisibility, useVisibility, type Visibility } from '../../lib/visibility';
-import { Button, Hint, StatusDot, Tabs, type TabItem } from '../../shared/ui';
+import { useMediaQuery } from '../../lib/useMediaQuery';
+import { Button, Hint, IconButton, NavList, type NavItem } from '../../shared/ui';
 import styles from './SettingsPage.module.css';
 
-const TABS = ['mirror', 'display', 'notifications', 'visibility', 'data', 'server'] as const;
-type Tab = (typeof TABS)[number];
+const SECTIONS = ['trading', 'chart', 'indicators', 'alerts', 'brokers', 'system'] as const;
+type SettingsSection = (typeof SECTIONS)[number];
 
-const TAB_ITEMS: TabItem<Tab>[] = [
-  { id: 'mirror', label: 'Mirror' },
-  { id: 'display', label: 'Display' },
-  { id: 'notifications', label: 'Notifications', shortLabel: 'Notif.' },
-  { id: 'visibility', label: 'Visibility' },
-  { id: 'data', label: 'Data' },
-  { id: 'server', label: 'Server' },
+const SECTION_ITEMS: NavItem<SettingsSection>[] = [
+  { id: 'trading', label: 'Trading', summary: 'Mirror presets · Quick orders · New trade' },
+  { id: 'chart', label: 'Chart', summary: 'P&L · Drawings · Price' },
+  { id: 'indicators', label: 'Indicators', summary: 'MA templates · Cross trades · SL / TP labels' },
+  { id: 'alerts', label: 'Alerts & notifications', summary: 'Rules · Devices' },
+  { id: 'brokers', label: 'Brokers & data', summary: 'Brokers · Pairs · Candle history' },
+  { id: 'system', label: 'System', summary: 'Server' },
 ];
+
+// Links from before spec 058 used ?tab=.
+const TAB_TO_SECTION: Record<string, SettingsSection> = {
+  mirror: 'trading', display: 'chart', notifications: 'alerts', visibility: 'brokers', data: 'brokers', server: 'system',
+};
+
+const PHONE = '(max-width: 768px)';
+
+const sectionHref = (id: SettingsSection): string => `/settings?section=${id}`;
+
+const sectionFrom = (params: URLSearchParams): SettingsSection | null => {
+  const requested = params.get('section');
+  if (SECTIONS.includes(requested as SettingsSection)) return requested as SettingsSection;
+  return TAB_TO_SECTION[params.get('tab') ?? ''] ?? null;
+};
 
 interface SavedPreset {
   id: number;
@@ -74,12 +94,11 @@ const toFormPreset = (preset: SavedPreset, brokerNames: string[]): MirrorPreset 
 const DEFAULT_DISPLAY: DisplaySettingsForm = { pnlMode: 'net', trendlineColor: '#8c8c8c', trendlineStyle: 'dashed', trendlineWidth: 1, rectLabels: true, showSpread: false, setupLevels: [...SETUP_LEVEL_KEYS], fibLevels: DEFAULT_FIB_LEVELS, emaTrades: DEFAULT_EMA_TRADES, quickOrders: null };
 
 export function SettingsPage() {
-  // A link can open a given tab, e.g. the chart's indicators button → /settings?tab=display.
-  const [searchParams] = useSearchParams();
-  const [tab, setTab] = useState<Tab>(() => {
-    const requested = searchParams.get('tab');
-    return TABS.includes(requested as Tab) ? (requested as Tab) : 'mirror';
-  });
+  // The section lives in the URL (?section=…), so links and the browser's back button work.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const phone = useMediaQuery(PHONE);
+  const section: SettingsSection | null = sectionFrom(searchParams) ?? (phone ? null : 'trading');
+  const openSection = (id: SettingsSection) => setSearchParams({ section: id });
   const [brokerNames, setBrokerNames] = useState<string[]>([]);
   const [presets, setPresets] = useState<MirrorPreset[]>([]);
   const [selectedPresetKey, setSelectedPresetKey] = useState('');
@@ -88,7 +107,7 @@ export function SettingsPage() {
   const [visibility, setVisibility] = useState<Visibility>(EMPTY_VISIBILITY);
   const [symbolsBroker, setSymbolsBroker] = useState<string | null>(null);
   const [symbolsOpen, setSymbolsOpen] = useState(false);
-  const brokerSymbols = useBrokerSymbols(tab === 'visibility');
+  const brokerSymbols = useBrokerSymbols(section === 'brokers');
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const { notifications, create, update, toggle, remove } = useEmaNotifications();
@@ -96,10 +115,9 @@ export function SettingsPage() {
   const [deleting, setDeleting] = useState<EmaNotification | null>(null);
   const [confirming, setConfirming] = useState(false);
   const pushDevices = usePushDevices();
-  const [devicesOpen, setDevicesOpen] = useState(false);
   // Visibility also shows the history sync of pairs just turned on (spec 056).
-  const candleSync = useCandleSync(tab === 'data' || tab === 'visibility');
-  const server = useServerStatus(tab === 'server');
+  const candleSync = useCandleSync(section === 'brokers');
+  const server = useServerStatus(section === 'system');
 
   useEffect(() => {
     const ac = new AbortController();
@@ -210,97 +228,144 @@ export function SettingsPage() {
   // The notification panel lists the saved visibility, not the unsaved form.
   const savedVisibility = useVisibility();
   const notificationBrokers = brokers.filter(b => isBrokerVisible(savedVisibility, b));
-  const savable = tab === 'mirror' || tab === 'display' || tab === 'visibility';
+  const savable = section === 'trading' || section === 'chart' || section === 'indicators' || section === 'brokers';
+  const current = SECTION_ITEMS.find(item => item.id === section);
+
+  const actions = (
+    <>
+      {savable && dirty && <Hint tone="warning">Unsaved changes</Hint>}
+      {savable && (
+        <Button variant="primary" size="sm" onClick={handleSave} disabled={saving || !dirty}>
+          {saving ? 'Saving…' : 'Save'}
+        </Button>
+      )}
+      {section === 'brokers' && candleSync.dirty && <Hint tone="warning">Unsaved targets</Hint>}
+      {section === 'brokers' && (
+        <Button variant="primary" size="sm" onClick={candleSync.saveTargets} disabled={candleSync.saving || !candleSync.dirty}>
+          {candleSync.saving ? 'Saving…' : 'Save targets'}
+        </Button>
+      )}
+    </>
+  );
+
+  const devices = (
+    <DevicesSection
+      devices={pushDevices.devices}
+      currentHash={pushDevices.currentHash}
+      thisDeviceSubscribed={pushDevices.thisDeviceSubscribed}
+      onRemove={pushDevices.remove}
+      onChanged={pushDevices.reload}
+    />
+  );
+
+  const content = (() => {
+    switch (section) {
+      case 'trading':
+        return (
+          <>
+            <MirrorTab
+              presets={presets}
+              selectedKey={selectedPresetKey}
+              accounts={accounts}
+              quickOrders={display.quickOrders}
+              onQuickOrdersChange={quickOrders => updateDisplay({ quickOrders })}
+              onSelect={setSelectedPresetKey}
+              onAdd={addPreset}
+              onRename={renamePreset}
+              onDelete={deletePreset}
+              onChange={updateBroker}
+            />
+            <SetupLevelsSettings display={display} onChange={updateDisplay} />
+          </>
+        );
+      case 'chart':
+        return <ChartSettings display={display} onChange={updateDisplay} />;
+      case 'indicators':
+        return (
+          <>
+            <MaTemplatesSection />
+            <CrossTradesSettings display={display} onChange={updateDisplay} />
+          </>
+        );
+      case 'alerts':
+        return (
+          <>
+            <NotificationsTab
+              notifications={notifications}
+              onToggle={handleToggle}
+              onEdit={n => setPanel({ notification: n, nonce: Date.now() })}
+              onDelete={setDeleting}
+              onNew={() => setPanel({ notification: null, nonce: Date.now() })}
+            />
+            {devices}
+          </>
+        );
+      case 'brokers':
+        return (
+          <>
+            <VisibilityTab
+              brokers={brokers}
+              accounts={accounts}
+              brokerSymbols={brokerSymbols.brokers}
+              syncs={candleSync.brokers ?? []}
+              onOpenData={() => document.getElementById('candle-history')?.scrollIntoView({ behavior: 'smooth' })}
+              visibility={visibility}
+              onToggleBroker={toggleBrokerVisible}
+              onOpenSymbols={openSymbols}
+            />
+            <div id="candle-history">
+              <DataSyncTab
+                brokers={candleSync.brokers}
+                edits={candleSync.edits}
+                onTarget={candleSync.setTarget}
+                onSync={candleSync.startSync}
+              />
+            </div>
+          </>
+        );
+      case 'system':
+        return (
+          <ServerTab
+            report={server.report}
+            lastOkAt={server.lastOkAt}
+            checkedAt={server.checkedAt}
+            failing={server.failing}
+            charts={<ServerCharts history={server.history} gaps={server.gaps} range={server.range} onRange={server.setRange} events={server.report?.events ?? null} />}
+          />
+        );
+      default:
+        return null;
+    }
+  })();
+
+  const showList = phone && section === null;
 
   return (
     <div className={styles.page}>
-      <Tabs
-        label="Settings"
-        tabs={TAB_ITEMS}
-        active={tab}
-        onChange={setTab}
-        actions={
-          <>
-            {savable && dirty && <Hint tone="warning">Unsaved changes</Hint>}
-            {savable && (
-              <Button variant="primary" size="sm" onClick={handleSave} disabled={saving || !dirty}>
-                {saving ? 'Saving…' : 'Save'}
-              </Button>
-            )}
-            {tab === 'data' && candleSync.dirty && <Hint tone="warning">Unsaved targets</Hint>}
-            {tab === 'data' && (
-              <Button variant="primary" size="sm" onClick={candleSync.saveTargets} disabled={candleSync.saving || !candleSync.dirty}>
-                {candleSync.saving ? 'Saving…' : 'Save targets'}
-              </Button>
-            )}
-            {tab === 'notifications' && (
-              <>
-                <Button
-                  variant={pushDevices.thisDeviceSubscribed ? 'outlined' : 'edit'}
-                  size="sm"
-                  onClick={() => setDevicesOpen(true)}
-                >
-                  Devices · {pushDevices.devices.length}
-                  {!pushDevices.thisDeviceSubscribed && <StatusDot state="attention" />}
-                </Button>
-                <Button variant="buyOutline" size="sm" onClick={() => setPanel({ notification: null, nonce: Date.now() })}>+ New notification</Button>
-              </>
-            )}
-          </>
-        }
-      />
+      {!phone && (
+        <NavList
+          label="Settings sections"
+          heading="Settings"
+          items={SECTION_ITEMS}
+          current={section}
+          hrefOf={sectionHref}
+          onSelect={openSection}
+        />
+      )}
 
-      {tab === 'mirror' && (
-        <MirrorTab
-          presets={presets}
-          selectedKey={selectedPresetKey}
-          accounts={accounts}
-          quickOrders={display.quickOrders}
-          onQuickOrdersChange={quickOrders => updateDisplay({ quickOrders })}
-          onSelect={setSelectedPresetKey}
-          onAdd={addPreset}
-          onRename={renamePreset}
-          onDelete={deletePreset}
-          onChange={updateBroker}
-        />
-      )}
-      {tab === 'display' && <DisplayTab display={display} onChange={updateDisplay} />}
-      {tab === 'visibility' && (
-        <VisibilityTab
-          brokers={brokers}
-          accounts={accounts}
-          brokerSymbols={brokerSymbols.brokers}
-          syncs={candleSync.brokers ?? []}
-          onOpenData={() => setTab('data')}
-          visibility={visibility}
-          onToggleBroker={toggleBrokerVisible}
-          onOpenSymbols={openSymbols}
-        />
-      )}
-      {tab === 'data' && (
-        <DataSyncTab
-          brokers={candleSync.brokers}
-          edits={candleSync.edits}
-          onTarget={candleSync.setTarget}
-          onSync={candleSync.startSync}
-        />
-      )}
-      {tab === 'server' && (
-        <ServerTab
-          report={server.report}
-          lastOkAt={server.lastOkAt}
-          checkedAt={server.checkedAt}
-          failing={server.failing}
-          charts={<ServerCharts history={server.history} gaps={server.gaps} range={server.range} onRange={server.setRange} events={server.report?.events ?? null} />}
-        />
-      )}
-      {tab === 'notifications' && (
-        <NotificationsTab
-          notifications={notifications}
-          onToggle={handleToggle}
-          onEdit={n => setPanel({ notification: n, nonce: Date.now() })}
-          onDelete={setDeleting}
-        />
+      {showList ? (
+        <NavList label="Settings sections" mode="list" items={SECTION_ITEMS} current={null} hrefOf={sectionHref} onSelect={openSection} />
+      ) : (
+        <main className={styles.content}>
+          <header className={styles.header}>
+            <span className={styles.titleLine}>
+              {phone && <IconButton icon="‹" label="Back to Settings" variant="bare" onClick={() => setSearchParams({})} />}
+              <h1 className={styles.title}>{current?.label}</h1>
+            </span>
+            <span className={styles.actions}>{actions}</span>
+          </header>
+          {content}
+        </main>
       )}
 
       <NotificationPanel
@@ -317,16 +382,6 @@ export function SettingsPage() {
         state={symbolsBroker ? brokerSymbols.brokers[symbolsBroker] ?? null : null}
         onSave={brokerSymbols.save}
         onClose={() => setSymbolsOpen(false)}
-      />
-
-      <DevicesPanel
-        open={devicesOpen}
-        devices={pushDevices.devices}
-        currentHash={pushDevices.currentHash}
-        thisDeviceSubscribed={pushDevices.thisDeviceSubscribed}
-        onRemove={pushDevices.remove}
-        onChanged={pushDevices.reload}
-        onClose={() => setDevicesOpen(false)}
       />
 
       <ConfirmPanel

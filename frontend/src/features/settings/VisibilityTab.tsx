@@ -1,7 +1,7 @@
 import type { BrokerSymbolsState, Visibility } from '../../lib/visibility';
 import type { SyncBroker } from '../../lib/useCandleSync';
 import type { AccountInfo } from './MirrorTab';
-import { Button, Card, EmptyState, Hint, LinkButton, Table, Toggle, type TableColumn } from '../../shared/ui';
+import { Button, Card, EmptyState, LinkButton, Section, Table, Toggle, type TableColumn } from '../../shared/ui';
 import own from './VisibilityTab.module.css';
 
 interface VisibilityTabProps {
@@ -100,8 +100,8 @@ export function VisibilityTab({ brokers, accounts, brokerSymbols, syncs, onOpenD
 
   return (
     <div className={own.tab}>
-      <Hint>What the app shows. A hidden broker keeps trading, alerting and notifying; it just leaves the lists. A pair that is off is not sent by its EA and appears nowhere; turning one on syncs its history. Mirror and Devices always show every broker.</Hint>
-
+      <Section title="Brokers & pairs" description="A hidden broker keeps trading, alerting and notifying; it just leaves the lists. A pair that is off is not sent by its EA and appears nowhere; turning one on syncs its history. Mirror and Devices always show every broker.">
+      <div className={own.body}>
       <Table
         caption="Brokers"
         columns={columns}
@@ -124,6 +124,8 @@ export function VisibilityTab({ brokers, accounts, brokerSymbols, syncs, onOpenD
           </Card>
         )}
       />
+      </div>
+      </Section>
     </div>
   );
 }

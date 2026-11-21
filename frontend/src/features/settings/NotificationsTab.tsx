@@ -2,6 +2,7 @@ import { averagesLabel, directionLabel, eventLabel, repeatLabel, symbolsLabel, t
 import {
   Badge,
   Button,
+  Section,
   CardField,
   EmptyState,
   ExpandableCard,
@@ -17,6 +18,7 @@ interface NotificationsTabProps {
   onToggle: (n: EmaNotification) => void;
   onEdit: (n: EmaNotification) => void;
   onDelete: (n: EmaNotification) => void;
+  onNew: () => void;
 }
 
 const STATE_TONE: Record<EmaNotification['state'], Tone> = { active: 'green', paused: 'neutral', ended: 'gold' };
@@ -38,8 +40,23 @@ const directionClass = (n: EmaNotification): string | undefined =>
 
 const StateBadge = ({ n }: { n: EmaNotification }) => <Badge tone={STATE_TONE[n.state]}>{STATE_LABEL[n.state]}</Badge>;
 
-export function NotificationsTab({ notifications, onToggle, onEdit, onDelete }: NotificationsTabProps) {
-  if (notifications.length === 0) return <EmptyState>No notifications yet. Create one with + New notification.</EmptyState>;
+export function NotificationsTab({ notifications, onToggle, onEdit, onDelete, onNew }: NotificationsTabProps) {
+  return (
+    <Section
+      title="Rules"
+      description="Permanent moving-average cross rules; each one notifies by push when it fires."
+      actions={<Button variant="buyOutline" size="sm" onClick={onNew}>+ New notification</Button>}
+    >
+      <div className={styles.body}>
+        {notifications.length === 0
+          ? <EmptyState>No notifications yet. Create one with + New notification.</EmptyState>
+          : <RulesTable notifications={notifications} onToggle={onToggle} onEdit={onEdit} onDelete={onDelete} />}
+      </div>
+    </Section>
+  );
+}
+
+function RulesTable({ notifications, onToggle, onEdit, onDelete }: Omit<NotificationsTabProps, 'onNew'>) {
 
   const actions = (n: EmaNotification) => (
     <>

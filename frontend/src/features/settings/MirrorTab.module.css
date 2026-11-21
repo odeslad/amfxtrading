@@ -57,3 +57,10 @@
     max-width: none;
   }
 }
+
+.presets {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0 4px;
+}
