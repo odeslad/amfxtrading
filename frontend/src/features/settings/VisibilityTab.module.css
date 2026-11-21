@@ -1,7 +1,12 @@
-.summary {
-  font-family: var(--font-mono);
-  font-size: var(--text-base);
-  color: var(--muted);
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.broker {
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
 }
 
 .onCount {
@@ -12,81 +17,13 @@
   color: var(--text);
 }
 
-.summaryAttention {
-  color: var(--gold);
-}
-
-.actions {
-  text-align: right;
-}
-
-.pairsBtn,
-.symbolsBtnAttention {
-  color: var(--orange);
-  border-color: var(--orange);
-}
-
-.pairsBtn:hover,
-.symbolsBtnAttention:hover {
-  color: var(--orange);
-  border-color: var(--orange);
-  background: rgba(245, 166, 35, 0.15);
-}
-
-.cardMain {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-@media (max-width: 768px) {
-  .card {
-    grid-template-columns: 1fr auto auto;
-  }
-
-  .cardToggle {
-    grid-column: 3;
-    justify-self: end;
-  }
-}
-
-/* Spec 056: the history sync of a pair just turned on, linking to Settings › Data. */
-.syncNote,
-.syncError {
-  display: block;
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: 4px;
-  padding: 0;
-  background: none;
-  border: 0;
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  letter-spacing: 0;
-  text-transform: none;
-  text-align: left;
-  cursor: pointer;
-}
-
 .syncNote {
-  color: var(--orange);
-}
-
-.syncError {
-  color: var(--red);
+  margin-top: 4px;
 }
 
 /* The sync note changes at every step: a fixed column keeps the table from reflowing. */
 .symbolsCell {
+  display: block;
   width: 300px;
   max-width: 300px;
-}
-
-.pairsBtn:disabled {
-  color: var(--muted);
-  border-color: var(--border-bright);
-  background: transparent;
 }

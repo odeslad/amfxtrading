@@ -1,7 +1,7 @@
 import type { BrokerSymbolsState, Visibility } from '../../lib/visibility';
 import type { SyncBroker } from '../../lib/useCandleSync';
 import type { AccountInfo } from './MirrorTab';
-import styles from './SettingsPage.module.css';
+import { Button, Card, EmptyState, Hint, LinkButton, Table, Toggle, type TableColumn } from '../../shared/ui';
 import own from './VisibilityTab.module.css';
 
 interface VisibilityTabProps {
@@ -35,9 +35,9 @@ function SyncNote({ sync, onOpenData }: { sync: SyncBroker | undefined; onOpenDa
   const note = syncNote(sync);
   if (!note) return null;
   return (
-    <button type="button" className={note.error ? own.syncError : own.syncNote} onClick={onOpenData} title={`${note.text} · open Settings › Data`}>
+    <LinkButton tone={note.error ? 'red' : 'orange'} truncate className={own.syncNote} onClick={onOpenData} title={`${note.text} · open Settings › Data`}>
       {note.text} ›
-    </button>
+    </LinkButton>
   );
 }
 
@@ -52,30 +52,20 @@ function Summary({ row }: { row: BrokerRow }) {
   );
 }
 
-function Toggle({ row, onChange, className }: { row: BrokerRow; onChange: (visible: boolean) => void; className?: string }) {
-  return (
-    <label className={`${styles.toggle} ${className ?? ''}`}>
-      <input type="checkbox" checked={row.visible} onChange={e => onChange(e.target.checked)} aria-label={`Show ${row.broker}`} />
-      <span className={styles.toggleTrack}><span className={styles.toggleThumb} /></span>
-    </label>
-  );
+function VisibleToggle({ row, onChange }: { row: BrokerRow; onChange: (visible: boolean) => void }) {
+  return <Toggle checked={row.visible} onChange={onChange} label={`Show ${row.broker}`} />;
 }
 
-function SymbolsButton({ row, onClick, className }: { row: BrokerRow; onClick: () => void; className?: string }) {
+function SymbolsButton({ row, onClick }: { row: BrokerRow; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      className={`${styles.barBtn} ${own.pairsBtn} ${className ?? ''}`}
-      onClick={onClick}
-      disabled={!row.visible || row.on === null}
-    >
+    <Button variant="edit" size="sm" onClick={onClick} disabled={!row.visible || row.on === null}>
       Pairs
-    </button>
+    </Button>
   );
 }
 
 export function VisibilityTab({ brokers, accounts, brokerSymbols, syncs, onOpenData, visibility, onToggleBroker, onOpenSymbols }: VisibilityTabProps) {
-  if (brokers.length === 0) return <div className={styles.empty}>No brokers connected</div>;
+  if (brokers.length === 0) return <EmptyState>No brokers connected</EmptyState>;
 
   const rows: BrokerRow[] = brokers.map(broker => {
     const state = brokerSymbols[broker];
@@ -88,45 +78,52 @@ export function VisibilityTab({ brokers, accounts, brokerSymbols, syncs, onOpenD
     };
   });
 
+  const syncOf = (broker: string) => syncs.find(s => s.broker === broker);
+
+  const columns: TableColumn<BrokerRow>[] = [
+    { key: 'broker', label: 'Broker', render: row => <span className={own.broker}>{row.broker}</span> },
+    { key: 'visible', label: 'Visible', render: row => <VisibleToggle row={row} onChange={visible => onToggleBroker(row.broker, visible)} /> },
+    { key: 'account', label: 'Account', render: row => accounts[row.broker]?.name ?? '—' },
+    {
+      key: 'symbols',
+      label: 'Symbols',
+      mono: true,
+      render: row => (
+        <span className={own.symbolsCell}>
+          <span><Summary row={row} /></span>
+          <SyncNote sync={syncOf(row.broker)} onOpenData={onOpenData} />
+        </span>
+      ),
+    },
+    { key: 'pairs', label: '', align: 'right', render: row => <SymbolsButton row={row} onClick={() => onOpenSymbols(row.broker)} /> },
+  ];
+
   return (
-    <>
-      <p className={styles.desc}>What the app shows. A hidden broker keeps trading, alerting and notifying; it just leaves the lists. A pair that is off is not sent by its EA and appears nowhere; turning one on syncs its history. Mirror and Devices always show every broker.</p>
+    <div className={own.tab}>
+      <Hint>What the app shows. A hidden broker keeps trading, alerting and notifying; it just leaves the lists. A pair that is off is not sent by its EA and appears nowhere; turning one on syncs its history. Mirror and Devices always show every broker.</Hint>
 
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr><th>Broker</th><th>Visible</th><th>Account</th><th>Symbols</th><th aria-label="Actions"></th></tr>
-          </thead>
-          <tbody>
-            {rows.map(row => (
-              <tr key={row.broker} className={row.visible ? undefined : styles.dim}>
-                <td className={styles.broker}>{row.broker}</td>
-                <td><Toggle row={row} onChange={visible => onToggleBroker(row.broker, visible)} /></td>
-                <td className={styles.sans}>{accounts[row.broker]?.name ?? '—'}</td>
-                <td className={`${own.summary} ${own.symbolsCell}`}>
-                  <Summary row={row} />
-                  <SyncNote sync={syncs.find(s => s.broker === row.broker)} onOpenData={onOpenData} />
-                </td>
-                <td className={own.actions}><SymbolsButton row={row} onClick={() => onOpenSymbols(row.broker)} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className={styles.cards}>
-        {rows.map(row => (
-          <div key={row.broker} className={`${styles.card} ${own.card} ${row.visible ? '' : styles.dim}`}>
-            <span className={own.cardMain}>
-              <span className={styles.cardName}>{row.broker}</span>
-              <span className={`${own.summary}`}><Summary row={row} /></span>
-              <SyncNote sync={syncs.find(s => s.broker === row.broker)} onOpenData={onOpenData} />
-            </span>
-            {row.visible && <SymbolsButton row={row} onClick={() => onOpenSymbols(row.broker)} />}
-            <Toggle row={row} onChange={visible => onToggleBroker(row.broker, visible)} className={own.cardToggle} />
-          </div>
-        ))}
-      </div>
-    </>
+      <Table
+        caption="Brokers"
+        columns={columns}
+        rows={rows}
+        rowKey={row => row.broker}
+        rowTone={row => (row.visible ? undefined : 'muted')}
+        renderCard={row => (
+          <Card
+            title={row.broker}
+            meta={<Summary row={row} />}
+            accent={row.visible ? 'none' : 'neutral'}
+            actions={
+              <>
+                {row.visible && <SymbolsButton row={row} onClick={() => onOpenSymbols(row.broker)} />}
+                <VisibleToggle row={row} onChange={visible => onToggleBroker(row.broker, visible)} />
+              </>
+            }
+          >
+            <SyncNote sync={syncOf(row.broker)} onOpenData={onOpenData} />
+          </Card>
+        )}
+      />
+    </div>
   );
 }

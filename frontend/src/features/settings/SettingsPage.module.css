@@ -72,18 +72,12 @@
   padding-left: 0;
 }
 
-.sans { font-family: var(--font-sans); }
 .muted { color: var(--muted); }
-.dim { opacity: 0.5; }
 
 .broker {
   color: var(--text);
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
-}
-
-.cards {
-  display: none;
 }
 
 .empty {
@@ -95,53 +89,6 @@
 }
 
 /* ── Toggle ──────────────────────────────────────── */
-
-.toggle {
-  position: relative;
-  display: inline-flex;
-  cursor: pointer;
-  vertical-align: middle;
-}
-
-.toggle input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggleTrack {
-  width: 36px;
-  height: 20px;
-  background: var(--border-bright);
-  border-radius: 10px;
-  position: relative;
-  transition: background 0.12s ease;
-}
-
-.toggle input:checked + .toggleTrack {
-  background: var(--orange);
-}
-
-.toggle input:disabled + .toggleTrack {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.toggleThumb {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  background: #fff;
-  border-radius: 50%;
-  transition: transform 0.12s ease;
-}
-
-.toggle input:checked + .toggleTrack .toggleThumb {
-  transform: translateX(16px);
-}
 
 /* ── Inputs ──────────────────────────────────────── */
 
@@ -162,33 +109,6 @@
 
   .tableWrapper {
     display: none;
-  }
-
-  .cards {
-    display: flex;
-    flex-direction: column;
-    margin: 12px 0 0;
-    min-width: 0;
-  }
-
-  .card {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 8px 12px;
-    align-items: center;
-    padding: 12px 5px;
-    border-top: 1px solid var(--border);
-  }
-
-  .cardName {
-    font-family: var(--font-mono);
-    font-size: var(--text-xl);
-    letter-spacing: var(--tracking-tight);
-    text-transform: uppercase;
-  }
-
-  .card > * {
-    min-width: 0;
   }
 
   .page {

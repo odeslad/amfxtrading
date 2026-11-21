@@ -33,3 +33,5 @@ export type { MenuItem, MenuSection, MenuItemTone } from './Menu/Menu';
 export { Toaster } from './Toast/Toaster';
 export { SelectList } from './SelectList/SelectList';
 export type { SelectListItem } from './SelectList/SelectList';
+export { LinkButton } from './LinkButton/LinkButton';
+export type { LinkTone } from './LinkButton/LinkButton';

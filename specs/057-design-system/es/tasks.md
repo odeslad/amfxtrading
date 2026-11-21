@@ -13,7 +13,7 @@ Las tareas de componentes se verifican en una página de catálogo solo de desar
 - [x] 7. [frontend] Migrar el armazón de Settings + pestaña Mirror (MirrorTab, QuickOrdersSection) · **Verifica:** build + local: presets, órdenes rápidas y Save funcionan como antes; en su CSS no queda ninguna regla que cubra un componente · **Est:** 2,5 SP
 - [x] 8. [frontend] Migrar la pestaña Display (DisplayTab, MaTemplatesSection) · **Verifica:** build + local: cada ajuste de display y la edición de plantillas se guardan como antes · **Est:** 3 SP
 - [x] 9. [frontend] Migrar la pestaña Notifications (NotificationsTab, NotificationPanel, DevicesPanel) · **Verifica:** build + local: crear/editar/pausar/borrar una regla, panel de dispositivos · **Est:** 3 SP
-- [ ] 10. [frontend] Migrar la pestaña Visibility (VisibilityTab, SymbolsPanel) · **Verifica:** build + local: visibilidad de brokers, panel de pares activo/apagado/bloqueado, Save to EA (contra el backend local con flags apagados) · **Est:** 1,5 SP
+- [x] 10. [frontend] Migrar la pestaña Visibility (VisibilityTab, SymbolsPanel) · **Verifica:** build + local: visibilidad de brokers, panel de pares activo/apagado/bloqueado, Save to EA (contra el backend local con flags apagados) · **Est:** 1,5 SP
 - [ ] 11. [frontend] Migrar la pestaña Data (DataSyncTab) · **Verifica:** build + local: objetivos, selección, estados del avance de la sincronización · **Est:** 2 SP
 - [ ] 12. [frontend] Migrar la pestaña Server (ServerTab, ServerCharts) · **Verifica:** build + local: medidores, tablas, 24h/7d, plegar · **Est:** 2,5 SP
 - [ ] 13. [specs] Actualizar la sección del sistema de diseño de `.claude/CLAUDE.md` (tokens, lista de componentes, `--text-3xl` 24px) · **Verifica:** revisión manual · **Est:** 0,5 SP

@@ -1,134 +1,24 @@
-.panel {
-  width: 380px;
-  overflow: hidden;
-}
-
 .body {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px 20px;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.note,
-.lockNote,
-.error {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  color: var(--muted);
-}
-
-.lockNote {
-  color: var(--gold);
-}
-
-.error {
-  color: var(--red);
+  gap: 12px;
 }
 
 .onCount {
   color: var(--green);
 }
 
-/* Spec 056: the tracked pairs on a 3-column grid. */
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
-.chip {
-  height: 30px;
-  padding: 0 6px;
-  background: transparent;
-  border: 1px solid var(--border-bright);
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
-}
-
-.chip:hover {
-  color: var(--text);
-}
-
-.chipOn {
-  border-color: var(--green);
-  background: rgba(76, 175, 132, 0.12);
-  color: var(--text);
-}
-
-.chipLocked {
-  border-color: var(--gold);
-  cursor: not-allowed;
-}
-
 .footer {
   display: flex;
   gap: 8px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--border);
 }
 
-.smBtn {
-  height: 34px;
-  padding: 0 10px;
-  background: transparent;
-  border: 1px solid var(--border-bright);
-  color: var(--muted);
-  font-family: var(--font-sans);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color 0.12s ease, border-color 0.12s ease;
-}
-
-.smBtn:hover {
-  color: var(--text);
-  border-color: var(--text);
-}
-
-.saveBtn {
+.save {
   flex: 1;
-  height: 34px;
-  background: var(--orange);
-  color: #000;
-  border: 0;
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: opacity 0.12s ease;
-}
-
-.saveBtn:hover {
-  opacity: 0.85;
-}
-
-.saveBtn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-@media (max-width: 768px) {
-  .panel {
-    width: 100%;
-  }
-
-  .chip,
-  .smBtn,
-  .saveBtn {
-    height: 44px;
-  }
 }
