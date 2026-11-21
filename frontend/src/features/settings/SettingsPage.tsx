@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { apiFetch, apiSend, errorMessage } from '../../lib/api';
 import { addToast } from '../../lib/toast';
@@ -28,7 +28,8 @@ import { useServerStatus } from '../../lib/useServerStatus';
 import { usePushDevices } from '../../lib/usePushDevices';
 import { EMPTY_VISIBILITY, isBrokerVisible, publishVisibility, useVisibility, type Visibility } from '../../lib/visibility';
 import { useMediaQuery } from '../../lib/useMediaQuery';
-import { Button, Hint, IconButton, NavList, type NavItem } from '../../shared/ui';
+import { useAutosave } from '../../lib/useAutosave';
+import { Button, Hint, IconButton, NavList, SaveStatus, type NavItem } from '../../shared/ui';
 import styles from './SettingsPage.module.css';
 
 const SECTIONS = ['trading', 'chart', 'indicators', 'alerts', 'brokers', 'system'] as const;
@@ -98,7 +99,6 @@ export function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const phone = useMediaQuery(PHONE);
   const section: SettingsSection | null = sectionFrom(searchParams) ?? (phone ? null : 'trading');
-  const openSection = (id: SettingsSection) => setSearchParams({ section: id });
   const [brokerNames, setBrokerNames] = useState<string[]>([]);
   const [presets, setPresets] = useState<MirrorPreset[]>([]);
   const [selectedPresetKey, setSelectedPresetKey] = useState('');
@@ -108,8 +108,7 @@ export function SettingsPage() {
   const [symbolsBroker, setSymbolsBroker] = useState<string | null>(null);
   const [symbolsOpen, setSymbolsOpen] = useState(false);
   const brokerSymbols = useBrokerSymbols(section === 'brokers');
-  const [dirty, setDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const { notifications, create, update, toggle, remove } = useEmaNotifications();
   const [panel, setPanel] = useState<{ notification: EmaNotification | null; nonce: number } | null>(null);
   const [deleting, setDeleting] = useState<EmaNotification | null>(null);
@@ -133,13 +132,13 @@ export function SettingsPage() {
       setAccounts(Object.fromEntries(balances.map(b => [b.broker, { name: b.name, balance: b.balance, currency: b.currency }])));
       setDisplay({ ...DEFAULT_DISPLAY, ...settings.display, emaTrades: { ...DEFAULT_EMA_TRADES, ...settings.display?.emaTrades } });
       setVisibility({ ...EMPTY_VISIBILITY, ...settings.visibility });
+      setLoaded(true);
     }).catch(() => {});
     return () => ac.abort();
   }, []);
 
   const updatePreset = useCallback((patch: (p: MirrorPreset) => MirrorPreset) => {
     setPresets(prev => prev.map(p => p.key === selectedPresetKey ? patch(p) : p));
-    setDirty(true);
   }, [selectedPresetKey]);
 
   const updateBroker = useCallback((broker: string, patch: Partial<MirrorBroker>) => {
@@ -153,7 +152,6 @@ export function SettingsPage() {
     const key = newPresetKey();
     setPresets(prev => [...prev, { key, name: 'New preset', brokers: source ? source.brokers.map(m => ({ ...m })) : [] }]);
     setSelectedPresetKey(key);
-    setDirty(true);
   }, [presets, selectedPresetKey]);
 
   const deletePreset = useCallback(() => {
@@ -162,12 +160,10 @@ export function SettingsPage() {
     const rest = presets.filter(p => p.key !== selectedPresetKey);
     setPresets(rest);
     setSelectedPresetKey(rest[Math.max(0, index - 1)]?.key ?? '');
-    setDirty(true);
   }, [presets, selectedPresetKey]);
 
   const updateDisplay = useCallback((patch: Partial<DisplaySettingsForm>) => {
     setDisplay(prev => ({ ...prev, ...patch }));
-    setDirty(true);
   }, []);
 
   const toggleBrokerVisible = useCallback((broker: string, visible: boolean) => {
@@ -175,7 +171,6 @@ export function SettingsPage() {
       ...prev,
       hiddenBrokers: visible ? prev.hiddenBrokers.filter(b => b !== broker) : [...prev.hiddenBrokers, broker],
     }));
-    setDirty(true);
   }, []);
 
   const openSymbols = useCallback((broker: string) => {
@@ -183,26 +178,37 @@ export function SettingsPage() {
     setSymbolsOpen(true);
   }, []);
 
-  const handleSave = async () => {
-    const quickError = quickOrdersError(display.quickOrders);
-    if (quickError) { addToast(quickError, 'error'); return; }
-    setSaving(true);
-    try {
-      const body = { presets: presets.map(p => ({ id: p.id, name: p.name.trim(), brokers: p.brokers })), display, visibility };
-      const saved = await apiSend<SettingsResponse>('/settings', 'PUT', body);
-      const selectedIndex = Math.max(0, presets.findIndex(p => p.key === selectedPresetKey));
-      const savedPresets = saved.presets.map(p => toFormPreset(p, brokerNames));
-      setPresets(savedPresets);
-      setSelectedPresetKey(savedPresets[selectedIndex]?.key ?? savedPresets[0]?.key ?? '');
-      publishVisibility({ hiddenBrokers: saved.visibility?.hiddenBrokers ?? [], hiddenSymbols: saved.visibility?.hiddenSymbols ?? {} });
-      setDirty(false);
-      addToast('Settings saved', 'success');
-    } catch (err) {
-      addToast(errorMessage(err, 'Network error saving settings'), 'error');
-    } finally {
-      setSaving(false);
-    }
+  // Spec 058: the settings form saves itself a moment after each change.
+  const settingsBody = useMemo(
+    () => ({ presets: presets.map(p => ({ id: p.id, name: p.name.trim(), brokers: p.brokers })), display, visibility }),
+    [presets, display, visibility],
+  );
+
+  const saveSettings = useCallback(async (body: typeof settingsBody) => {
+    const saved = await apiSend<SettingsResponse>('/settings', 'PUT', body);
+    // A new preset gets its id from this save; the form keeps its keys so no field remounts.
+    setPresets(prev => (prev.some((p, i) => p.id === undefined && saved.presets[i])
+      ? prev.map((p, i) => (p.id === undefined && saved.presets[i] ? { ...p, id: saved.presets[i].id } : p))
+      : prev));
+    publishVisibility({ hiddenBrokers: saved.visibility?.hiddenBrokers ?? [], hiddenSymbols: saved.visibility?.hiddenSymbols ?? {} });
+  }, []);
+
+  const validateSettings = useCallback((body: typeof settingsBody): string | null =>
+    quickOrdersError(body.display.quickOrders) ?? (body.presets.some(p => p.name === '') ? 'A preset needs a name' : null), []);
+
+  const settingsSave = useAutosave(settingsBody, { save: saveSettings, validate: validateSettings, enabled: loaded });
+
+  const openSection = (id: SettingsSection) => {
+    settingsSave.flush();
+    setSearchParams({ section: id });
   };
+
+  useEffect(() => {
+    if (settingsSave.state !== 'pending' && settingsSave.state !== 'saving' && settingsSave.state !== 'error') return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [settingsSave.state]);
 
   const saveNotification = useCallback((input: NotificationInput, id: number | null) =>
     id === null ? create(input) : update(id, input), [create, update]);
@@ -228,17 +234,11 @@ export function SettingsPage() {
   // The notification panel lists the saved visibility, not the unsaved form.
   const savedVisibility = useVisibility();
   const notificationBrokers = brokers.filter(b => isBrokerVisible(savedVisibility, b));
-  const savable = section === 'trading' || section === 'chart' || section === 'indicators' || section === 'brokers';
   const current = SECTION_ITEMS.find(item => item.id === section);
 
   const actions = (
     <>
-      {savable && dirty && <Hint tone="warning">Unsaved changes</Hint>}
-      {savable && (
-        <Button variant="primary" size="sm" onClick={handleSave} disabled={saving || !dirty}>
-          {saving ? 'Saving…' : 'Save'}
-        </Button>
-      )}
+      <SaveStatus state={settingsSave.state} error={settingsSave.error} onRetry={settingsSave.retry} />
       {section === 'brokers' && candleSync.dirty && <Hint tone="warning">Unsaved targets</Hint>}
       {section === 'brokers' && (
         <Button variant="primary" size="sm" onClick={candleSync.saveTargets} disabled={candleSync.saving || !candleSync.dirty}>
@@ -359,7 +359,7 @@ export function SettingsPage() {
         <main className={styles.content}>
           <header className={styles.header}>
             <span className={styles.titleLine}>
-              {phone && <IconButton icon="‹" label="Back to Settings" variant="bare" onClick={() => setSearchParams({})} />}
+              {phone && <IconButton icon="‹" label="Back to Settings" variant="bare" onClick={() => { settingsSave.flush(); setSearchParams({}); }} />}
               <h1 className={styles.title}>{current?.label}</h1>
             </span>
             <span className={styles.actions}>{actions}</span>
