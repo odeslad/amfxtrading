@@ -1168,6 +1168,9 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     const rawSec = Math.floor(liveCandle.time / 1000);
     const aligned = Math.floor(rawSec / interval) * interval;
     const liveTime = Math.max(aligned, lastTime + interval);
+    // The market is closed on weekends: like the history, no live candle on Saturday or Sunday.
+    const liveDay = new Date(liveTime * 1000).getUTCDay();
+    if (liveDay === 0 || liveDay === 6) return;
 
     liveCandleTimeRef.current = liveTime;
     try {
