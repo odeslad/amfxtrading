@@ -6,6 +6,20 @@ import type { MaType, MovingAverage } from '../chart/chart.types';
 import { ColorPicker } from '../chart/ColorPicker';
 import { PALETTE, maLabel } from '../chart/movingAverages';
 import { ConfirmPanel } from '../journal/ConfirmPanel';
+import {
+  Button,
+  EmptyState,
+  Field,
+  Hint,
+  IconButton,
+  NumberInput,
+  Section,
+  Segmented,
+  Select,
+  SelectList,
+  TextInput,
+  type SegmentOption,
+} from '../../shared/ui';
 import styles from './MaTemplatesSection.module.css';
 
 interface Draft {
@@ -16,6 +30,7 @@ interface Draft {
 
 const STYLES: MovingAverage['style'][] = ['solid', 'dashed', 'dotted'];
 const WIDTHS: MovingAverage['width'][] = [1, 2, 3];
+const MA_TYPE_OPTIONS: SegmentOption<MaType>[] = [{ value: 'ema', label: 'EMA' }, { value: 'sma', label: 'SMA' }];
 
 const newAverage = (existing: MovingAverage[]): MovingAverage => ({
   id: crypto.randomUUID(),
@@ -30,6 +45,8 @@ const toDraft = (t: MaTemplate): Draft => ({ id: t.id, name: t.name, averages: t
 
 const sameDraft = (a: Draft, t: MaTemplate | undefined): boolean =>
   !!t && a.name === t.name && JSON.stringify(a.averages) === JSON.stringify(t.averages);
+
+const validPeriod = (period: number): boolean => Number.isInteger(period) && period >= 1;
 
 // Settings › Display › Moving average templates (spec 052). Brokers choose their template
 // from the chart's indicators button; here templates are created, edited and deleted.
@@ -53,7 +70,7 @@ export function MaTemplatesSection() {
   }, [assignments]);
 
   const dirty = !!draft && !sameDraft(draft, selected);
-  const periodsValid = !!draft && draft.averages.every(a => Number.isInteger(a.period) && a.period >= 1);
+  const periodsValid = !!draft && draft.averages.every(a => validPeriod(a.period));
 
   const run = async (action: () => Promise<unknown>, done: string, failed: string) => {
     setBusy(true);
@@ -99,103 +116,95 @@ export function MaTemplatesSection() {
   const defaultTemplate = templates.find(t => t.isDefault);
 
   return (
-    <section className={styles.section}>
-      <div className={styles.head}>
-        <span className={styles.title}>Moving average templates</span>
-        <button type="button" className={styles.newBtn} onClick={create} disabled={busy}>+ New template</button>
-      </div>
-
+    <Section
+      title="Moving average templates"
+      actions={<Button variant="buyOutline" size="sm" onClick={create} disabled={busy}>+ New template</Button>}
+    >
       <div className={styles.layout}>
-        <div className={styles.list} role="listbox" aria-label="Templates">
-          {templates.map(t => (
-            <button
-              key={t.id}
-              type="button"
-              role="option"
-              aria-selected={t.id === selected.id}
-              className={`${styles.item} ${t.id === selected.id ? styles.itemActive : ''}`}
-              onClick={() => setSelectedId(t.id)}
-            >
-              <span className={styles.itemTop}>
-                <span>{t.isDefault && <span className={styles.star} aria-label="Default">★ </span>}{t.name}</span>
-                <span className={styles.mono}>{t.averages.length} MA</span>
-              </span>
-              <span className={styles.muted}>
-                {t.isDefault ? 'Brokers without a template' : (brokersOf.get(t.id) ?? []).join(' · ') || 'Not used'}
-              </span>
-            </button>
-          ))}
+        <div className={styles.list}>
+          <SelectList
+            label="Templates"
+            selected={selected.id}
+            onSelect={setSelectedId}
+            items={templates.map(t => ({
+              id: t.id,
+              title: `${t.isDefault ? '★ ' : ''}${t.name}`,
+              aside: `${t.averages.length} MA`,
+              meta: t.isDefault ? 'Brokers without a template' : (brokersOf.get(t.id) ?? []).join(' · ') || 'Not used',
+            }))}
+          />
         </div>
 
-        <label className={styles.mobilePick}>
-          <span className={styles.label}>Template</span>
-          <select className={styles.select} value={selected.id} onChange={e => setSelectedId(Number(e.target.value))}>
-            {templates.map(t => <option key={t.id} value={t.id}>{t.isDefault ? '★ ' : ''}{t.name} · {t.averages.length} MA</option>)}
-          </select>
-        </label>
+        <div className={styles.mobilePick}>
+          <Field label="Template" htmlFor="ma-template-pick">
+            <Select id="ma-template-pick" value={selected.id} onChange={e => setSelectedId(Number(e.target.value))}>
+              {templates.map(t => <option key={t.id} value={t.id}>{t.isDefault ? '★ ' : ''}{t.name} · {t.averages.length} MA</option>)}
+            </Select>
+          </Field>
+        </div>
 
         <div className={styles.editor}>
           <div className={styles.editorHead}>
-            <label className={styles.nameField}>
-              <span className={styles.label}>Name</span>
-              <input className={styles.input} value={draft.name} maxLength={40} onChange={e => setDraft({ ...draft, name: e.target.value })} />
-            </label>
+            <div className={styles.name}>
+              <Field label="Name" htmlFor="ma-template-name">
+                <TextInput id="ma-template-name" value={draft.name} maxLength={40} onChange={e => setDraft({ ...draft, name: e.target.value })} />
+              </Field>
+            </div>
             <div className={styles.actions}>
-              {!selected.isDefault && <button type="button" className={styles.outlinedBtn} onClick={makeDefault} disabled={busy}>★ Make default</button>}
-              {!selected.isDefault && <button type="button" className={styles.dangerBtn} onClick={() => setDeleting(true)} disabled={busy}>Delete</button>}
-              <button type="button" className={styles.saveBtn} onClick={save} disabled={busy || !dirty || !periodsValid || !draft.name.trim()}>Save template</button>
+              {!selected.isDefault && <Button size="sm" onClick={makeDefault} disabled={busy}>★ Make default</Button>}
+              {!selected.isDefault && <Button variant="danger" size="sm" onClick={() => setDeleting(true)} disabled={busy}>Delete</Button>}
+              <Button variant="primary" size="sm" onClick={save} disabled={busy || !dirty || !periodsValid || !draft.name.trim()}>Save template</Button>
             </div>
           </div>
-          <span className={styles.muted}>
+          <Hint>
             {selected.isDefault ? 'Default template: used by every broker without one of its own.' : usedBy.length ? `Used by ${usedBy.join(' · ')}` : 'Not used by any broker yet. Choose it from a chart\'s indicators button.'}
-          </span>
+          </Hint>
 
-          {draft.averages.length === 0 && <p className={styles.muted}>No moving averages yet.</p>}
+          {draft.averages.length === 0 && <EmptyState>No moving averages yet.</EmptyState>}
           <div className={styles.rows}>
             {draft.averages.map(a => (
               <div key={a.id} className={styles.row}>
-                <div className={styles.typeToggle} role="group" aria-label="Type">
-                  {(['ema', 'sma'] as MaType[]).map(t => (
-                    <button key={t} type="button" aria-pressed={a.type === t} className={a.type === t ? styles.typeOn : styles.typeOff} onClick={() => updateAverage(a.id, { type: t })}>
-                      {t.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-                <label className={styles.cell}>
-                  <span className={styles.cellLabel}>Period</span>
-                  <input
-                    className={`${styles.input} ${styles.period} ${Number.isInteger(a.period) && a.period >= 1 ? '' : styles.invalid}`}
-                    type="number"
+                <Segmented
+                  label={`Type of ${maLabel(a)}`}
+                  options={MA_TYPE_OPTIONS}
+                  value={a.type}
+                  onChange={type => updateAverage(a.id, { type })}
+                />
+                <Field label="Period" htmlFor={`ma-period-${a.id}`}>
+                  <NumberInput
+                    id={`ma-period-${a.id}`}
                     inputMode="numeric"
                     min={1}
                     step={1}
+                    invalid={!validPeriod(a.period)}
                     value={Number.isNaN(a.period) ? '' : a.period}
                     onChange={e => updateAverage(a.id, { period: e.target.value === '' ? NaN : Number(e.target.value) })}
-                    aria-label={`Period of ${maLabel(a)}`}
                   />
-                </label>
-                <span className={styles.cell}>
-                  <span className={styles.cellLabel}>Colour</span>
+                </Field>
+                <Field label="Colour">
                   <ColorPicker value={a.color} onChange={color => updateAverage(a.id, { color })} label={`Colour of ${maLabel(a)}`} />
-                </span>
-                <label className={styles.cell}>
-                  <span className={styles.cellLabel}>Style</span>
-                  <select className={styles.select} value={a.style} onChange={e => updateAverage(a.id, { style: e.target.value as MovingAverage['style'] })}>
+                </Field>
+                <Field label="Style" htmlFor={`ma-style-${a.id}`}>
+                  <Select id={`ma-style-${a.id}`} value={a.style} onChange={e => updateAverage(a.id, { style: e.target.value as MovingAverage['style'] })}>
                     {STYLES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </label>
-                <label className={styles.cell}>
-                  <span className={styles.cellLabel}>Width</span>
-                  <select className={styles.select} value={a.width} onChange={e => updateAverage(a.id, { width: Number(e.target.value) as MovingAverage['width'] })}>
+                  </Select>
+                </Field>
+                <Field label="Width" htmlFor={`ma-width-${a.id}`}>
+                  <Select id={`ma-width-${a.id}`} value={a.width} onChange={e => updateAverage(a.id, { width: Number(e.target.value) as MovingAverage['width'] })}>
                     {WIDTHS.map(w => <option key={w} value={w}>{w}</option>)}
-                  </select>
-                </label>
-                <button type="button" className={styles.removeBtn} aria-label={`Remove ${maLabel(a)}`} onClick={() => setDraft({ ...draft, averages: draft.averages.filter(x => x.id !== a.id) })}>✕</button>
+                  </Select>
+                </Field>
+                <IconButton
+                  icon="×"
+                  label={`Remove ${maLabel(a)}`}
+                  tone="danger"
+                  onClick={() => setDraft({ ...draft, averages: draft.averages.filter(x => x.id !== a.id) })}
+                />
               </div>
             ))}
           </div>
-          <button type="button" className={styles.addBtn} onClick={() => setDraft({ ...draft, averages: [...draft.averages, newAverage(draft.averages)] })}>+ Add moving average</button>
-          {dirty && <span className={styles.unsaved}>Unsaved changes</span>}
+          <Button variant="dashed" onClick={() => setDraft({ ...draft, averages: [...draft.averages, newAverage(draft.averages)] })}>+ Add moving average</Button>
+          {dirty && <Hint tone="warning">Unsaved changes</Hint>}
         </div>
       </div>
 
@@ -210,6 +219,6 @@ export function MaTemplatesSection() {
         onConfirm={remove}
         onClose={() => setDeleting(false)}
       />
-    </section>
+    </Section>
   );
 }

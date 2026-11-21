@@ -31,3 +31,5 @@ export type { SidePanelProps, ConfirmDialogProps, FilterPanelProps } from './Sid
 export { Menu, Popover } from './Menu/Menu';
 export type { MenuItem, MenuSection, MenuItemTone } from './Menu/Menu';
 export { Toaster } from './Toast/Toaster';
+export { SelectList } from './SelectList/SelectList';
+export type { SelectListItem } from './SelectList/SelectList';

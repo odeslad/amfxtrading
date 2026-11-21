@@ -2,10 +2,10 @@ import { SETUP_LEVEL_KEYS, type PnlMode, type SetupLevelKey } from '../journal/u
 import { FIB_LEVEL_ANCHORS, FIB_LEVEL_CATALOGUE, type TrendlineStyle } from '../chart/DrawingTools';
 import { EMA_TRADES_LABEL_KEYS, EMA_TRADES_LABEL_NAMES, EMA_TRADES_LIMITS, type EmaTradesLabel, type EmaTradesNumberKey, type EmaTradesSettings } from '../chart/emaTrades';
 import type { MaType } from '../chart/chart.types';
-import { MaTypeToggle } from '../chart/MaTypeToggle';
+import { Card, ColorPicker, Hint, NumberInput, Row, Section, Segmented, Select, Toggle, type SegmentOption } from '../../shared/ui';
 import { MaTemplatesSection } from './MaTemplatesSection';
 import type { QuickOrders } from '../../lib/quickOrders';
-import styles from './SettingsPage.module.css';
+import styles from './DisplayTab.module.css';
 
 export interface DisplaySettingsForm {
   pnlMode: PnlMode;
@@ -41,6 +41,8 @@ const EMA_TRADES_FIELDS: EmaTradesField[] = [
 
 const TRENDLINE_COLORS = ['#8c8c8c', '#f5a623', '#3a7bd5', '#4caf84', '#e05c5c', '#c8a840'];
 const TRENDLINE_WIDTHS = [1, 2, 3];
+
+const MA_TYPE_OPTIONS: SegmentOption<MaType>[] = [{ value: 'ema', label: 'EMA' }, { value: 'sma', label: 'SMA' }];
 
 const LEVEL_MEANING: Record<SetupLevelKey, string> = {
   ECC: 'Cross candle close',
@@ -82,176 +84,133 @@ export function DisplayTab({ display, onChange }: DisplayTabProps) {
   };
 
   return (
-    <>
-      <p className={styles.desc}>How data is shown across the app.</p>
+    <div className={styles.tab}>
+      <Hint>How data is shown across the app.</Hint>
 
-      <div className={styles.displayList}>
-        <div className={styles.displayRow}>
-          <span className={styles.displayLabel}>P&amp;L Mode</span>
-          <select className={styles.select} value={display.pnlMode} onChange={e => onChange({ pnlMode: e.target.value as PnlMode })}>
+      <Section title="General">
+        <Row label="P&L Mode" htmlFor="display-pnl">
+          <Select id="display-pnl" size="sm" value={display.pnlMode} onChange={e => onChange({ pnlMode: e.target.value as PnlMode })}>
             <option value="net">Net (profit + swap + commission)</option>
             <option value="gross">Gross (profit only)</option>
             <option value="pips">Pips</option>
             <option value="pct">% Net (over account balance)</option>
-          </select>
-        </div>
+          </Select>
+        </Row>
+      </Section>
 
-        <div className={styles.displayRow}>
-          <span className={styles.displayLabel}>Trendline style</span>
-          <select className={styles.select} value={display.trendlineStyle} onChange={e => onChange({ trendlineStyle: e.target.value as TrendlineStyle })}>
+      <Section title="Drawings">
+        <Row label="Trendline style" htmlFor="display-trend-style">
+          <Select id="display-trend-style" size="sm" value={display.trendlineStyle} onChange={e => onChange({ trendlineStyle: e.target.value as TrendlineStyle })}>
             <option value="solid">Solid</option>
             <option value="dashed">Dashed</option>
             <option value="dotted">Dotted</option>
-          </select>
-        </div>
-
-        <div className={styles.displayRow}>
-          <span className={styles.displayLabel}>Trendline width</span>
-          <select className={styles.select} value={display.trendlineWidth} onChange={e => onChange({ trendlineWidth: Number(e.target.value) })}>
+          </Select>
+        </Row>
+        <Row label="Trendline width" htmlFor="display-trend-width">
+          <Select id="display-trend-width" size="sm" value={display.trendlineWidth} onChange={e => onChange({ trendlineWidth: Number(e.target.value) })}>
             {TRENDLINE_WIDTHS.map(w => <option key={w} value={w}>{w}px</option>)}
-          </select>
-        </div>
-
-        <div className={styles.displayRow}>
-          <span className={styles.displayLabel}>Trendline color</span>
-          <div className={styles.colorSwatches}>
-            {TRENDLINE_COLORS.map(c => (
-              <button
-                key={c}
-                type="button"
-                className={`${styles.colorSwatch} ${display.trendlineColor === c ? styles.colorSwatchActive : ''}`}
-                style={{ background: c }}
-                onClick={() => onChange({ trendlineColor: c })}
-                aria-label={`Color ${c}`}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className={`${styles.displayRow} ${styles.displayRowInline}`}>
-          <span className={styles.displayLabel}>Rectangle labels (prices and pips)</span>
-          <label className={styles.toggle}>
-            <input type="checkbox" checked={display.rectLabels} onChange={e => onChange({ rectLabels: e.target.checked })} aria-label="Rectangle labels" />
-            <span className={styles.toggleTrack}><span className={styles.toggleThumb} /></span>
-          </label>
-        </div>
-
-        <div className={`${styles.displayRow} ${styles.displayRowGroup}`}>
-          <span className={styles.displayLabel}>
-            Fibonacci levels
-            <span className={styles.displayHint}>Levels drawn by the Fibonacci tool on every chart. 0 and 100 are the anchors and stay on.</span>
-          </span>
-          <div className={`${styles.levelGrid} ${styles.fibGrid}`}>
+          </Select>
+        </Row>
+        <Row label="Trendline color" inline>
+          <ColorPicker value={display.trendlineColor} palette={TRENDLINE_COLORS} onChange={trendlineColor => onChange({ trendlineColor })} label="Trendline color" />
+        </Row>
+        <Row label="Rectangle labels (prices and pips)" inline>
+          <Toggle checked={display.rectLabels} onChange={rectLabels => onChange({ rectLabels })} label="Rectangle labels" />
+        </Row>
+        <div className={styles.group}>
+          <Row label="Fibonacci levels" hint="Levels drawn by the Fibonacci tool on every chart. 0 and 100 are the anchors and stay on." inline>
+            {null}
+          </Row>
+          <div className={`${styles.cardGrid} ${styles.fibGrid}`}>
             {FIB_LEVEL_CATALOGUE.map(level => {
               const anchor = FIB_LEVEL_ANCHORS.includes(level);
               return (
-                <div key={level} className={styles.levelCard}>
-                  <span className={styles.levelKey}>{level} %</span>
-                  <label className={styles.toggle}>
-                    <input
-                      type="checkbox"
+                <Card
+                  key={level}
+                  title={`${level} %`}
+                  actions={
+                    <Toggle
                       checked={anchor || display.fibLevels.includes(level)}
                       disabled={anchor}
-                      onChange={e => toggleFibLevel(level, e.target.checked)}
-                      aria-label={`Fibonacci level ${level} %`}
+                      onChange={on => toggleFibLevel(level, on)}
+                      label={`Fibonacci level ${level} %`}
                     />
-                    <span className={styles.toggleTrack}><span className={styles.toggleThumb} /></span>
-                  </label>
-                </div>
+                  }
+                />
               );
             })}
           </div>
         </div>
+      </Section>
 
-        <div className={`${styles.displayRow} ${styles.displayRowGroup}`}>
-          <span className={styles.displayLabel}>
-            EMA cross trades
-            <span className={styles.displayHint}>Drawn on the chart by the toolbar button: the last crosses of these averages, each with its entry and its SL.</span>
-          </span>
-          <div className={styles.emaTradesGrid}>
-            {EMA_TRADES_FIELDS.map(field => (
-              <label key={field.key} className={styles.emaTradesField}>
-                <span className={styles.displayLabel}>
-                  {field.label}
-                  {field.hint && <span className={styles.displayHint}>{field.hint}</span>}
-                </span>
-                <span className={styles.maInput}>
-                  {field.typeKey && (
-                    <MaTypeToggle
-                      value={display.emaTrades[field.typeKey]}
-                      onChange={updateEmaTradesType(field.typeKey)}
-                      label={`${field.label} type`}
-                    />
-                  )}
-                  <input
-                    type="number"
-                    className={`${styles.input} ${styles.numberInput}`}
-                    value={display.emaTrades[field.key]}
-                    min={field.min}
-                    max={field.max}
-                    step={field.step}
-                    aria-label={field.label}
-                    onChange={e => updateEmaTrades(field.key, e.target.value)}
-                  />
-                </span>
-              </label>
-            ))}
-          </div>
-          <span className={styles.displayLabel}>
-            SL / TP labels
-            <span className={styles.displayHint}>What the stop and take profit tags show on the chart; at least one stays on</span>
-          </span>
-          <div className={styles.levelGrid}>
+      <Section title="EMA cross trades" description="Drawn on the chart by the toolbar button: the last crosses of these averages, each with its entry and its SL.">
+        <div className={styles.fieldGrid}>
+          {EMA_TRADES_FIELDS.map(field => (
+            <Row key={field.key} label={field.label} hint={field.hint} htmlFor={`ema-trades-${field.key}`}>
+              {field.typeKey && (
+                <Segmented
+                  size="sm"
+                  label={`${field.label} type`}
+                  options={MA_TYPE_OPTIONS}
+                  value={display.emaTrades[field.typeKey]}
+                  onChange={updateEmaTradesType(field.typeKey)}
+                />
+              )}
+              <NumberInput
+                id={`ema-trades-${field.key}`}
+                size="sm"
+                className={styles.number}
+                value={display.emaTrades[field.key]}
+                min={field.min}
+                max={field.max}
+                step={field.step}
+                onChange={e => updateEmaTrades(field.key, e.target.value)}
+              />
+            </Row>
+          ))}
+        </div>
+        <div className={styles.group}>
+          <Row label="SL / TP labels" hint="What the stop and take profit tags show on the chart; at least one stays on" inline>
+            {null}
+          </Row>
+          <div className={styles.cardGrid}>
             {EMA_TRADES_LABEL_KEYS.map(key => (
-              <div key={key} className={styles.levelCard}>
-                <span className={styles.levelKey}>{EMA_TRADES_LABEL_NAMES[key]}</span>
-                <label className={styles.toggle}>
-                  <input
-                    type="checkbox"
+              <Card
+                key={key}
+                title={EMA_TRADES_LABEL_NAMES[key]}
+                actions={
+                  <Toggle
                     checked={display.emaTrades.labels.includes(key)}
-                    onChange={e => toggleEmaTradesLabel(key, e.target.checked)}
-                    aria-label={`EMA trades label ${EMA_TRADES_LABEL_NAMES[key]}`}
+                    onChange={on => toggleEmaTradesLabel(key, on)}
+                    label={`EMA trades label ${EMA_TRADES_LABEL_NAMES[key]}`}
                   />
-                  <span className={styles.toggleTrack}><span className={styles.toggleThumb} /></span>
-                </label>
-              </div>
+                }
+              />
             ))}
           </div>
         </div>
+      </Section>
 
-        <div className={`${styles.displayRow} ${styles.displayRowInline}`}>
-          <span className={styles.displayLabel}>
-            Spread (ASK and BID lines)
-            <span className={styles.displayHint}>Replaces the current-price line on the chart</span>
-          </span>
-          <label className={styles.toggle}>
-            <input type="checkbox" checked={display.showSpread} onChange={e => onChange({ showSpread: e.target.checked })} aria-label="Spread" />
-            <span className={styles.toggleTrack}><span className={styles.toggleThumb} /></span>
-          </label>
-        </div>
+      <Section title="Price">
+        <Row label="Spread (ASK and BID lines)" hint="Replaces the current-price line on the chart" inline>
+          <Toggle checked={display.showSpread} onChange={showSpread => onChange({ showSpread })} label="Spread" />
+        </Row>
+      </Section>
 
-        <div className={`${styles.displayRow} ${styles.displayRowGroup}`}>
-          <span className={styles.displayLabel}>
-            Setup levels
-            <span className={styles.displayHint}>Levels listed in the New Trade panel. All off hides the panel.</span>
-          </span>
-          <div className={styles.levelGrid}>
-            {SETUP_LEVEL_KEYS.map(key => (
-              <div key={key} className={styles.levelCard}>
-                <span className={styles.levelKey}>
-                  {key}
-                  <span className={styles.levelMeaning}>{LEVEL_MEANING[key]}</span>
-                </span>
-                <label className={styles.toggle}>
-                  <input type="checkbox" checked={display.setupLevels.includes(key)} onChange={e => toggleLevel(key, e.target.checked)} aria-label={key} />
-                  <span className={styles.toggleTrack}><span className={styles.toggleThumb} /></span>
-                </label>
-              </div>
-            ))}
-          </div>
+      <Section title="Setup levels" description="Levels listed in the New Trade panel. All off hides the panel.">
+        <div className={`${styles.cardGrid} ${styles.groupBody}`}>
+          {SETUP_LEVEL_KEYS.map(key => (
+            <Card
+              key={key}
+              title={key}
+              meta={LEVEL_MEANING[key]}
+              actions={<Toggle checked={display.setupLevels.includes(key)} onChange={on => toggleLevel(key, on)} label={key} />}
+            />
+          ))}
         </div>
-      </div>
+      </Section>
+
       <MaTemplatesSection />
-    </>
+    </div>
   );
 }
