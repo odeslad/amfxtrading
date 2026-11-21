@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../features/auth/AuthContext';
 import { LoginPage } from '../features/auth/LoginPage';
@@ -10,6 +11,10 @@ import { StatsPage } from '../features/stats/StatsPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { BookPage } from '../features/book/BookPage';
 
+const UiCatalogPage = import.meta.env.DEV
+  ? lazy(() => import('../dev/UiCatalogPage').then((module) => ({ default: module.UiCatalogPage })))
+  : null;
+
 export function Router() {
   return (
     <BrowserRouter>
@@ -17,6 +22,16 @@ export function Router() {
         <AppErrorBoundary>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            {UiCatalogPage && (
+              <Route
+                path="/dev/ui"
+                element={
+                  <Suspense fallback={null}>
+                    <UiCatalogPage />
+                  </Suspense>
+                }
+              />
+            )}
             <Route
               element={
                 <ProtectedRoute>
