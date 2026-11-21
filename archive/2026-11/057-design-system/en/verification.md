@@ -15,3 +15,15 @@
 | 11. Data tab | build | `npm run build`; `eslint src/features/settings src/shared/ui` | ✅ | Build OK; lint clean; continued on the user's request (fine-tuning in later specs). Each broker is a Section with a state accent, StatusDot and Sync button; timeframes in Table (cards on mobile) with Checkbox, NumberInput, ProgressBar; Loading / EmptyState. `SettingsPage.module.css` is now only the page shell (630 → 11 lines) | 2 / 1 SP |
 | 12. Server tab | build | `npm run build`; `eslint src/features/settings src/shared/ui` | ✅ | Build OK; lint clean; continued on the user's request. Machine header as Section with StatusDot and Badge; shared Gauge; collapsible Sections (summary + IconButton); services, backend, terminals (cards on mobile) and events in Table; stale notice as boxed Hint; ServerCharts uses Toolbar, Legend and Segmented (24h/7d). Locally the monitor is off (`FEATURE_SERVER_MONITOR=false`), so the tab is checked on production in task 14. `ServerTab.module.css` 310 → 130; `ServerCharts.module.css` 163 → 113 (chart canvas, markers and resizer stay local) | 2.5 / 1 SP |
 | 13. CLAUDE.md | manual review | — | ✅ | Design-system section updated: `--muted` #8a8a8a + `--disabled` / `--placeholder`, tints, sizes, states, `--text-3xl` 24px, and the shared-component table with the rule that screens use only `shared/ui` | 0.5 / 0.25 SP |
+| 14. Production validation | manual (user) | push `0e6a5dc..bbf4569`, frontend pipeline | ✅ | User validated Settings on production ("ok"), including the parts not testable locally (Save to EA, Server tab) | 1 / 0.5 SP |
+| 15. Close | manual | `npm run build` | ✅ | Spec closed and archived | 0.25 / 0.25 SP |
+
+## Est vs Actual
+
+**Total: 33.75 SP estimated / 17 SP actual.** Component tasks took about half the estimate (simple CSS-module components, no state); the Settings migrations were also faster than planned because the components covered almost everything.
+
+**Calibration:** a design-system component batch ≈ 1.5 SP; migrating one settings tab onto existing components ≈ 1–2 SP.
+
+**Deviations agreed with the user:** scope widened from Settings to the whole app's element inventory (requirements); new shared components found while migrating: SelectList, LinkButton; new tokens `--tint-warning`, `--tint-error`, `--tint-active`; IconButton `md` size; row actions fade in instead of sliding from outside the table; `ConfirmPanel` now wraps ConfirmDialog (confirm button first). Visual fine-tuning is left to the per-section specs (058 and later).
+
+**Pending:** the other screens (journal, stats, book, chart, dashboard, login) migrate in their own specs; NewTrade/BulkEdit still use `DockedPanel.module.css` until then.

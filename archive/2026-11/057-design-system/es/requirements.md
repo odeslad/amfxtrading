@@ -1,6 +1,6 @@
 # 057 — Sistema de diseño
 
-> Estado: **borrador**
+> Estado: **cerrada**
 
 ## Contexto
 Settings tiene seis pestañas (Mirror, Display, Notifications, Visibility, Data, Server) y cada bloque dibuja sus propios controles: unas 4 850 líneas en 13 componentes y 11 módulos CSS, con títulos, filas, interruptores, selectores, tablas y botones con estilos repetidos en cada uno. El mismo control se ve distinto de una pestaña a otra. `shared/ui/` solo tiene el calendario, el campo de fecha, el panel acoplado y los iconos. Esta spec crea un único conjunto de componentes compartidos y pasa todas las pestañas actuales a ellos, sin cambiar dónde está nada ni lo que hace. La spec 058 (reorganizar Settings en seis secciones con menú lateral, navegación móvil y guardado automático) viene después y se construye solo con estos componentes.

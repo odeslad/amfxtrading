@@ -15,3 +15,15 @@
 | 11. Pestaña Data | build | `npm run build`; `eslint src/features/settings src/shared/ui` | ✅ | Build OK; lint limpio; se continúa a petición del usuario (afinado en specs posteriores). Cada broker es una Section con acento por estado, StatusDot y botón de sincronizar; temporalidades en Table (tarjetas en móvil) con Checkbox, NumberInput y ProgressBar; Loading / EmptyState. `SettingsPage.module.css` queda solo con el armazón (630 → 11 líneas) | 2 / 1 SP |
 | 12. Pestaña Server | build | `npm run build`; `eslint src/features/settings src/shared/ui` | ✅ | Build OK; lint limpio; se continúa a petición del usuario. Cabecera de la máquina como Section con StatusDot y Badge; Gauge compartido; Sections plegables (resumen + IconButton); servicios, backend, terminales (tarjetas en móvil) y eventos en Table; aviso de datos viejos como Hint con caja; ServerCharts usa Toolbar, Legend y Segmented (24h/7d). En local el monitor está apagado (`FEATURE_SERVER_MONITOR=false`), así que la pestaña se comprueba en producción en la tarea 14. `ServerTab.module.css` 310 → 130; `ServerCharts.module.css` 163 → 113 (el lienzo, los marcadores y el redimensionador quedan locales) | 2,5 / 1 SP |
 | 13. CLAUDE.md | revisión manual | — | ✅ | Sección del sistema de diseño actualizada: `--muted` #8a8a8a + `--disabled` / `--placeholder`, tintes, medidas, estados, `--text-3xl` 24px y la tabla de componentes compartidos con la regla de que las pantallas solo usan `shared/ui` | 0,5 / 0,25 SP |
+| 14. Validación en producción | manual (usuario) | push `0e6a5dc..bbf4569`, pipeline del frontend | ✅ | El usuario validó Settings en producción ("ok"), incluido lo que no se podía probar en local (Save to EA, pestaña Server) | 1 / 0,5 SP |
+| 15. Cierre | manual | `npm run build` | ✅ | Spec cerrada y archivada | 0,25 / 0,25 SP |
+
+## Est vs Real
+
+**Total: 33,75 SP estimados / 17 SP reales.** Las tareas de componentes llevaron la mitad de lo estimado (componentes sencillos con CSS Modules, sin estado); las migraciones de Settings también fueron más rápidas porque los componentes lo cubrían casi todo.
+
+**Calibración:** un lote de componentes del sistema de diseño ≈ 1,5 SP; migrar una pestaña de Settings sobre componentes existentes ≈ 1–2 SP.
+
+**Desviaciones acordadas con el usuario:** el alcance pasó de Settings al inventario de elementos de toda la app (requisitos); componentes compartidos nuevos encontrados al migrar: SelectList y LinkButton; tokens nuevos `--tint-warning`, `--tint-error` y `--tint-active`; tamaño `md` de IconButton; las acciones de fila aparecen con un desplazamiento corto en vez de entrar desde fuera de la tabla; `ConfirmPanel` envuelve ahora a ConfirmDialog (botón de confirmar primero). El afinado visual queda para las specs de cada sección (058 y siguientes).
+
+**Pendiente:** las demás pantallas (diario, stats, libro, gráfico, dashboard, login) se migran en sus propias specs; NewTrade/BulkEdit siguen con `DockedPanel.module.css` hasta entonces.

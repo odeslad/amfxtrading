@@ -1,6 +1,6 @@
 # 057 — Design system
 
-> Status: **draft**
+> Status: **closed**
 
 ## Context
 Settings has six tabs (Mirror, Display, Notifications, Visibility, Data, Server) and every block draws its own controls: about 4 850 lines across 13 components and 11 CSS modules, with headings, rows, toggles, selects, tables and buttons styled again in each one. The same control looks different from one tab to the next. `shared/ui/` only holds the calendar, date field, docked panel and icons. This spec builds one set of shared components and moves every current tab onto them, without changing where anything is or what it does. Spec 058 (reorganising Settings into six sections with a side menu, mobile navigation and autosave) comes next and is built only from these components.
