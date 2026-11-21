@@ -2,7 +2,7 @@ import { EMA_TRADES_LABEL_KEYS, EMA_TRADES_LABEL_NAMES, EMA_TRADES_LIMITS, type 
 import type { MaType } from '../chart/chart.types';
 import { Card, NumberInput, Row, Section, Segmented, Toggle, type SegmentOption } from '../../shared/ui';
 import type { DisplaySettingsProps } from './displaySettings';
-import styles from './DisplayTab.module.css';
+import styles from './displaySettings.module.css';
 
 interface EmaTradesField {
   key: EmaTradesNumberKey;

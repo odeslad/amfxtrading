@@ -1,7 +1,7 @@
 import { SETUP_LEVEL_KEYS, type SetupLevelKey } from '../journal/utils/position';
 import { Card, Section, Toggle } from '../../shared/ui';
 import type { DisplaySettingsProps } from './displaySettings';
-import styles from './DisplayTab.module.css';
+import styles from './displaySettings.module.css';
 
 const LEVEL_MEANING: Record<SetupLevelKey, string> = {
   ECC: 'Cross candle close',

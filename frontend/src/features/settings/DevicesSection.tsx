@@ -3,7 +3,7 @@ import { errorMessage } from '../../lib/api';
 import { addToast } from '../../lib/toast';
 import { usePush } from '../../lib/usePush';
 import { type PushDevice } from '../../lib/usePushDevices';
-import { Badge, Button, EmptyState, FieldLabel, Hint, Section, SidePanel } from '../../shared/ui';
+import { Badge, Button, EmptyState, FieldLabel, Hint, Section } from '../../shared/ui';
 import own from './DevicesSection.module.css';
 
 interface DevicesProps {
@@ -12,11 +12,6 @@ interface DevicesProps {
   thisDeviceSubscribed: boolean;
   onRemove: (id: number) => Promise<unknown>;
   onChanged: () => Promise<unknown>;
-}
-
-interface DevicesPanelProps extends DevicesProps {
-  open: boolean;
-  onClose: () => void;
 }
 
 const p = (n: number) => String(n).padStart(2, '0');
@@ -104,10 +99,3 @@ export function DevicesSection(props: DevicesProps) {
   );
 }
 
-export function DevicesPanel({ open, onClose, ...props }: DevicesPanelProps) {
-  return (
-    <SidePanel open={open} title="Devices" onClose={onClose}>
-      <DevicesContent {...props} />
-    </SidePanel>
-  );
-}

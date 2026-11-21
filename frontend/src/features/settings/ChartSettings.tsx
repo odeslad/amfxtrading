@@ -2,7 +2,7 @@ import type { PnlMode } from '../journal/utils/position';
 import { FIB_LEVEL_ANCHORS, FIB_LEVEL_CATALOGUE, type TrendlineStyle } from '../chart/DrawingTools';
 import { Card, ColorPicker, Row, Section, Select, Toggle } from '../../shared/ui';
 import type { DisplaySettingsProps } from './displaySettings';
-import styles from './DisplayTab.module.css';
+import styles from './displaySettings.module.css';
 
 const TRENDLINE_COLORS = ['#8c8c8c', '#f5a623', '#3a7bd5', '#4caf84', '#e05c5c', '#c8a840'];
 const TRENDLINE_WIDTHS = [1, 2, 3];
