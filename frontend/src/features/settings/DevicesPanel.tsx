@@ -3,7 +3,7 @@ import { errorMessage } from '../../lib/api';
 import { addToast } from '../../lib/toast';
 import { usePush } from '../../lib/usePush';
 import { type PushDevice } from '../../lib/usePushDevices';
-import styles from '../journal/BulkEditPanel.module.css';
+import { Badge, Button, EmptyState, FieldLabel, Hint, SidePanel } from '../../shared/ui';
 import own from './DevicesPanel.module.css';
 
 interface DevicesPanelProps {
@@ -46,56 +46,48 @@ export function DevicesPanel({ open, devices, currentHash, thisDeviceSubscribed,
   };
 
   return (
-    <>
-      {open && <div className={styles.backdrop} onClick={onClose} />}
-      <div className={`${styles.panel} ${open ? styles.panelOpen : ''}`}>
-        <div className={styles.header}>
-          <div className={styles.title}>Devices</div>
-          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">✕</button>
-        </div>
+    <SidePanel open={open} title="Devices" onClose={onClose}>
+      <div className={own.body}>
+        {!thisDeviceSubscribed && (
+          <Hint tone="warning" boxed title="This device · notifications off">
+            {status === 'unsupported'
+              ? 'Push is not available here. On iPhone, install the app on the home screen first and open it from there.'
+              : status === 'denied'
+                ? 'Notifications are blocked for this site. Allow them in the browser settings, then enable.'
+                : 'Enable once to receive pushes with the app closed.'}
+          </Hint>
+        )}
+        {!thisDeviceSubscribed && status !== 'unsupported' && status !== 'denied' && (
+          <Button variant="primary" size="lg" onClick={enable} disabled={busy}>
+            {busy ? 'Enabling…' : 'Enable this device'}
+          </Button>
+        )}
 
-        <div className={styles.form}>
-          {!thisDeviceSubscribed && (
-            <div className={own.enableBox}>
-              <span className={own.enableTitle}>This device · notifications off</span>
-              {status === 'unsupported' ? (
-                <span className={own.enableNote}>Push is not available here. On iPhone, install the app on the home screen first and open it from there.</span>
-              ) : status === 'denied' ? (
-                <span className={own.enableNote}>Notifications are blocked for this site. Allow them in the browser settings, then enable.</span>
-              ) : (
-                <>
-                  <span className={own.enableNote}>Enable once to receive pushes with the app closed.</span>
-                  <button type="button" className={styles.submitBtn} onClick={enable} disabled={busy}>
-                    {busy ? 'Enabling…' : 'Enable this device'}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          <div className={own.list}>
-            <span className={own.listLabel}>Subscribed devices · {devices.length}</span>
-            {devices.length === 0 && <span className={own.empty}>No device receives pushes yet.</span>}
-            {devices.map(d => (
-              <div key={d.id} className={own.row}>
-                <span className={own.rowMain}>
-                  <span>{d.label}{d.endpointHash === currentHash && <span className={`${own.rowMeta} ${own.thisDevice}`}>this device</span>}</span>
-                  <span className={own.rowMeta}>since {fmtDate(d.createdAt)}{d.lastPushAt ? ` · last push ${fmtDateTime(d.lastPushAt)}` : ' · no push yet'}</span>
+        <div className={own.list}>
+          <FieldLabel>Subscribed devices · {devices.length}</FieldLabel>
+          {devices.length === 0 && <EmptyState>No device receives pushes yet.</EmptyState>}
+          {devices.map(d => (
+            <div key={d.id} className={own.row}>
+              <span className={own.rowMain}>
+                <span className={own.rowTitle}>
+                  {d.label}
+                  {d.endpointHash === currentHash && <Badge tone="green">This device</Badge>}
                 </span>
-                <button
-                  type="button"
-                  className={`${own.removeBtn} ${confirmId === d.id ? own.confirmBtn : ''}`}
-                  onClick={() => remove(d.id)}
-                  onBlur={() => { if (confirmId === d.id && !removing) setConfirmId(null); }}
-                  disabled={removing}
-                >
-                  {confirmId === d.id ? (removing ? 'Removing…' : 'Confirm') : 'Remove'}
-                </button>
-              </div>
-            ))}
-          </div>
+                <span className={own.rowMeta}>since {fmtDate(d.createdAt)}{d.lastPushAt ? ` · last push ${fmtDateTime(d.lastPushAt)}` : ' · no push yet'}</span>
+              </span>
+              <Button
+                variant={confirmId === d.id ? 'sell' : 'danger'}
+                size="sm"
+                onClick={() => remove(d.id)}
+                onBlur={() => { if (confirmId === d.id && !removing) setConfirmId(null); }}
+                disabled={removing}
+              >
+                {confirmId === d.id ? (removing ? 'Removing…' : 'Confirm') : 'Remove'}
+              </Button>
+            </div>
+          ))}
         </div>
       </div>
-    </>
+    </SidePanel>
   );
 }

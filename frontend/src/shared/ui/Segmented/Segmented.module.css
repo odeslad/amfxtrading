@@ -1,5 +1,8 @@
 .group {
   display: inline-flex;
+  width: max-content;
+  justify-self: start;
+  align-self: end;
   border: 1px solid var(--border-bright);
 }
 

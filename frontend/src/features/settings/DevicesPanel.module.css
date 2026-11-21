@@ -1,50 +1,22 @@
-.enableBox {
+.body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px;
-  border: 1px solid var(--gold);
-  background: rgba(200, 168, 64, 0.08);
-}
-
-.enableTitle {
-  font-family: var(--font-sans);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  color: var(--gold);
-}
-
-.enableNote {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  color: var(--muted);
+  gap: 16px;
 }
 
 .list {
   display: flex;
   flex-direction: column;
-}
-
-.listLabel {
-  font-family: var(--font-sans);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  color: var(--muted);
-  padding-bottom: 6px;
+  gap: 6px;
 }
 
 .row {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
+  gap: 8px 12px;
   padding: 10px 0;
   border-top: 1px solid var(--border);
-  font-family: var(--font-mono);
-  font-size: var(--text-lg);
-  color: var(--text);
 }
 
 .row:last-child {
@@ -54,8 +26,17 @@
 .rowMain {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+}
+
+.rowTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .rowMeta {
@@ -66,43 +47,8 @@
   color: var(--muted);
 }
 
-.thisDevice {
-  color: var(--green);
-  margin-left: 8px;
-}
-
-.removeBtn {
-  height: 34px;
-  padding: 0 12px;
-  background: transparent;
-  border: 1px solid var(--red);
-  color: var(--red);
-  font-family: var(--font-sans);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.12s ease;
-}
-
-.removeBtn:hover { background: rgba(224, 92, 92, 0.15); }
-.removeBtn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.confirmBtn {
-  background: var(--red);
-  color: #fff;
-}
-
-.empty {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  color: var(--muted);
-  padding: 8px 0;
-}
-
 @media (max-width: 768px) {
-  .row {
+  .rowMain {
     font-size: var(--text-xl);
   }
 }

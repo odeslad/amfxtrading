@@ -198,6 +198,7 @@ export function MaTemplatesSection() {
                   icon="×"
                   label={`Remove ${maLabel(a)}`}
                   tone="danger"
+                  size="md"
                   onClick={() => setDraft({ ...draft, averages: draft.averages.filter(x => x.id !== a.id) })}
                 />
               </div>

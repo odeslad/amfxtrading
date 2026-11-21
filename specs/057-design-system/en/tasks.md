@@ -12,7 +12,7 @@ Component tasks are verified on a dev-only catalog page (`/dev/ui`, built only w
 - [x] 6. [frontend] Overlays: SidePanel (+ docked mode replacing DockedPanel, same API kept as a wrapper), ConfirmDialog, Menu/Popover, FilterPanel, Toast (Toaster moved to `shared/ui`) · **Verify:** build + catalog vs board 4 + chart New Trade (docked) and journal close confirm still work · **Est:** 3.5 SP
 - [x] 7. [frontend] Migrate Settings page shell + Mirror tab (MirrorTab, QuickOrdersSection) · **Verify:** build + local: presets, quick orders and Save behave as before; no rule left in their CSS that a component covers · **Est:** 2.5 SP
 - [x] 8. [frontend] Migrate Display tab (DisplayTab, MaTemplatesSection) · **Verify:** build + local: every display setting and MA template edit saves as before · **Est:** 3 SP
-- [ ] 9. [frontend] Migrate Notifications tab (NotificationsTab, NotificationPanel, DevicesPanel) · **Verify:** build + local: create/edit/pause/delete a rule, devices panel · **Est:** 3 SP
+- [x] 9. [frontend] Migrate Notifications tab (NotificationsTab, NotificationPanel, DevicesPanel) · **Verify:** build + local: create/edit/pause/delete a rule, devices panel · **Est:** 3 SP
 - [ ] 10. [frontend] Migrate Visibility tab (VisibilityTab, SymbolsPanel) · **Verify:** build + local: broker visibility, pairs panel on/off/locked, Save to EA (against local backend with flags off) · **Est:** 1.5 SP
 - [ ] 11. [frontend] Migrate Data tab (DataSyncTab) · **Verify:** build + local: targets, selection, sync progress states · **Est:** 2 SP
 - [ ] 12. [frontend] Migrate Server tab (ServerTab, ServerCharts) · **Verify:** build + local: gauges, tables, 24h/7d, collapse · **Est:** 2.5 SP
