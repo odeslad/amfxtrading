@@ -1,127 +1,30 @@
-.blocks {
+.tab {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-}
-
-.block {
-  background: var(--surface);
-  border-top: 3px solid var(--border-bright);
-}
-
-.blockIdle { border-top-color: var(--green); }
-.blockBusy { border-top-color: var(--orange); }
-.blockError { border-top-color: var(--red); }
-.blockOff { border-top-color: var(--border-bright); }
-
-.blockHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
+  gap: 16px;
 }
 
 .blockTitle {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
-  min-width: 0;
-  font-size: var(--text-md);
+  flex-wrap: wrap;
 }
 
-.headerState {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.statusDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.dotOn { background: var(--green); }
-.dotOff { background: var(--red); }
-.dotBusy { background: var(--gold); animation: pulse 0.7s infinite; }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.25; }
-}
-
-.syncBtn {
-  flex-shrink: 0;
-}
-
-.table td:first-child,
-.table th:first-child {
-  padding-left: 16px;
-  width: 40px;
-}
-
-.table th:last-child,
-.table td:last-child {
-  padding-right: 16px;
-}
-
-.table th {
-  padding-top: 10px;
-}
-
-.num {
-  text-align: right;
-}
-
-.marked {
-  background: rgba(245, 166, 35, 0.06);
-}
-
-.check {
-  accent-color: var(--orange);
-  cursor: pointer;
-}
-
-.targetInput,
-.rowTarget {
-  background: var(--bg);
-  border: 1px solid var(--border-bright);
+.broker {
   color: var(--text);
-  font: var(--text-sm) var(--font-mono);
-  padding: 6px 8px;
-  outline: none;
-  transition: border-color 0.12s ease;
-  -moz-appearance: textfield;
 }
 
-.targetInput { width: 90px; }
-
-.targetInput:focus,
-.rowTarget:focus {
-  border-color: var(--orange);
+.tableBox {
+  padding: 8px 16px 12px;
 }
 
-.targetInput:disabled,
-.rowTarget:disabled {
-  color: var(--muted);
-  border-color: var(--border);
-}
-
-.targetInput::-webkit-inner-spin-button,
-.targetInput::-webkit-outer-spin-button,
-.rowTarget::-webkit-inner-spin-button,
-.rowTarget::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+.target {
+  width: 90px;
 }
 
 .stateCell {
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
   gap: 4px;
 }
@@ -129,91 +32,38 @@
 .progress {
   display: block;
   width: 180px;
-  height: 3px;
-  background: var(--border);
 }
 
-.progressFill {
-  display: block;
-  height: 3px;
-  background: var(--orange);
-  transition: width 0.2s ease;
+.muted {
+  color: var(--muted);
 }
 
-.muted { color: var(--muted); }
-.ok { color: var(--green); }
-.warn { color: var(--gold); }
-.busy { color: var(--orange); }
-.error { color: var(--red); }
+.ok {
+  color: var(--green);
+}
 
-.rows {
-  display: none;
+.warn {
+  color: var(--gold);
+}
+
+.busy {
+  color: var(--orange);
+}
+
+.error {
+  color: var(--red);
 }
 
 @media (max-width: 768px) {
-  .blockHeader {
-    flex-wrap: wrap;
-    padding: 12px;
+  .tableBox {
+    padding: 8px 12px 12px;
   }
 
-  .syncBtn {
-    width: 100%;
-    height: 44px;
-  }
-
-  .rows {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 56px;
-    padding: 8px 12px;
-    border-top: 1px solid var(--border);
-    font-family: var(--font-mono);
-  }
-
-  .row:first-child {
-    border-top: none;
-  }
-
-  .row .check {
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-  }
-
-  .rowMain {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-  }
-
-  .rowTitle {
-    font-size: var(--text-lg);
-  }
-
-  .rowTitle span {
-    font-size: var(--text-sm);
-  }
-
-  .rowMeta {
-    color: var(--muted);
-    font-size: var(--text-xs);
-  }
-
-  .rowMain .progress {
+  .progress {
     width: 100%;
   }
 
-  .rowTarget {
-    width: 84px;
-    padding: 8px;
-    font-size: var(--text-base);
+  .target {
+    width: 96px;
   }
 }

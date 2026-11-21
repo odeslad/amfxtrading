@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { brokerBusy, type SyncBroker, type SyncTimeframe, type TargetEdits } from '../../lib/useCandleSync';
-import styles from './SettingsPage.module.css';
+import { Button, Card, Checkbox, EmptyState, Hint, Loading, NumberInput, ProgressBar, Section, StatusDot, Table, type SectionAccent, type TableColumn } from '../../shared/ui';
 import own from './DataSyncTab.module.css';
 
 interface DataSyncTabProps {
@@ -47,13 +47,7 @@ function headerOf(b: SyncBroker): { text: string; tone: Tone } {
 const progress = (t: SyncTimeframe): number | null =>
   t.state === 'running' && t.total ? Math.round(((t.done ?? 0) / t.total) * 100) : null;
 
-function ProgressBar({ value }: { value: number }) {
-  return (
-    <span className={own.progress} role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
-      <span className={own.progressFill} style={{ width: `${value}%` }} />
-    </span>
-  );
-}
+const ACCENT: Record<'off' | 'busy' | 'error' | 'idle', SectionAccent> = { off: 'neutral', busy: 'orange', error: 'red', idle: 'green' };
 
 function BrokerBlock({ broker, edits, onTarget, onSync }: {
   broker: SyncBroker;
@@ -75,13 +69,18 @@ function BrokerBlock({ broker, edits, onTarget, onSync }: {
   };
 
   const syncLabel = busy ? 'Sync in progress' : `${hasError ? 'Retry · ' : ''}Sync selected${marked.length > 0 ? ` (${marked.length})` : ''}`;
-  const blockTone = !broker.connected ? own.blockOff : busy ? own.blockBusy : hasError ? own.blockError : own.blockIdle;
+  const accent = ACCENT[!broker.connected ? 'off' : busy ? 'busy' : hasError ? 'error' : 'idle'];
 
-  const targetInput = (t: SyncTimeframe, className: string) => (
-    <input
-      type="number"
+  const select = (t: SyncTimeframe) => (
+    <Checkbox checked={marked.includes(t.timeframe)} disabled={locked}
+      onChange={e => toggle(t.timeframe, e.target.checked)} aria-label={`Select ${t.timeframe}`} />
+  );
+
+  const target = (t: SyncTimeframe) => (
+    <NumberInput
+      size="sm"
+      className={own.target}
       inputMode="numeric"
-      className={className}
       value={edits[t.timeframe] ?? String(t.target)}
       onChange={e => onTarget(t.timeframe, e.target.value)}
       disabled={locked}
@@ -89,108 +88,86 @@ function BrokerBlock({ broker, edits, onTarget, onSync }: {
     />
   );
 
+  const stateView = (t: SyncTimeframe) => {
+    const state = stateOf(t);
+    const pct = progress(t);
+    return (
+      <span className={own.stateCell}>
+        <span className={own[state.tone]}>{state.text}</span>
+        {pct !== null && <span className={own.progress}><ProgressBar value={pct} label={`${t.timeframe} progress`} /></span>}
+      </span>
+    );
+  };
+
+  const columns: TableColumn<SyncTimeframe>[] = [
+    { key: 'select', label: '', render: select },
+    { key: 'tf', label: 'TF', mono: true, render: t => t.timeframe },
+    { key: 'count', label: 'Candles in DB', align: 'right', mono: true, render: t => <span className={t.lastSyncAt ? '' : own.muted}>{formatCount(t.candleCount)}</span> },
+    { key: 'target', label: 'Target', render: target },
+    { key: 'last', label: 'Last sync', mono: true, render: t => <span className={t.lastSyncAt ? '' : own.muted}>{formatDate(t.lastSyncAt)}</span> },
+    { key: 'state', label: 'State', mono: true, render: stateView },
+  ];
+
   return (
-    <section className={`${own.block} ${blockTone}`}>
-      <header className={own.blockHeader}>
+    <Section
+      accent={accent}
+      title={
         <span className={own.blockTitle}>
-          <span className={`${own.statusDot} ${broker.connected ? (busy ? own.dotBusy : own.dotOn) : own.dotOff}`} aria-hidden="true" />
-          <span className={styles.broker}>{broker.broker}</span>
-          <span className={`${own.headerState} ${own[header.tone]}`}>{header.text}</span>
+          <StatusDot state={broker.connected ? (busy ? 'busy' : 'ok') : 'off'} />
+          <span className={own.broker}>{broker.broker}</span>
+          <span className={own[header.tone]}>{header.text}</span>
         </span>
-        <button
-          type="button"
-          className={`${styles.barBtn} ${own.syncBtn}`}
-          onClick={handleSync}
-          disabled={locked || marked.length === 0}
-        >
+      }
+      actions={
+        <Button variant="edit" size="sm" onClick={handleSync} disabled={locked || marked.length === 0}>
           {syncLabel}
-        </button>
-      </header>
-
+        </Button>
+      }
+      flush
+    >
       {broker.connected && (
-        <>
-          <div className={styles.tableWrapper}>
-            <table className={`${styles.table} ${own.table}`}>
-              <thead>
-                <tr>
-                  <th aria-label="Select"></th><th>TF</th><th className={own.num}>Candles in DB</th>
-                  <th>Target</th><th>Last sync</th><th>State</th>
-                </tr>
-              </thead>
-              <tbody>
-                {broker.timeframes.map(t => {
-                  const state = stateOf(t);
-                  const pct = progress(t);
-                  const isMarked = marked.includes(t.timeframe);
-                  return (
-                    <tr key={t.timeframe} className={isMarked ? own.marked : undefined}>
-                      <td>
-                        <input type="checkbox" className={own.check} checked={isMarked} disabled={locked}
-                          onChange={e => toggle(t.timeframe, e.target.checked)} aria-label={`Select ${t.timeframe}`} />
-                      </td>
-                      <td>{t.timeframe}</td>
-                      <td className={`${own.num} ${t.lastSyncAt ? '' : styles.muted}`}>{formatCount(t.candleCount)}</td>
-                      <td>{targetInput(t, own.targetInput)}</td>
-                      <td className={t.lastSyncAt ? '' : styles.muted}>{formatDate(t.lastSyncAt)}</td>
-                      <td>
-                        <span className={own.stateCell}>
-                          <span className={own[state.tone]}>{state.text}</span>
-                          {pct !== null && <ProgressBar value={pct} />}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <div className={own.rows}>
-            {broker.timeframes.map(t => {
-              const state = stateOf(t);
-              const pct = progress(t);
-              const isMarked = marked.includes(t.timeframe);
-              return (
-                <label key={t.timeframe} className={`${own.row} ${isMarked ? own.marked : ''}`}>
-                  <input type="checkbox" className={own.check} checked={isMarked} disabled={locked}
-                    onChange={e => toggle(t.timeframe, e.target.checked)} aria-label={`Select ${t.timeframe}`} />
-                  <span className={own.rowMain}>
-                    <span className={own.rowTitle}>{t.timeframe} <span className={own[state.tone]}>{state.text}</span></span>
-                    {pct !== null && <ProgressBar value={pct} />}
-                    <span className={own.rowMeta}>{formatCount(t.candleCount)} candles · {formatDate(t.lastSyncAt)}</span>
-                  </span>
-                  {targetInput(t, own.rowTarget)}
-                </label>
-              );
-            })}
-          </div>
-        </>
+        <div className={own.tableBox}>
+          <Table
+            caption={`${broker.broker} timeframes`}
+            columns={columns}
+            rows={broker.timeframes}
+            rowKey={t => t.timeframe}
+            rowTone={t => (marked.includes(t.timeframe) ? 'marked' : undefined)}
+            renderCard={t => (
+              <Card
+                title={t.timeframe}
+                meta={`${formatCount(t.candleCount)} candles · ${formatDate(t.lastSyncAt)}`}
+                actions={<>{target(t)}{select(t)}</>}
+              >
+                {stateView(t)}
+              </Card>
+            )}
+          />
+        </div>
       )}
-    </section>
+    </Section>
   );
 }
 
 export function DataSyncTab({ brokers, edits, onTarget, onSync }: DataSyncTabProps) {
-  if (brokers === null) return <div className={styles.empty}>Loading…</div>;
-  if (brokers.length === 0) return <div className={styles.empty}>No brokers configured</div>;
+  if (brokers === null) return <Loading />;
+  if (brokers.length === 0) return <EmptyState>No brokers configured</EmptyState>;
 
   return (
-    <>
-      <p className={styles.desc}>
+    <div className={own.tab}>
+      <Hint>
         Candles per broker and timeframe. Mark the timeframes to rebuild and press Sync selected: the EA fetches the
         target number of candles for every symbol of that broker and replaces the ones in the database. Target between 100 and 50 000.
-      </p>
-      <div className={own.blocks}>
-        {brokers.map(b => (
-          <BrokerBlock
-            key={b.broker}
-            broker={b}
-            edits={edits[b.broker] ?? {}}
-            onTarget={(tf, value) => onTarget(b.broker, tf, value)}
-            onSync={tfs => onSync(b.broker, tfs)}
-          />
-        ))}
-      </div>
-    </>
+      </Hint>
+      {brokers.map(b => (
+        <BrokerBlock
+          key={b.broker}
+          broker={b}
+          edits={edits[b.broker] ?? {}}
+          onTarget={(tf, value) => onTarget(b.broker, tf, value)}
+          onSync={tfs => onSync(b.broker, tfs)}
+        />
+      ))}
+    </div>
   );
 }
