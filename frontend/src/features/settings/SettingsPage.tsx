@@ -28,8 +28,8 @@ import { useServerStatus } from '../../lib/useServerStatus';
 import { usePushDevices } from '../../lib/usePushDevices';
 import { EMPTY_VISIBILITY, isBrokerVisible, publishVisibility, useVisibility, type Visibility } from '../../lib/visibility';
 import { useMediaQuery } from '../../lib/useMediaQuery';
-import { useAutosave } from '../../lib/useAutosave';
-import { Button, Hint, IconButton, NavList, SaveStatus, type NavItem } from '../../shared/ui';
+import { combineSaves, useAutosave } from '../../lib/useAutosave';
+import { IconButton, NavList, SaveStatus, type NavItem } from '../../shared/ui';
 import styles from './SettingsPage.module.css';
 
 const SECTIONS = ['trading', 'chart', 'indicators', 'alerts', 'brokers', 'system'] as const;
@@ -198,17 +198,19 @@ export function SettingsPage() {
 
   const settingsSave = useAutosave(settingsBody, { save: saveSettings, validate: validateSettings, enabled: loaded });
 
+  const pageSave = combineSaves(settingsSave, candleSync.targetsSave);
+
   const openSection = (id: SettingsSection) => {
-    settingsSave.flush();
+    pageSave.flush();
     setSearchParams({ section: id });
   };
 
   useEffect(() => {
-    if (settingsSave.state !== 'pending' && settingsSave.state !== 'saving' && settingsSave.state !== 'error') return;
+    if (pageSave.state !== 'pending' && pageSave.state !== 'saving' && pageSave.state !== 'error') return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, [settingsSave.state]);
+  }, [pageSave.state]);
 
   const saveNotification = useCallback((input: NotificationInput, id: number | null) =>
     id === null ? create(input) : update(id, input), [create, update]);
@@ -238,13 +240,7 @@ export function SettingsPage() {
 
   const actions = (
     <>
-      <SaveStatus state={settingsSave.state} error={settingsSave.error} onRetry={settingsSave.retry} />
-      {section === 'brokers' && candleSync.dirty && <Hint tone="warning">Unsaved targets</Hint>}
-      {section === 'brokers' && (
-        <Button variant="primary" size="sm" onClick={candleSync.saveTargets} disabled={candleSync.saving || !candleSync.dirty}>
-          {candleSync.saving ? 'Saving…' : 'Save targets'}
-        </Button>
-      )}
+      <SaveStatus state={pageSave.state} error={pageSave.error} onRetry={pageSave.retry} />
     </>
   );
 
@@ -359,7 +355,7 @@ export function SettingsPage() {
         <main className={styles.content}>
           <header className={styles.header}>
             <span className={styles.titleLine}>
-              {phone && <IconButton icon="‹" label="Back to Settings" variant="bare" onClick={() => { settingsSave.flush(); setSearchParams({}); }} />}
+              {phone && <IconButton icon="‹" label="Back to Settings" variant="bare" onClick={() => { pageSave.flush(); setSearchParams({}); }} />}
               <h1 className={styles.title}>{current?.label}</h1>
             </span>
             <span className={styles.actions}>{actions}</span>

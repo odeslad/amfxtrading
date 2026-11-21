@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useAutosave } from './useAutosave';
 import { apiFetch, apiSend, errorMessage } from './api';
 import { addToast } from './toast';
 import { useWs } from './useWs';
@@ -47,7 +48,6 @@ export const validTarget = (value: string): boolean => {
 export function useCandleSync(active: boolean) {
   const [brokers, setBrokers] = useState<SyncBroker[] | null>(null);
   const [edits, setEdits] = useState<TargetEdits>({});
-  const [saving, setSaving] = useState(false);
 
   const load = useCallback((signal?: AbortSignal) =>
     apiFetch<SyncBroker[]>('/candle-sync', { signal }).then(setBrokers), []);
@@ -77,30 +77,25 @@ export function useCandleSync(active: boolean) {
     setEdits(prev => ({ ...prev, [broker]: { ...prev[broker], [timeframe]: value } }));
   }, []);
 
-  const dirty = Object.values(edits).some(tfs => Object.keys(tfs).length > 0);
+  // The edited targets stay as typed; once saved they are also the brokers' targets.
+  const saveEdits = useCallback(async (next: TargetEdits) => {
+    for (const [broker, tfs] of Object.entries(next)) {
+      if (Object.keys(tfs).length === 0) continue;
+      const targets = Object.fromEntries(Object.entries(tfs).map(([tf, v]) => [tf, Number(v)]));
+      await apiSend('/candle-sync/targets', 'PUT', { broker, targets });
+    }
+    setBrokers(prev => prev?.map(b => !next[b.broker] ? b : {
+      ...b,
+      timeframes: b.timeframes.map(t => next[b.broker][t.timeframe] !== undefined ? { ...t, target: Number(next[b.broker][t.timeframe]) } : t),
+    }) ?? prev);
+  }, []);
 
-  const saveTargets = useCallback(async () => {
-    const invalid = Object.values(edits).some(tfs => Object.values(tfs).some(v => !validTarget(v)));
-    if (invalid) {
-      addToast(`Targets must be whole numbers between ${TARGET_MIN} and ${TARGET_MAX.toLocaleString('en-US')}`, 'error');
-      return;
-    }
-    setSaving(true);
-    try {
-      for (const [broker, tfs] of Object.entries(edits)) {
-        if (Object.keys(tfs).length === 0) continue;
-        const targets = Object.fromEntries(Object.entries(tfs).map(([tf, v]) => [tf, Number(v)]));
-        await apiSend('/candle-sync/targets', 'PUT', { broker, targets });
-      }
-      setEdits({});
-      await load();
-      addToast('Targets saved', 'success');
-    } catch (err) {
-      addToast(errorMessage(err, 'Failed to save the targets'), 'error');
-    } finally {
-      setSaving(false);
-    }
-  }, [edits, load]);
+  const validateEdits = useCallback((next: TargetEdits): string | null =>
+    Object.values(next).some(tfs => Object.values(tfs).some(v => !validTarget(v)))
+      ? `Targets must be whole numbers between ${TARGET_MIN} and ${TARGET_MAX.toLocaleString('en-US')}`
+      : null, []);
+
+  const targetsSave = useAutosave(edits, { save: saveEdits, validate: validateEdits, enabled: brokers !== null });
 
   const startSync = useCallback(async (broker: string, timeframes: string[]) => {
     try {
@@ -116,5 +111,5 @@ export function useCandleSync(active: boolean) {
     }
   }, []);
 
-  return { brokers, edits, setTarget, dirty, saving, saveTargets, startSync };
+  return { brokers, edits, setTarget, targetsSave, startSync };
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { apiSend, errorMessage } from '../../lib/api';
 import { addToast } from '../../lib/toast';
 import { useMaTemplates, type MaTemplate } from '../../lib/useMaTemplates';
@@ -6,6 +6,7 @@ import type { MaType, MovingAverage } from '../chart/chart.types';
 import { ColorPicker } from '../chart/ColorPicker';
 import { PALETTE, maLabel } from '../chart/movingAverages';
 import { ConfirmPanel } from '../journal/ConfirmPanel';
+import { useAutosave } from '../../lib/useAutosave';
 import {
   Button,
   EmptyState,
@@ -13,6 +14,7 @@ import {
   Hint,
   IconButton,
   NumberInput,
+  SaveStatus,
   Section,
   Segmented,
   Select,
@@ -43,9 +45,6 @@ const newAverage = (existing: MovingAverage[]): MovingAverage => ({
 
 const toDraft = (t: MaTemplate): Draft => ({ id: t.id, name: t.name, averages: t.averages.map(a => ({ ...a })) });
 
-const sameDraft = (a: Draft, t: MaTemplate | undefined): boolean =>
-  !!t && a.name === t.name && JSON.stringify(a.averages) === JSON.stringify(t.averages);
-
 const validPeriod = (period: number): boolean => Number.isInteger(period) && period >= 1;
 
 // Settings › Display › Moving average templates (spec 052). Brokers choose their template
@@ -69,8 +68,6 @@ export function MaTemplatesSection() {
     return map;
   }, [assignments]);
 
-  const dirty = !!draft && !sameDraft(draft, selected);
-  const periodsValid = !!draft && draft.averages.every(a => validPeriod(a.period));
 
   const run = async (action: () => Promise<unknown>, done: string, failed: string) => {
     setBusy(true);
@@ -92,10 +89,19 @@ export function MaTemplatesSection() {
     setSelectedId(created.id);
   }, 'Template created', 'Failed to create the template');
 
-  const save = () => draft && run(
-    () => apiSend(`/ma-templates/${draft.id}`, 'PUT', { name: draft.name.trim(), averages: draft.averages }),
-    'Template saved', 'Failed to save the template',
-  );
+  // Only an edit of the selected template is saved; switching templates saves nothing.
+  const edited = selected && edit?.id === selected.id ? edit : null;
+  const saveDraft = useCallback(async (next: Draft | null) => {
+    if (!next) return;
+    await apiSend(`/ma-templates/${next.id}`, 'PUT', { name: next.name.trim(), averages: next.averages });
+    await reload();
+  }, [reload]);
+  const validateDraft = useCallback((next: Draft | null): string | null => {
+    if (!next) return null;
+    if (!next.name.trim()) return 'The template needs a name';
+    return next.averages.every(a => validPeriod(a.period)) ? null : 'Periods must be whole numbers of 1 or more';
+  }, []);
+  const templateSave = useAutosave(edited, { save: saveDraft, validate: validateDraft, enabled: templates.length > 0 });
 
   const makeDefault = () => draft && run(
     () => apiSend(`/ma-templates/${draft.id}/default`, 'PUT'),
@@ -118,7 +124,12 @@ export function MaTemplatesSection() {
   return (
     <Section
       title="Moving average templates"
-      actions={<Button variant="buyOutline" size="sm" onClick={create} disabled={busy}>+ New template</Button>}
+      actions={
+        <>
+          <SaveStatus state={templateSave.state} error={templateSave.error} onRetry={templateSave.retry} />
+          <Button variant="buyOutline" size="sm" onClick={create} disabled={busy}>+ New template</Button>
+        </>
+      }
     >
       <div className={styles.layout}>
         <div className={styles.list}>
@@ -153,7 +164,6 @@ export function MaTemplatesSection() {
             <div className={styles.actions}>
               {!selected.isDefault && <Button size="sm" onClick={makeDefault} disabled={busy}>★ Make default</Button>}
               {!selected.isDefault && <Button variant="danger" size="sm" onClick={() => setDeleting(true)} disabled={busy}>Delete</Button>}
-              <Button variant="primary" size="sm" onClick={save} disabled={busy || !dirty || !periodsValid || !draft.name.trim()}>Save template</Button>
             </div>
           </div>
           <Hint>
@@ -205,7 +215,6 @@ export function MaTemplatesSection() {
             ))}
           </div>
           <Button variant="dashed" onClick={() => setDraft({ ...draft, averages: [...draft.averages, newAverage(draft.averages)] })}>+ Add moving average</Button>
-          {dirty && <Hint tone="warning">Unsaved changes</Hint>}
         </div>
       </div>
 
