@@ -1,4 +1,5 @@
 import { DEFAULT_QUICK_ORDERS, quickOrdersError, type QuickLotsMode, type QuickOrders, type QuickTpMode } from '../../lib/quickOrders';
+import { Button, Field, Hint, Section, Segmented, Select, TextInput, type SegmentOption } from '../../shared/ui';
 import type { MirrorPreset } from './MirrorTab';
 import styles from './QuickOrdersSection.module.css';
 
@@ -13,8 +14,8 @@ const numberOrNull = (raw: string): number | null => {
   return raw.trim() === '' || !Number.isFinite(value) ? null : value;
 };
 
-const LOTS_MODES: Array<{ key: QuickLotsMode; label: string }> = [{ key: 'fixed', label: 'Lots' }, { key: 'risk_pct', label: 'Risk %' }];
-const TP_MODES: Array<{ key: QuickTpMode; label: string }> = [{ key: 'pips', label: 'Pips' }, { key: 'r', label: 'R' }];
+const LOTS_MODES: SegmentOption<QuickLotsMode>[] = [{ value: 'fixed', label: 'Lots' }, { value: 'risk_pct', label: 'Risk %' }];
+const TP_MODES: SegmentOption<QuickTpMode>[] = [{ value: 'pips', label: 'Pips' }, { value: 'r', label: 'R' }];
 
 export function QuickOrdersSection({ value, presets, onChange }: QuickOrdersSectionProps) {
   const savedPresets = presets.filter((p): p is MirrorPreset & { id: number } => p.id !== undefined);
@@ -24,79 +25,74 @@ export function QuickOrdersSection({ value, presets, onChange }: QuickOrdersSect
   const patch = (next: Partial<QuickOrders>) => value && onChange({ ...value, ...next });
 
   return (
-    <section className={styles.section}>
-      <div className={styles.header}>
-        <div>
-          <h3 className={styles.title}>Quick market / orders</h3>
-          <p className={styles.hint}>Chart menu: Quick buy / sell at market opens a position; at the clicked price it places a pending order. Each one asks for confirmation.</p>
-        </div>
-        {value
-          ? <button type="button" className={styles.clearBtn} onClick={() => onChange(null)}>Clear</button>
-          : <button type="button" className={styles.setupBtn} onClick={() => onChange(DEFAULT_QUICK_ORDERS)}>Set up</button>}
-      </div>
-
+    <Section
+      title="Quick market / orders"
+      description="Chart menu: Quick buy / sell at market opens a position; at the clicked price it places a pending order. Each one asks for confirmation."
+      accent="orange"
+      actions={value
+        ? <Button size="sm" onClick={() => onChange(null)}>Clear</Button>
+        : <Button variant="primary" size="sm" onClick={() => onChange(DEFAULT_QUICK_ORDERS)}>Set up</Button>}
+    >
       {value && (
-        <>
+        <div className={styles.body}>
           <div className={styles.grid}>
-            <div className={styles.field}>
-              <span className={styles.label}>{sizeFromPreset ? 'Size · from the preset' : 'Size'}</span>
+            <Field label={sizeFromPreset ? 'Size · from the preset' : 'Size'}>
               <div className={styles.inline}>
-                <div className={`${styles.seg} ${sizeFromPreset ? styles.segDisabled : ''}`} role="group" aria-label="Size mode">
-                  {LOTS_MODES.map(m => (
-                    <button key={m.key} type="button" className={value.lotsMode === m.key ? styles.segOn : styles.segBtn} aria-pressed={value.lotsMode === m.key} disabled={sizeFromPreset} onClick={() => patch({ lotsMode: m.key })}>{m.label}</button>
-                  ))}
-                </div>
-                <input
-                  type="text" inputMode="decimal" className={styles.input} aria-label="Size" disabled={sizeFromPreset}
+                <Segmented
+                  label="Size mode"
+                  options={LOTS_MODES}
+                  value={value.lotsMode}
+                  disabled={sizeFromPreset}
+                  onChange={lotsMode => patch({ lotsMode })}
+                />
+                <TextInput
+                  inputMode="decimal" aria-label="Size" disabled={sizeFromPreset}
                   defaultValue={value.size} key={`size-${value.lotsMode}`}
                   onChange={e => patch({ size: numberOrNull(e.target.value) ?? 0 })}
                 />
               </div>
-            </div>
+            </Field>
 
-            <div className={styles.field}>
-              <span className={styles.label}>Stop loss · pips (optional)</span>
-              <input
-                type="text" inputMode="decimal" className={styles.input} aria-label="Stop loss in pips" placeholder="none"
+            <Field label="Stop loss · pips (optional)">
+              <TextInput
+                inputMode="decimal" aria-label="Stop loss in pips" placeholder="none"
                 defaultValue={value.slPips ?? ''}
                 onChange={e => patch({ slPips: numberOrNull(e.target.value) })}
               />
-            </div>
+            </Field>
 
-            <div className={styles.field}>
-              <span className={styles.label}>Take profit (optional)</span>
+            <Field label="Take profit (optional)">
               <div className={styles.inline}>
-                <div className={styles.seg} role="group" aria-label="Take profit mode">
-                  {TP_MODES.map(m => (
-                    <button key={m.key} type="button" className={value.tpMode === m.key ? styles.segOn : styles.segBtn} aria-pressed={value.tpMode === m.key}
-                      onClick={() => patch(value.tpMode === m.key ? { tpMode: null, tp: null } : { tpMode: m.key })}>{m.label}</button>
-                  ))}
-                </div>
-                <input
-                  type="text" inputMode="decimal" className={styles.input} aria-label="Take profit" placeholder="none"
+                <Segmented
+                  label="Take profit mode"
+                  options={TP_MODES}
+                  value={value.tpMode}
+                  onChange={tpMode => patch(value.tpMode === tpMode ? { tpMode: null, tp: null } : { tpMode })}
+                />
+                <TextInput
+                  inputMode="decimal" aria-label="Take profit" placeholder="none"
                   disabled={value.tpMode === null} defaultValue={value.tp ?? ''} key={`tp-${value.tpMode ?? 'none'}`}
                   onChange={e => patch({ tp: numberOrNull(e.target.value) })}
                 />
               </div>
-            </div>
+            </Field>
 
-            <div className={styles.field}>
-              <span className={styles.label}>Mirror preset (optional)</span>
-              <select
-                className={styles.select} aria-label="Mirror preset"
+            <Field label="Mirror preset (optional)" htmlFor="quick-mirror-preset">
+              <Select
+                id="quick-mirror-preset"
                 value={value.mirrorPresetId ?? ''}
                 onChange={e => patch({ mirrorPresetId: e.target.value === '' ? null : Number(e.target.value) })}
               >
                 <option value="">None · the chart's broker</option>
                 {savedPresets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
+              </Select>
+            </Field>
           </div>
-          <p className={error ? styles.error : styles.hint}>
+          <Hint tone={error ? 'error' : 'muted'}>
             {error ?? 'Risk % and a take profit in R need a stop loss. With a preset, each enabled broker uses its own size from the preset.'}
-          </p>
-        </>
+          </Hint>
+        </div>
       )}
-    </section>
+    </Section>
   );
 }

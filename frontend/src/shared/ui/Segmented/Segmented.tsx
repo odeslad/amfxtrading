@@ -12,7 +12,7 @@ export interface SegmentOption<T extends string> {
 
 export interface SegmentedProps<T extends string> {
   options: SegmentOption<T>[];
-  value: T;
+  value: T | null;
   onChange: (value: T) => void;
   label: string;
   size?: 'sm' | 'md';

@@ -23,10 +23,20 @@ import { ServerCharts } from './ServerCharts';
 import { useServerStatus } from '../../lib/useServerStatus';
 import { usePushDevices } from '../../lib/usePushDevices';
 import { EMPTY_VISIBILITY, isBrokerVisible, publishVisibility, useVisibility, type Visibility } from '../../lib/visibility';
+import { Button, Hint, StatusDot, Tabs, type TabItem } from '../../shared/ui';
 import styles from './SettingsPage.module.css';
 
 const TABS = ['mirror', 'display', 'notifications', 'visibility', 'data', 'server'] as const;
 type Tab = (typeof TABS)[number];
+
+const TAB_ITEMS: TabItem<Tab>[] = [
+  { id: 'mirror', label: 'Mirror' },
+  { id: 'display', label: 'Display' },
+  { id: 'notifications', label: 'Notifications', shortLabel: 'Notif.' },
+  { id: 'visibility', label: 'Visibility' },
+  { id: 'data', label: 'Data' },
+  { id: 'server', label: 'Server' },
+];
 
 interface SavedPreset {
   id: number;
@@ -204,46 +214,41 @@ export function SettingsPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.tabBar}>
-        <div className={styles.tabs}>
-          <button type="button" className={`${styles.tab} ${tab === 'mirror' ? styles.tabActive : ''}`} onClick={() => setTab('mirror')}>Mirror</button>
-          <button type="button" className={`${styles.tab} ${tab === 'display' ? styles.tabActive : ''}`} onClick={() => setTab('display')}>Display</button>
-          <button type="button" className={`${styles.tab} ${tab === 'notifications' ? styles.tabActive : ''}`} onClick={() => setTab('notifications')}>
-            <span className={styles.tabLong}>Notifications</span><span className={styles.tabShort}>Notif.</span>
-          </button>
-          <button type="button" className={`${styles.tab} ${tab === 'visibility' ? styles.tabActive : ''}`} onClick={() => setTab('visibility')}>Visibility</button>
-          <button type="button" className={`${styles.tab} ${tab === 'data' ? styles.tabActive : ''}`} onClick={() => setTab('data')}>Data</button>
-          <button type="button" className={`${styles.tab} ${tab === 'server' ? styles.tabActive : ''}`} onClick={() => setTab('server')}>Server</button>
-        </div>
-
-        <div className={styles.tabBarRight}>
-          {savable && dirty && <span className={styles.unsaved}>Unsaved changes</span>}
-          {savable && (
-            <button type="button" className={styles.saveBtn} onClick={handleSave} disabled={saving || !dirty}>
-              {saving ? 'Saving…' : 'Save'}
-            </button>
-          )}
-          {tab === 'data' && candleSync.dirty && <span className={styles.unsaved}>Unsaved targets</span>}
-          {tab === 'data' && (
-            <button type="button" className={styles.saveBtn} onClick={candleSync.saveTargets} disabled={candleSync.saving || !candleSync.dirty}>
-              {candleSync.saving ? 'Saving…' : 'Save targets'}
-            </button>
-          )}
-          {tab === 'notifications' && (
-            <>
-              <button
-                type="button"
-                className={`${styles.devicesBtn} ${pushDevices.thisDeviceSubscribed ? '' : styles.devicesBtnAttention}`}
-                onClick={() => setDevicesOpen(true)}
-              >
-                Devices · {pushDevices.devices.length}
-                {!pushDevices.thisDeviceSubscribed && <span className={styles.dot} aria-hidden="true" />}
-              </button>
-              <button type="button" className={styles.newBtn} onClick={() => setPanel({ notification: null, nonce: Date.now() })}>+ New notification</button>
-            </>
-          )}
-        </div>
-      </div>
+      <Tabs
+        label="Settings"
+        tabs={TAB_ITEMS}
+        active={tab}
+        onChange={setTab}
+        actions={
+          <>
+            {savable && dirty && <Hint tone="warning">Unsaved changes</Hint>}
+            {savable && (
+              <Button variant="primary" size="sm" onClick={handleSave} disabled={saving || !dirty}>
+                {saving ? 'Saving…' : 'Save'}
+              </Button>
+            )}
+            {tab === 'data' && candleSync.dirty && <Hint tone="warning">Unsaved targets</Hint>}
+            {tab === 'data' && (
+              <Button variant="primary" size="sm" onClick={candleSync.saveTargets} disabled={candleSync.saving || !candleSync.dirty}>
+                {candleSync.saving ? 'Saving…' : 'Save targets'}
+              </Button>
+            )}
+            {tab === 'notifications' && (
+              <>
+                <Button
+                  variant={pushDevices.thisDeviceSubscribed ? 'outlined' : 'edit'}
+                  size="sm"
+                  onClick={() => setDevicesOpen(true)}
+                >
+                  Devices · {pushDevices.devices.length}
+                  {!pushDevices.thisDeviceSubscribed && <StatusDot state="attention" />}
+                </Button>
+                <Button variant="buyOutline" size="sm" onClick={() => setPanel({ notification: null, nonce: Date.now() })}>+ New notification</Button>
+              </>
+            )}
+          </>
+        }
+      />
 
       {tab === 'mirror' && (
         <MirrorTab

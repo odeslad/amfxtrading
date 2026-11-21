@@ -78,6 +78,10 @@
   background: var(--tint-selected);
 }
 
+.muted td {
+  color: var(--muted);
+}
+
 .sortButton {
   display: inline-flex;
   align-items: center;

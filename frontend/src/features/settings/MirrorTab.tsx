@@ -1,6 +1,18 @@
 import type { QuickOrders } from '../../lib/quickOrders';
+import {
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  Hint,
+  Select,
+  Table,
+  TextInput,
+  Toggle,
+  type TableColumn,
+} from '../../shared/ui';
 import { QuickOrdersSection } from './QuickOrdersSection';
-import styles from './SettingsPage.module.css';
+import styles from './MirrorTab.module.css';
 
 export interface MirrorBroker {
   id?: number;
@@ -36,32 +48,37 @@ interface MirrorTabProps {
   onChange: (broker: string, patch: Partial<MirrorBroker>) => void;
 }
 
+type BrokerChange = (patch: Partial<MirrorBroker>) => void;
+
 const fmtBalance = (a: AccountInfo | undefined): string =>
   a ? `${a.balance.toFixed(2)} ${a.currency === 'EUR' ? '€' : a.currency}` : '—';
 
 // Lots typed as text so the phone keyboard offers the decimal separator; the
 // value is parsed on every change and an incomplete number keeps the field.
-function LotsInput({ m, onChange }: { m: MirrorBroker; onChange: (patch: Partial<MirrorBroker>) => void }) {
+function LotsInput({ m, onChange }: { m: MirrorBroker; onChange: BrokerChange }) {
   return (
-    <input
-      className={styles.input}
-      type="text"
-      inputMode="decimal"
-      defaultValue={String(m.lots)}
-      disabled={!m.enabled}
-      aria-label={m.lotsMode === 'fixed' ? 'Lots' : 'Risk %'}
-      onChange={e => {
-        const v = parseFloat(e.target.value.replace(',', '.'));
-        if (Number.isFinite(v) && v >= 0) onChange({ lots: v });
-      }}
-    />
+    <span className={styles.lots}>
+      <TextInput
+        size="sm"
+        className={styles.lotsInput}
+        inputMode="decimal"
+        defaultValue={String(m.lots)}
+        disabled={!m.enabled}
+        aria-label={m.lotsMode === 'fixed' ? 'Lots' : 'Risk %'}
+        onChange={e => {
+          const v = parseFloat(e.target.value.replace(',', '.'));
+          if (Number.isFinite(v) && v >= 0) onChange({ lots: v });
+        }}
+      />
+      <span className={styles.unit}>{m.lotsMode === 'fixed' ? 'lots' : '%'}</span>
+    </span>
   );
 }
 
-function SizingSelect({ m, onChange }: { m: MirrorBroker; onChange: (patch: Partial<MirrorBroker>) => void }) {
+function SizingSelect({ m, onChange }: { m: MirrorBroker; onChange: BrokerChange }) {
   return (
-    <select
-      className={styles.select}
+    <Select
+      size="sm"
       value={m.lotsMode}
       disabled={!m.enabled}
       aria-label="Sizing"
@@ -69,17 +86,12 @@ function SizingSelect({ m, onChange }: { m: MirrorBroker; onChange: (patch: Part
     >
       <option value="fixed">Fixed lots</option>
       <option value="risk_pct">% Risk</option>
-    </select>
+    </Select>
   );
 }
 
-function Toggle({ m, onChange, className }: { m: MirrorBroker; onChange: (patch: Partial<MirrorBroker>) => void; className?: string }) {
-  return (
-    <label className={`${styles.toggle} ${className ?? ''}`}>
-      <input type="checkbox" checked={m.enabled} onChange={e => onChange({ enabled: e.target.checked })} aria-label={`Mirror ${m.broker}`} />
-      <span className={styles.toggleTrack}><span className={styles.toggleThumb} /></span>
-    </label>
-  );
+function MirrorToggle({ m, onChange }: { m: MirrorBroker; onChange: BrokerChange }) {
+  return <Toggle checked={m.enabled} onChange={enabled => onChange({ enabled })} label={`Mirror ${m.broker}`} />;
 }
 
 function PresetBar({ presets, selected, onSelect, onAdd, onRename, onDelete }: {
@@ -92,29 +104,24 @@ function PresetBar({ presets, selected, onSelect, onAdd, onRename, onDelete }: {
 }) {
   return (
     <>
-      <div className={styles.presetChips}>
+      <div className={styles.chips}>
         {presets.map(p => (
-          <button
-            key={p.key}
-            type="button"
-            className={`${styles.presetChip} ${p.key === selected.key ? styles.presetChipActive : ''}`}
-            onClick={() => onSelect(p.key)}
-          >
+          <Chip key={p.key} selected={p.key === selected.key} onClick={() => onSelect(p.key)}>
             {p.name.trim() || 'Untitled'}
-          </button>
+          </Chip>
         ))}
-        <button type="button" className={`${styles.presetChip} ${styles.presetChipAdd}`} onClick={onAdd}>+ New</button>
+        <Button variant="dashed" size="sm" onClick={onAdd}>+ New</Button>
       </div>
       <div className={styles.presetBar}>
-        <input
-          className={`${styles.input} ${styles.presetName}`}
-          type="text"
+        <TextInput
+          size="sm"
+          className={styles.presetName}
           value={selected.name}
           maxLength={40}
           onChange={e => onRename(e.target.value)}
           aria-label="Preset name"
         />
-        <button type="button" className={styles.presetDelete} onClick={onDelete} disabled={presets.length <= 1}>Delete</button>
+        <Button variant="danger" size="sm" onClick={onDelete} disabled={presets.length <= 1}>Delete</Button>
       </div>
     </>
   );
@@ -124,46 +131,47 @@ export function MirrorTab({ presets, selectedKey, accounts, quickOrders, onQuick
   const selected = presets.find(p => p.key === selectedKey) ?? presets[0];
   if (!selected) return null;
   const mirror = selected.brokers;
-  if (mirror.length === 0) return <div className={styles.empty}>No brokers connected</div>;
+  if (mirror.length === 0) return <EmptyState>No brokers connected</EmptyState>;
+
+  const change = (m: MirrorBroker): BrokerChange => patch => onChange(m.broker, patch);
+
+  const columns: TableColumn<MirrorBroker>[] = [
+    { key: 'broker', label: 'Broker', render: m => <span className={styles.broker}>{m.broker}</span> },
+    { key: 'mirror', label: 'Mirror', render: m => <MirrorToggle m={m} onChange={change(m)} /> },
+    { key: 'sizing', label: 'Sizing', render: m => <SizingSelect m={m} onChange={change(m)} /> },
+    { key: 'lots', label: 'Lots / %', render: m => <LotsInput m={m} onChange={change(m)} /> },
+    { key: 'account', label: 'Account', render: m => accounts[m.broker]?.name ?? '—' },
+    { key: 'balance', label: 'Balance', mono: true, render: m => fmtBalance(accounts[m.broker]) },
+  ];
 
   return (
-    <>
-      <p className={styles.desc}>Replicate trades across brokers. Each preset sets lots per broker: fixed, or % risk over the SL distance.</p>
+    <div className={styles.tab}>
+      <Hint>Replicate trades across brokers. Each preset sets lots per broker: fixed, or % risk over the SL distance.</Hint>
 
       <PresetBar presets={presets} selected={selected} onSelect={onSelect} onAdd={onAdd} onRename={onRename} onDelete={onDelete} />
 
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr><th>Broker</th><th>Mirror</th><th>Sizing</th><th>Lots / %</th><th>Account</th><th>Balance</th></tr>
-          </thead>
-          <tbody>
-            {mirror.map(m => (
-              <tr key={`${selected.key}-${m.broker}`} className={m.enabled ? undefined : styles.dim}>
-                <td className={styles.broker}>{m.broker}</td>
-                <td><Toggle m={m} onChange={patch => onChange(m.broker, patch)} /></td>
-                <td><SizingSelect m={m} onChange={patch => onChange(m.broker, patch)} /></td>
-                <td><LotsInput m={m} onChange={patch => onChange(m.broker, patch)} /><span className={styles.unit}>{m.lotsMode === 'fixed' ? 'lots' : '%'}</span></td>
-                <td className={styles.sans}>{accounts[m.broker]?.name ?? '—'}</td>
-                <td>{fmtBalance(accounts[m.broker])}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className={styles.cards}>
-        {mirror.map(m => (
-          <div key={`${selected.key}-${m.broker}`} className={`${styles.card} ${m.enabled ? '' : styles.dim}`}>
-            <span className={styles.cardName}>{m.broker}</span>
-            <Toggle m={m} onChange={patch => onChange(m.broker, patch)} className={styles.cardToggle} />
-            <SizingSelect m={m} onChange={patch => onChange(m.broker, patch)} />
-            <LotsInput m={m} onChange={patch => onChange(m.broker, patch)} />
-          </div>
-        ))}
-      </div>
+      <Table
+        caption="Mirror brokers"
+        columns={columns}
+        rows={mirror}
+        rowKey={m => `${selected.key}-${m.broker}`}
+        rowTone={m => (m.enabled ? undefined : 'muted')}
+        renderCard={m => (
+          <Card
+            title={m.broker}
+            meta={fmtBalance(accounts[m.broker])}
+            accent={m.enabled ? 'none' : 'neutral'}
+            actions={<MirrorToggle m={m} onChange={change(m)} />}
+          >
+            <div className={styles.cardControls}>
+              <SizingSelect m={m} onChange={change(m)} />
+              <LotsInput m={m} onChange={change(m)} />
+            </div>
+          </Card>
+        )}
+      />
 
       <QuickOrdersSection value={quickOrders} presets={presets} onChange={onQuickOrdersChange} />
-    </>
+    </div>
   );
 }

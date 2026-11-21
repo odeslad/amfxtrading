@@ -3,7 +3,7 @@ import styles from './Table.module.css';
 
 export type ColumnAlign = 'left' | 'right' | 'center';
 export type SortDirection = 'asc' | 'desc';
-export type RowTone = 'selected' | 'error' | 'marked';
+export type RowTone = 'selected' | 'error' | 'marked' | 'muted';
 
 export interface TableColumn<Row> {
   key: string;

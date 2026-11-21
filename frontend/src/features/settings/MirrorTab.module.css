@@ -1,0 +1,59 @@
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.presetBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.presetName {
+  flex: 1;
+  max-width: 320px;
+}
+
+.broker {
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.lots {
+  display: inline-flex;
+  align-items: center;
+}
+
+.lotsInput {
+  width: 80px;
+}
+
+.unit {
+  margin-left: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.cardControls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.cardControls .lotsInput {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .presetName {
+    max-width: none;
+  }
+}
