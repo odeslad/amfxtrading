@@ -94,6 +94,43 @@
   cursor: not-allowed;
 }
 
+.lgBox {
+  width: 200px;
+}
+
+.variantGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.variantRow {
+  display: grid;
+  grid-template-columns: 120px repeat(3, max-content);
+  align-items: center;
+  gap: 16px;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 200px);
+  gap: 16px 24px;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 16px;
+  }
+
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .variantRow {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .menuDemo {
   padding: 12px 16px;
   background: var(--surface2);

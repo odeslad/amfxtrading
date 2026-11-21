@@ -1,0 +1,132 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-sans);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease, opacity 0.12s ease;
+}
+
+.button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.button:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: not-allowed;
+}
+
+.sm {
+  height: var(--h-sm);
+  padding: 0 10px;
+  font-size: var(--text-2xs);
+}
+
+.md {
+  height: var(--h-md);
+  padding: 0 14px;
+  font-size: var(--text-sm);
+}
+
+.lg {
+  width: 100%;
+  height: var(--h-lg);
+  padding: 0 20px;
+  font-size: var(--text-md);
+}
+
+.primary {
+  background: var(--orange);
+  color: #000;
+}
+
+.buy {
+  background: var(--green);
+  color: #000;
+}
+
+.sell {
+  background: var(--red);
+  color: #fff;
+}
+
+.primary:hover:not(:disabled),
+.buy:hover:not(:disabled),
+.sell:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.outlined {
+  color: var(--muted);
+  border-color: var(--border-bright);
+}
+
+.outlined:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+.buyOutline {
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.buyOutline:hover:not(:disabled) {
+  background: var(--tint-green);
+}
+
+.edit {
+  color: var(--orange);
+  border-color: var(--orange);
+}
+
+.edit:hover:not(:disabled) {
+  background: var(--tint-orange);
+}
+
+.danger {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--tint-red);
+}
+
+.ghost {
+  color: var(--muted);
+}
+
+.ghost:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.dashed {
+  color: var(--muted);
+  border: 1px dashed var(--border-bright);
+}
+
+.dashed:hover:not(:disabled) {
+  color: var(--text);
+}
+
+@media (max-width: 768px) {
+  .sm,
+  .md {
+    height: var(--h-touch);
+    padding: 0 14px;
+    font-size: var(--text-sm);
+  }
+
+  .lg {
+    font-size: var(--text-xl);
+  }
+}
