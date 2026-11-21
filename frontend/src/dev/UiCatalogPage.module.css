@@ -130,6 +130,37 @@
   gap: 12px;
 }
 
+.menuAnchor {
+  position: relative;
+}
+
+.dockedDemo {
+  display: flex;
+  height: 260px;
+  border: 1px solid var(--border);
+}
+
+.dockedChart {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+@media (max-width: 768px) {
+  .dockedDemo {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .dockedChart {
+    min-height: 160px;
+  }
+}
+
 .gauges {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

@@ -2,6 +2,11 @@ import { useState, type CSSProperties } from 'react';
 import {
   Badge,
   Button,
+  ConfirmDialog,
+  FilterPanel,
+  Menu,
+  SidePanel,
+  Toaster,
   Card,
   Gauge,
   Legend,
@@ -36,6 +41,7 @@ import {
   Toggle,
   type ButtonVariant,
 } from '../shared/ui';
+import { addToast } from '../lib/toast';
 import styles from './UiCatalogPage.module.css';
 
 interface Token {
@@ -125,6 +131,11 @@ export function UiCatalogPage() {
   const [spread, setSpread] = useState(true);
   const [sort, setSort] = useState<TableSort>({ key: 'pnl', direction: 'desc' });
   const [page, setPage] = useState(1);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dockedOpen, setDockedOpen] = useState(true);
 
   function handleSort(key: string) {
     setSort((current) => ({
@@ -546,6 +557,89 @@ export function UiCatalogPage() {
           ]}
         />
       </section>
+
+      <section className={styles.block}>
+        <h2 className={styles.heading}>SidePanel · ConfirmDialog · FilterPanel · Menu · Toast</h2>
+        <div className={styles.swatches}>
+          <Button onClick={() => setPanelOpen(true)}>Side panel</Button>
+          <Button variant="danger" onClick={() => setConfirmOpen(true)}>Confirm dialog</Button>
+          <Button onClick={() => setFiltersOpen(true)}>Filter panel</Button>
+          <div className={styles.menuAnchor}>
+            <Button onClick={() => setMenuOpen((current) => !current)}>Menu</Button>
+            <Menu
+              open={menuOpen}
+              onClose={() => setMenuOpen(false)}
+              label="Chart actions"
+              title="EURUSD · 1.08452"
+              style={{ top: 'calc(100% + 4px)', left: 0 }}
+              sections={[
+                {
+                  id: 'quick',
+                  items: [
+                    { id: 'buy', label: 'Buy 0.5%', hint: 'SL 20', tone: 'buy', onSelect: () => addToast('Buy', 'success') },
+                    { id: 'sell', label: 'Sell 0.5%', hint: 'SL 20', tone: 'sell', onSelect: () => addToast('Sell', 'error') },
+                  ],
+                },
+                {
+                  id: 'more',
+                  items: [
+                    { id: 'trade', label: 'New trade', onSelect: () => undefined },
+                    { id: 'alert', label: 'Price alert', onSelect: () => undefined },
+                    { id: 'delete', label: 'Delete drawing', tone: 'danger', onSelect: () => undefined },
+                    { id: 'disabled', label: 'Disabled', disabled: true, onSelect: () => undefined },
+                  ],
+                },
+              ]}
+            />
+          </div>
+          <Button variant="buyOutline" onClick={() => addToast('Order sent', 'success')}>Toast success</Button>
+          <Button variant="danger" onClick={() => addToast('Command timed out', 'error')}>Toast error</Button>
+          <Button onClick={() => addToast('Sync started')}>Toast info</Button>
+          <Button onClick={() => setDockedOpen((current) => !current)}>Toggle docked</Button>
+        </div>
+        <div className={styles.dockedDemo}>
+          <div className={styles.dockedChart}>chart area</div>
+          <SidePanel docked open={dockedOpen} title="New trade" onClose={() => setDockedOpen(false)}>
+            <Field label="Symbol" htmlFor="cat-docked-symbol">
+              <TextInput id="cat-docked-symbol" defaultValue="EURUSD" />
+            </Field>
+          </SidePanel>
+        </div>
+      </section>
+
+      <SidePanel
+        open={panelOpen}
+        title="Pairs · [Broker 1]"
+        onClose={() => setPanelOpen(false)}
+        width="wide"
+        footer={<Button variant="primary" size="lg" onClick={() => setPanelOpen(false)}>Save to EA</Button>}
+      >
+        <Hint>Each change is saved to the EA.</Hint>
+      </SidePanel>
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Close position"
+        description="EURUSD · BUY 0.50 · [Broker 1]"
+        confirmLabel="Close"
+        onConfirm={() => setConfirmOpen(false)}
+        onCancel={() => setConfirmOpen(false)}
+      />
+      <FilterPanel
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        onReset={() => setFiltersOpen(false)}
+        footer={<Button variant="primary" size="lg" onClick={() => setFiltersOpen(false)}>Apply</Button>}
+      >
+        <Field label="Broker" htmlFor="cat-filter-broker">
+          <Select id="cat-filter-broker" defaultValue="all">
+            <option value="all">All brokers</option>
+          </Select>
+        </Field>
+        <Field label="From" htmlFor="cat-filter-from">
+          <IsoDateInput id="cat-filter-from" value={isoDate} onChange={setIsoDate} />
+        </Field>
+      </FilterPanel>
+      <Toaster />
     </main>
   );
 }

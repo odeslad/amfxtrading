@@ -15,7 +15,7 @@ The unified variant of each component is the one marked ★ on the approved mock
 |---|---|---|
 | Secondary text | `--muted` #666 (3.4:1 on --surface) | `--muted` **#8a8a8a**; new `--disabled` #666 |
 | Placeholder | #333 / #444 / #666 | `--placeholder` #444 |
-| Tints | 13 alpha values | `--tint-orange` rgba(245,166,35,.15) · `--tint-green` rgba(76,175,132,.15) · `--tint-red` rgba(224,92,92,.15) · `--tint-blue` rgba(58,123,213,.18) · `--tint-hover` rgba(255,255,255,.03) · `--tint-selected` rgba(245,166,35,.08) · `--tint-warning` rgba(200,168,64,.08) · `--tint-error` rgba(224,92,92,.08) |
+| Tints | 13 alpha values | `--tint-orange` rgba(245,166,35,.15) · `--tint-green` rgba(76,175,132,.15) · `--tint-red` rgba(224,92,92,.15) · `--tint-blue` rgba(58,123,213,.18) · `--tint-hover` rgba(255,255,255,.03) · `--tint-active` rgba(255,255,255,.06) · `--tint-selected` rgba(245,166,35,.08) · `--tint-warning` rgba(200,168,64,.08) · `--tint-error` rgba(224,92,92,.08) |
 | Backdrop | .5 / .6 | `--backdrop` rgba(0,0,0,.5) |
 | Heights | 20…48 (10 values) | `--h-sm` 27px · `--h-md` 34px · `--h-lg` 48px · `--h-touch` 44px |
 | Disabled | opacity .3/.35/.4/.5 | `--disabled-opacity` .4 + `cursor: not-allowed` |

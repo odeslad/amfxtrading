@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { subscribeToasts, type Toast } from '../lib/toast';
+import { subscribeToasts, type Toast } from '../../../lib/toast';
 import styles from './Toaster.module.css';
 
 export function Toaster() {

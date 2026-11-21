@@ -1,0 +1,80 @@
+.popover {
+  position: absolute;
+  z-index: 10;
+  background: var(--surface2);
+  border: 1px solid var(--border-bright);
+  box-shadow: var(--shadow-menu);
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 230px;
+  padding: 4px 0;
+}
+
+.title {
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.section + .section {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 7px 12px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover:not(:disabled),
+.item:focus-visible {
+  background: var(--tint-active);
+  outline: none;
+}
+
+.item:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: not-allowed;
+}
+
+.hint {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.buy {
+  color: var(--green);
+}
+
+.sell,
+.danger {
+  color: var(--red);
+}
+
+.active {
+  color: var(--blue);
+}
+
+@media (max-width: 768px) {
+  .item {
+    min-height: var(--h-touch);
+    font-size: var(--text-lg);
+  }
+}

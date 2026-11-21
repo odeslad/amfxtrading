@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../../features/auth/useAuth';
 import { IconJournal, IconChart, IconStats, IconBook, IconSettings, IconSignOut } from '../../shared/ui/icons';
-import { Toaster } from '../../components/Toaster';
+import { Toaster } from '../../shared/ui/Toast/Toaster';
 import { subscribe } from '../../lib/ws';
 import { addToast } from '../../lib/toast';
 import { useBuildInfo } from '../../lib/useBuildInfo';

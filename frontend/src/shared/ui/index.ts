@@ -26,3 +26,8 @@ export { Table } from './Table/Table';
 export type { TableColumn, TableProps, TableSort, SortDirection, RowTone } from './Table/Table';
 export { Pager, Badge, StatusDot, ProgressBar, Gauge, StatTile, StatStrip, Legend } from './Data/Data';
 export type { Tone, DotState, LegendItem } from './Data/Data';
+export { SidePanel, ConfirmDialog, FilterPanel } from './SidePanel/SidePanel';
+export type { SidePanelProps, ConfirmDialogProps, FilterPanelProps } from './SidePanel/SidePanel';
+export { Menu, Popover } from './Menu/Menu';
+export type { MenuItem, MenuSection, MenuItemTone } from './Menu/Menu';
+export { Toaster } from './Toast/Toaster';
