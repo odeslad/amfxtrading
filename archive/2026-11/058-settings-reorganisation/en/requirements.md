@@ -1,7 +1,7 @@
 # 058 — Settings reorganisation
 
-> Status: **draft**
-> Follows: [057 — Design system](../../../archive/2026-11/057-design-system/en/requirements.md)
+> Status: **closed**
+> Follows: [057 — Design system](../../057-design-system/en/requirements.md)
 
 ## Context
 Settings has six tabs named after where each setting was first added (Mirror, Display, Notifications, Visibility, Data, Server), so related settings are scattered: setup levels live in Display, quick orders in Mirror, broker visibility and pairs in Visibility, candle history in Data. Saving also differs per tab: one Save for Mirror, Display and Visibility, Save targets in Data, Save template inside the MA templates, Save to EA for pairs, and instant saves elsewhere. Spec 057 rebuilt every tab on the shared design system; this spec regroups the settings by what they are for, gives Settings its own navigation and makes saving uniform.

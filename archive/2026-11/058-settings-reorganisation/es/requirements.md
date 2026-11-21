@@ -1,7 +1,7 @@
 # 058 — Reorganización de Settings
 
-> Estado: **borrador**
-> Sigue a: [057 — Sistema de diseño](../../../archive/2026-11/057-design-system/es/requirements.md)
+> Estado: **cerrada**
+> Sigue a: [057 — Sistema de diseño](../../057-design-system/es/requirements.md)
 
 ## Contexto
 Settings tiene seis pestañas con el nombre de dónde se añadió cada ajuste por primera vez (Mirror, Display, Notifications, Visibility, Data, Server), así que ajustes relacionados están dispersos: los setup levels viven en Display, las órdenes rápidas en Mirror, la visibilidad de brokers y los pares en Visibility, el histórico de velas en Data. El guardado también cambia según la pestaña: un Save para Mirror, Display y Visibility, Save targets en Data, Save template dentro de las plantillas de medias, Save to EA para los pares y guardado inmediato en el resto. La spec 057 rehízo cada pestaña con el sistema de diseño compartido; esta spec reagrupa los ajustes por para qué sirven, da a Settings su propia navegación y unifica el guardado.
