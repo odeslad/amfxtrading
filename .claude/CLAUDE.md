@@ -130,8 +130,10 @@ Todos los valores de diseño se definen aquí. No se repiten valores mágicos en
 --border-bright: rgba(255, 255, 255, 0.18)   /* bordes activos/visibles */
 
 /* Texto */
---text:   #e8e8e8   /* texto primario */
---muted:  #666666   /* texto secundario / deshabilitado */
+--text:        #e8e8e8   /* texto primario */
+--muted:       #8a8a8a   /* texto secundario (5,3:1 sobre --surface) */
+--disabled:    #666666   /* deshabilitado */
+--placeholder: #444444   /* placeholder de campos */
 
 /* Acentos */
 --orange: #f5a623   /* acento principal / brand */
@@ -141,7 +143,28 @@ Todos los valores de diseño se definen aquí. No se repiten valores mágicos en
 --green:  #4caf84   /* éxito / buy / profit */
 --red:    #e05c5c   /* error / sell / loss */
 --gold:   #c8a840   /* pendiente / warning */
+
+/* Tintes (fondos de hover, selección y avisos) */
+--tint-orange:   rgba(245,166,35,.15)   /* hover de botones con borde naranja */
+--tint-green:    rgba(76,175,132,.15)
+--tint-red:      rgba(224,92,92,.15)
+--tint-blue:     rgba(58,123,213,.18)   /* pestaña activa en móvil */
+--tint-hover:    rgba(255,255,255,.03)  /* hover de fila */
+--tint-active:   rgba(255,255,255,.06)  /* hover de menú */
+--tint-selected: rgba(245,166,35,.08)   /* chip / fila seleccionada */
+--tint-warning:  rgba(200,168,64,.08)   /* caja de aviso */
+--tint-error:    rgba(224,92,92,.08)    /* caja de error */
+--backdrop:      rgba(0,0,0,.5)         /* fondo tras paneles */
+--shadow-menu:   0 8px 24px rgba(0,0,0,.5)
+
+/* Medidas y estados */
+--h-sm: 27px · --h-md: 34px · --h-lg: 48px · --h-touch: 44px (móvil)
+--panel-w: 320px · --panel-w-wide: 420px
+--disabled-opacity: .4 (+ cursor: not-allowed)
+--focus-ring: 1px solid var(--orange), offset 2px, en :focus-visible de todo control
 ```
+
+Ningún componente escribe colores, tamaños ni espaciados a mano: todo sale de `frontend/src/styles/variables.css`.
 
 ### Tipografía
 
@@ -159,7 +182,7 @@ Todos los valores de diseño se definen aquí. No se repiten valores mágicos en
 --text-lg:   14px   /* valores de formulario, precios */
 --text-xl:   16px   /* precios destacados */
 --text-2xl:  20px   /* P&L principal */
---text-3xl:  28px   /* brand / login */
+--text-3xl:  24px   /* brand / login, P&L grande */
 
 /* Letter-spacing */
 --tracking-tight:   0.02em
@@ -267,6 +290,20 @@ online  → dot 8px --green
 offline → dot 8px --red
 pending → dot 8px --gold, animación pulse 0.7s infinite
 ```
+
+### Componentes compartidos (spec 057)
+
+Toda pantalla se construye con `frontend/src/shared/ui` (importar desde `shared/ui`); una pantalla no dibuja controles propios. Si hace falta un tipo de pieza que no existe, se añade aquí como componente nuevo. Catálogo vivo en `/dev/ui` (solo en desarrollo); maqueta de referencia: https://claude.ai/artifact/8CZHLrWp7VP8SpaQWXXLJx
+
+| Grupo | Componentes |
+|---|---|
+| Estructura | `Tabs` (etiqueta larga/corta, hueco de acciones) · `Section` (título, descripción, acciones, acento superior) · `Row` (etiqueta + control, se apila en móvil) · `Card` / `CardField` / `ExpandableCard` · `Toolbar` · `SelectList` (lista maestra) |
+| Campos | `Field` / `FieldLabel` · `TextInput` · `NumberInput` (sin flechas, unidad) · `Select` · `DateInput` / `IsoDateInput` · `Checkbox` · `Toggle` · `Segmented` (tonos compra/venta) · `ColorPicker` · `Chip` (seleccionado, eliminable, bloqueado) |
+| Acciones | `Button` (primary, buy, sell, outlined, buyOutline, edit, danger, ghost, dashed · sm/md/lg) · `IconButton` (con borde o sin él · sm/md) · `LinkButton` |
+| Datos | `Table` (orden, acciones de fila, tonos, tarjetas en móvil) · `Pager` · `Badge` · `StatusDot` · `ProgressBar` · `Gauge` · `StatTile` / `StatStrip` · `Legend` |
+| Capas y avisos | `SidePanel` (normal, ancho, acoplado) · `ConfirmDialog` · `FilterPanel` · `Menu` / `Popover` · `Toaster` · `Hint` (aviso, error, con caja) · `EmptyState` · `Loading` |
+
+Settings ya está migrado; el resto de pantallas (diario, stats, libro, gráfico, dashboard, login) se migran en specs propias.
 
 ---
 

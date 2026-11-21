@@ -16,7 +16,7 @@ Las tareas de componentes se verifican en una página de catálogo solo de desar
 - [x] 10. [frontend] Migrar la pestaña Visibility (VisibilityTab, SymbolsPanel) · **Verifica:** build + local: visibilidad de brokers, panel de pares activo/apagado/bloqueado, Save to EA (contra el backend local con flags apagados) · **Est:** 1,5 SP
 - [x] 11. [frontend] Migrar la pestaña Data (DataSyncTab) · **Verifica:** build + local: objetivos, selección, estados del avance de la sincronización · **Est:** 2 SP
 - [x] 12. [frontend] Migrar la pestaña Server (ServerTab, ServerCharts) · **Verifica:** build + local: medidores, tablas, 24h/7d, plegar · **Est:** 2,5 SP
-- [ ] 13. [specs] Actualizar la sección del sistema de diseño de `.claude/CLAUDE.md` (tokens, lista de componentes, `--text-3xl` 24px) · **Verifica:** revisión manual · **Est:** 0,5 SP
+- [x] 13. [specs] Actualizar la sección del sistema de diseño de `.claude/CLAUDE.md` (tokens, lista de componentes, `--text-3xl` 24px) · **Verifica:** revisión manual · **Est:** 0,5 SP
 - [ ] 14. [infra] Push de `master` y despliegue del frontend cuando lo pida el usuario; **validar en producción**: cada pestaña de Settings en escritorio y móvil (mismos ajustes, mismos guardados), anillo de foco con Tab, tablas como tarjetas en móvil, texto secundario #8a8a8a en el resto de la app · **Verifica:** manual (validación del usuario) · **Est:** 1 SP
 - [ ] 15. [specs] Registrar Est vs Real en `verification.md` (ambos idiomas), marcar la spec como cerrada y archivarla en `archive/2026-11/` (o el mes de cierre) · **Verifica:** manual · **Est:** 0,25 SP
 
