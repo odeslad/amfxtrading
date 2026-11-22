@@ -249,3 +249,23 @@ export function IconChevron({ size = 14, color = 'currentColor', direction = 'ri
     </svg>
   );
 }
+
+export function IconLink({ size = 14, color = 'currentColor' }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M6.5 9.5l3-3" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M7 4.5l1-1a2.8 2.8 0 0 1 4 4l-1 1" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9 11.5l-1 1a2.8 2.8 0 0 1-4-4l1-1" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconUnlink({ size = 14, color = 'currentColor' }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M7 4.5l1-1a2.8 2.8 0 0 1 4 4l-1 1" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9 11.5l-1 1a2.8 2.8 0 0 1-4-4l1-1" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M3 3l1.5 1.5M11.5 11.5L13 13" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}

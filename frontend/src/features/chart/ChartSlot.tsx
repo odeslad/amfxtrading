@@ -70,6 +70,10 @@ interface ChartSlotProps {
   splitAvailable?: boolean;
   splitActive?: boolean;
   onSplit?: () => void;
+  linked?: boolean;
+  onToggleLink?: () => void;
+  // Spec 060: a linked pair this side's broker does not offer.
+  symbolUnavailable?: boolean;
 }
 
 interface RawCandle {
@@ -141,7 +145,7 @@ export function ChartSlot({
   alerts, onMoveAlert, onEditAlertPrice, onToggleAlert, onDeleteAlert,
   onIndicators, onFilters, onAlerts, alertsActive, alertsFlashing,
   onNewTrade, onCreateAlert, quickOrders, onQuickOrder, onEditPosition, onClosePosition, onModifyPosition, onFullscreen, isFullscreen,
-  splitAvailable, splitActive, onSplit,
+  splitAvailable, splitActive, onSplit, linked, onToggleLink, symbolUnavailable = false,
 }: ChartSlotProps) {
   const emas = useMemo(() => averagesFor(broker, timeframe), [averagesFor, broker, timeframe]);
   const openIndicators = useCallback(() => onIndicators(timeframe), [onIndicators, timeframe]);
@@ -379,9 +383,13 @@ export function ChartSlot({
         splitAvailable={splitAvailable}
         splitActive={splitActive}
         onSplit={onSplit}
+        linked={linked}
+        onToggleLink={onToggleLink}
       />
       <div className={styles.slotChart}>
-        {broker && symbol
+        {symbolUnavailable
+          ? <div className={styles.empty}>{broker.toUpperCase()} does not offer {symbol}</div>
+          : broker && symbol
           ? <ChartErrorBoundary resetKey={`${broker}-${symbol}-${timeframe}`}>
               <LightweightChart ref={chartRef} candles={candles} broker={broker} symbol={symbol} timeframe={timeframe} onLoadMore={hasMore ? loadMoreCandles : undefined} emas={emas} drawMode={drawMode} onDrawDone={clearDrawMode} positions={chartPositions} onEditPosition={onEditPosition} onClosePosition={onClosePosition} onModifyPosition={onModifyPosition} initialDrawings={drawings ?? undefined} onDrawingsChange={handleDrawingsChange} trendlineAppearance={trendlineAppearance} accountBalance={balance} pnlMode={pnlMode} showSpread={showSpread} alerts={chartAlerts} onMoveAlert={onMoveAlert} onSelectAlert={setSelectedAlertId} locked={locked} emaCrossTrades={emaCrossTrades} onContextMenu={setMenu} />
               {menu && <ChartContextMenu x={menu.x} y={menu.y} sections={menuSections} onClose={closeMenu} />}

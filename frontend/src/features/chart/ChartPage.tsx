@@ -20,6 +20,7 @@ import type { TrendlineAppearance } from './DrawingTools';
 import { IndicatorsPanel } from './IndicatorsPanel';
 import { useMaTemplates } from '../../lib/useMaTemplates';
 import { ChartSlot, type ChartSide } from './ChartSlot';
+import { useChartSymbols } from './useChartSymbols';
 import { BulkEditPanel } from '../journal/BulkEditPanel';
 import { ClosePositionPanel } from '../journal/ClosePositionPanel';
 import { NewTradePanel, type NewTradeOrder } from '../journal/NewTradePanel';
@@ -44,7 +45,13 @@ interface SplitState {
   ratio: number;
   // Left timeframe at the moment the split was closed: reopening restores the same pair.
   leftTimeframe?: string;
+  // Spec 060: while linked (the default) the right chart shows the left broker and pair.
+  linked?: boolean;
+  rightBroker?: string;
+  rightSymbol?: string;
 }
+
+const EMPTY_POSITIONS: Position[] = [];
 
 const DEFAULT_SPLIT: SplitState = { on: false, rightTimeframe: 'H4', ratio: 0.5 };
 const SPLIT_RATIO_MIN = 0.25;
@@ -153,14 +160,16 @@ export function ChartPage() {
   const deleteAlertFromChart = useCallback((a: PriceAlert) => {
     removeAlert(a.id).catch(err => addToast(errorMessage(err, 'Failed to delete alert'), 'error'));
   }, [removeAlert]);
-  const [positions, setPositions] = useState<Position[]>([]);
-  const positionsSigRef = useRef('');
-  const acceptPositions = useCallback((list: Position[]) => {
+  // Spec 060: positions of every broker, since each side of the split chart has its own.
+  const [positionsByBroker, setPositionsByBroker] = useState<Record<string, Position[]>>({});
+  const positionsSigRef = useRef<Record<string, string>>({});
+  const acceptPositions = useCallback((positionsBroker: string, list: Position[]) => {
     const sig = positionsSignature(list);
-    if (sig === positionsSigRef.current) return;
-    positionsSigRef.current = sig;
-    setPositions(list);
+    if (sig === positionsSigRef.current[positionsBroker]) return;
+    positionsSigRef.current[positionsBroker] = sig;
+    setPositionsByBroker(prev => ({ ...prev, [positionsBroker]: list }));
   }, []);
+  const positions = positionsByBroker[broker] ?? EMPTY_POSITIONS;
   const [editPosition, setEditPosition] = useState<Position | null>(null);
   const [closePosition, setClosePosition] = useState<Position | null>(null);
   const [showSpread, setShowSpread] = useState(false);
@@ -412,10 +421,8 @@ export function ChartPage() {
       return;
     }
 
-    if (m.broker !== broker) return;
-
     if (m.type === 'positions') {
-      acceptPositions((m.positions ?? []).map(p => ({
+      acceptPositions(m.broker, (m.positions ?? []).map(p => ({
         ...p,
         broker: p.broker ?? m.broker,
         brokerOffset: p.brokerOffset ?? m.brokerOffset,
@@ -424,6 +431,7 @@ export function ChartPage() {
       return;
     }
 
+    if (m.broker !== broker) return;
     if (m.type !== 'ticks' || !m.ticks) return;
     const last = m.ticks.findLast((t) => t.symbol === symbol);
     if (!last) return;
@@ -434,33 +442,30 @@ export function ChartPage() {
   // Selection changed: drop the previous symbol's bid.
   useEffect(() => { lastBidRef.current = null; }, [broker, symbol]);
 
-  const [prevPositionsBroker, setPrevPositionsBroker] = useState(broker);
-  if (broker !== prevPositionsBroker) {
-    setPrevPositionsBroker(broker);
-    setPositions([]);
-  }
-
   useEffect(() => {
-    if (!broker) { positionsSigRef.current = ''; return; }
     const ac = new AbortController();
     apiFetch<{ broker: string; brokerOffset?: number; currency?: string; positions: Position[] }[]>('/positions/live', { signal: ac.signal })
-      .then(brokers => {
-        const entry = brokers.find(b => b.broker === broker);
-        acceptPositions((entry?.positions ?? []).map(p => ({
-          ...p,
-          broker: p.broker ?? broker,
-          brokerOffset: p.brokerOffset ?? entry?.brokerOffset,
-          currency: p.currency ?? entry?.currency,
-        })));
+      .then(entries => {
+        for (const entry of entries) {
+          acceptPositions(entry.broker, (entry.positions ?? []).map(p => ({
+            ...p,
+            broker: p.broker ?? entry.broker,
+            brokerOffset: p.brokerOffset ?? entry.brokerOffset,
+            currency: p.currency ?? entry.currency,
+          })));
+        }
       })
       .catch(() => {});
     return () => ac.abort();
-  }, [broker, acceptPositions]);
+  }, [acceptPositions]);
 
   // Stable handlers so the memoised panels and toolbar skip renders (spec 019).
   const openIndicators = useCallback((tf: string) => { setIndicatorsTimeframe(tf); setIndicatorsOpen(true); }, []);
   const closeIndicators = useCallback(() => setIndicatorsOpen(false), []);
-  const openFilters = useCallback(() => setFiltersOpen(true), []);
+  // Spec 060: the filters panel (broker and pair on desktop) edits the side that opened it.
+  const [filtersSide, setFiltersSide] = useState<ChartSide>('left');
+  const openFiltersLeft = useCallback(() => { setFiltersSide('left'); setFiltersOpen(true); }, []);
+  const openFiltersRight = useCallback(() => { setFiltersSide('right'); setFiltersOpen(true); }, []);
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
   const closeAlerts = useCallback(() => setAlertsOpen(false), []);
   // New Trade carries the timeframe of the chart it was opened from (AC 7).
@@ -486,22 +491,63 @@ export function ChartPage() {
     setAlertFlash(false);
   }, []);
 
-  const handleEditPosition = useCallback((ticket: number) => {
-    const pos = positions.find(p => p.ticket === ticket);
-    if (pos) { setEditPosition(pos); setNewTradeOpen(false); }
-  }, [positions]);
+  const positionActions = useCallback((list: Position[]) => ({
+    onEditPosition: (ticket: number) => {
+      const pos = list.find(p => p.ticket === ticket);
+      if (pos) { setEditPosition(pos); setNewTradeOpen(false); }
+    },
+    onClosePosition: (ticket: number) => {
+      const pos = list.find(p => p.ticket === ticket);
+      if (pos) setClosePosition(pos);
+    },
+    onModifyPosition: (ticket: number, sl: number, tp: number) => {
+      const pos = list.find(p => p.ticket === ticket);
+      if (!pos) return;
+      sendCommand(modifyCommand(pos, sl, tp))
+        .catch(err => addToast(errorMessage(err, 'Network error sending modify'), 'error'));
+    },
+  }), []);
+  const leftPositionActions = useMemo(() => positionActions(positions), [positionActions, positions]);
 
-  const handleClosePosition = useCallback((ticket: number) => {
-    const pos = positions.find(p => p.ticket === ticket);
-    if (pos) setClosePosition(pos);
-  }, [positions]);
+  // Spec 060: the right chart's broker and pair — the left ones while linked, its own otherwise.
+  const linked = split.linked ?? true;
+  const rightBroker = linked ? broker : split.rightBroker ?? broker;
+  const rightSymbol = linked ? symbol : split.rightSymbol ?? symbol;
+  const ownRightSymbols = useChartSymbols(showSplit && rightBroker !== broker ? rightBroker : '');
+  const rightSymbols = rightBroker === broker ? allSymbols : ownRightSymbols;
+  const rightBrokerHidden = !!rightBroker && !isBrokerVisible(visibility, rightBroker);
+  const rightSymbolHidden = !!rightBroker && !!rightSymbol && !isSymbolVisible(visibility, rightBroker, rightSymbol);
+  const rightBrokers = useMemo(() => {
+    const list = allBrokers.filter(b => isBrokerVisible(visibility, b));
+    return rightBrokerHidden && allBrokers.includes(rightBroker) ? [...list, rightBroker] : list;
+  }, [allBrokers, visibility, rightBroker, rightBrokerHidden]);
+  const rightSymbolOptions = useMemo(() => {
+    const list = rightSymbols.filter(s => isSymbolVisible(visibility, rightBroker, s));
+    return rightSymbolHidden && rightSymbols.includes(rightSymbol) ? [...list, rightSymbol] : list;
+  }, [rightSymbols, visibility, rightBroker, rightSymbol, rightSymbolHidden]);
+  const rightSymbolUnavailable = rightSymbols.length > 0 && !!rightSymbol && !rightSymbols.includes(rightSymbol);
+  const rightPositions = positionsByBroker[rightBroker] ?? EMPTY_POSITIONS;
+  const rightPositionActions = useMemo(() => positionActions(rightPositions), [positionActions, rightPositions]);
+  const rightAlerts = useMemo(
+    () => alerts.filter(a => a.broker === rightBroker && a.symbol === rightSymbol),
+    [alerts, rightBroker, rightSymbol],
+  );
 
-  const handleModifyPosition = useCallback((ticket: number, sl: number, tp: number) => {
-    const pos = positions.find(p => p.ticket === ticket);
-    if (!pos) return;
-    sendCommand(modifyCommand(pos, sl, tp))
-      .catch(err => addToast(errorMessage(err, 'Network error sending modify'), 'error'));
-  }, [positions]);
+  // Linked, the right selectors change the left chart (and so both); unlinked, only the right one.
+  const setRightBroker = useCallback((next: string) => {
+    if (linked) setBroker(next);
+    else setSplit(prev => ({ ...prev, rightBroker: next }));
+  }, [linked, setSplit]);
+  const setRightSymbol = useCallback((next: string) => {
+    if (linked) setSymbol(next);
+    else setSplit(prev => ({ ...prev, rightSymbol: next }));
+  }, [linked, setSplit]);
+  // Unlinking keeps what the right chart shows; linking makes it take the left broker and pair.
+  const toggleLink = useCallback(() => {
+    setSplit(prev => ((prev.linked ?? true)
+      ? { ...prev, linked: false, rightBroker: broker, rightSymbol: symbol }
+      : { ...prev, linked: true }));
+  }, [broker, symbol, setSplit]);
 
   const sharedSlotProps = {
     brokers,
@@ -525,7 +571,6 @@ export function ChartPage() {
     onToggleAlert: toggleAlertFromChart,
     onDeleteAlert: deleteAlertFromChart,
     onIndicators: openIndicators,
-    onFilters: openFilters,
     onAlerts: toggleAlerts,
     alertsActive: alertsOpen,
     alertsFlashing: alertFlash,
@@ -533,9 +578,6 @@ export function ChartPage() {
     onCreateAlert: createAlert,
     quickOrders,
     onQuickOrder: openQuickOrder,
-    onEditPosition: handleEditPosition,
-    onClosePosition: handleClosePosition,
-    onModifyPosition: handleModifyPosition,
     isFullscreen,
     splitAvailable: isDesktop,
     splitActive: showSplit,
@@ -556,6 +598,10 @@ export function ChartPage() {
           <ChartSlot
             {...sharedSlotProps}
             side="left"
+            onFilters={openFiltersLeft}
+            {...leftPositionActions}
+            linked={showSplit ? linked : undefined}
+            onToggleLink={showSplit ? toggleLink : undefined}
             timeframe={timeframe}
             onTimeframeChange={setTimeframe}
             onFullscreen={toggleFullscreenLeft}
@@ -578,6 +624,22 @@ export function ChartPage() {
           <ChartSlot
             {...sharedSlotProps}
             side="right"
+            onFilters={openFiltersRight}
+            {...rightPositionActions}
+            brokers={rightBrokers}
+            symbols={rightSymbolOptions}
+            broker={rightBroker}
+            symbol={rightSymbol}
+            brokerHidden={rightBrokerHidden}
+            symbolHidden={rightSymbolHidden}
+            onBrokerChange={setRightBroker}
+            onSymbolChange={setRightSymbol}
+            positions={rightPositions}
+            balance={balances[rightBroker]}
+            alerts={rightAlerts}
+            symbolUnavailable={rightSymbolUnavailable}
+            linked={linked}
+            onToggleLink={toggleLink}
             timeframe={split.rightTimeframe}
             onTimeframeChange={setRightTimeframe}
             onFullscreen={toggleFullscreenRight}
@@ -596,14 +658,9 @@ export function ChartPage() {
       <ChartFiltersPanel
         open={filtersOpen}
         onClose={closeFilters}
-        brokers={brokers}
-        symbols={symbols}
-        broker={broker}
-        symbol={symbol}
-        brokerHidden={brokerHidden}
-        symbolHidden={symbolHidden}
-        onBrokerChange={setBroker}
-        onSymbolChange={setSymbol}
+        {...(filtersSide === 'right' && showSplit
+          ? { brokers: rightBrokers, symbols: rightSymbolOptions, broker: rightBroker, symbol: rightSymbol, brokerHidden: rightBrokerHidden, symbolHidden: rightSymbolHidden, onBrokerChange: setRightBroker, onSymbolChange: setRightSymbol }
+          : { brokers, symbols, broker, symbol, brokerHidden, symbolHidden, onBrokerChange: setBroker, onSymbolChange: setSymbol })}
       />
       <AlertsPanel
         open={alertsOpen}

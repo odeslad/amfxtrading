@@ -59,28 +59,6 @@
   margin-left: 4px;
 }
 
-.tfBtn {
-  height: 27px;
-  padding: 0 8px;
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  letter-spacing: var(--tracking-tight);
-  cursor: pointer;
-  transition: color 0.12s ease, border-color 0.12s ease;
-}
-
-.tfBtn:hover {
-  color: var(--text);
-}
-
-.tfBtnActive {
-  color: var(--orange);
-  border-color: var(--orange);
-}
-
 .tools {
   display: flex;
   align-items: center;
@@ -128,7 +106,8 @@
 }
 
 @keyframes alertFlash {
-  0%, 100% {
+  0%,
+  100% {
     color: var(--red);
     border-color: var(--red);
     background: transparent;
@@ -156,12 +135,93 @@
 }
 
 @media (min-width: 769px) {
-  .symbolSelects {
-    display: none;
-  }
-
   .mobileOnly {
     display: none;
+  }
+}
+
+/* Desktop chart narrower than its toolbar (measured in ChartToolbar): the drawing tools
+   fold behind Draw, as on mobile, and open in a row below. */
+@media (min-width: 769px) {
+  /* One row: the selects shrink (… on the names) before anything wraps; an open Draw shows its tools in a row below. */
+  .compact {
+    position: relative;
+    flex-wrap: nowrap;
+    height: auto;
+    min-height: 40px;
+    padding: 6px 12px;
+    row-gap: 6px;
+  }
+
+  .compact .selects {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .compact .symbolSelects {
+    min-width: 0;
+  }
+
+  /* Each select is as wide as its value; the name is cut with … only when the row has no room. */
+  .compact .select {
+    flex: 0 1 auto;
+    field-sizing: content;
+    min-width: 72px;
+    max-width: 180px;
+    text-overflow: ellipsis;
+  }
+
+  .compact .tfGroup {
+    margin-left: 0;
+  }
+
+  .compact .tfGroup .select {
+    flex: 0 0 60px;
+    width: 60px;
+    min-width: 60px;
+  }
+
+  .compact .tools {
+    flex-wrap: nowrap;
+    margin-left: auto;
+  }
+
+  .compact .drawToggle {
+    display: inline-flex;
+    align-items: center;
+    height: 27px;
+    padding: 0 10px;
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .compact .drawToggleOpen {
+    color: var(--orange);
+    border-color: var(--orange);
+  }
+
+  .compact .drawTools {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    z-index: 10;
+    justify-content: flex-end;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .compact .drawToolsOpen {
+    display: flex;
   }
 }
 

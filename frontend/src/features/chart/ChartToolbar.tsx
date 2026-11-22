@@ -1,7 +1,10 @@
-import { memo, useState, type ReactNode } from 'react';
-import { IconIndicators, IconFilters, IconTrendline, IconPositions, IconFullscreen, IconFullscreenExit, IconRect, IconFib, IconEmaTrades, IconRuler, IconMarkerUp, IconMarkerDown, IconBell, IconLock, IconUnlock, IconCross, IconCheck, IconText, IconSplit } from '../../shared/ui/icons';
+import { memo, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { IconIndicators, IconFilters, IconTrendline, IconPositions, IconFullscreen, IconFullscreenExit, IconRect, IconFib, IconEmaTrades, IconRuler, IconMarkerUp, IconMarkerDown, IconBell, IconLock, IconUnlock, IconCross, IconCheck, IconText, IconSplit, IconLink, IconUnlink } from '../../shared/ui/icons';
 import type { DrawMode } from './LightweightChart';
 import styles from './ChartToolbar.module.css';
+
+// The native list ignores option padding: non-breaking spaces leave room after the longest name.
+const OPTION_ROOM = '    ';
 
 const TIMEFRAMES = ['M5', 'M15', 'H1', 'H4', 'D1'];
 
@@ -38,6 +41,9 @@ interface ChartToolbarProps {
   splitAvailable?: boolean;
   splitActive?: boolean;
   onSplit?: () => void;
+  // Spec 060: split view only — the two sides share broker and pair while linked.
+  linked?: boolean;
+  onToggleLink?: () => void;
 }
 
 interface DrawTool {
@@ -63,38 +69,54 @@ export const ChartToolbar = memo(function ChartToolbar({
   brokers, symbols, broker, symbol, brokerHidden, symbolHidden, timeframe,
   onBrokerChange, onSymbolChange, onTimeframeChange, onIndicators, onFilters, drawMode, onDrawMode,
   onPositions, positionsMode = 'none', onAlerts, alertsActive, alertsFlashing, locked = false, onToggleLock, emaTradesActive = false, onToggleEmaTrades, onFullscreen, isFullscreen,
-  splitAvailable = false, splitActive = false, onSplit,
+  splitAvailable = false, splitActive = false, onSplit, linked = true, onToggleLink,
 }: ChartToolbarProps) {
   // Mobile only: the drawing tools live in a second row opened by Draw (spec 025).
   // Not reset when a drawing ends, so the next one is one tap away.
   const [drawOpen, setDrawOpen] = useState(false);
+  // Desktop: the drawing tools fold behind Draw only when the whole row does not fit the chart.
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [compact, setCompact] = useState(false);
+  const fullWidthRef = useRef(0);
+  useLayoutEffect(() => {
+    const el = toolbarRef.current;
+    if (!el) return;
+    const check = () => {
+      if (!compact) {
+        if (el.scrollWidth > el.clientWidth + 1) {
+          fullWidthRef.current = el.scrollWidth;
+          setCompact(true);
+        }
+      } else if (el.clientWidth >= fullWidthRef.current) {
+        setCompact(false);
+      }
+    };
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [compact]);
 
   return (
-    <div className={styles.toolbar} data-chart-toolbar>
+    <div ref={toolbarRef} className={`${styles.toolbar} ${compact ? styles.compact : ''}`} data-chart-toolbar>
       <div className={styles.selects}>
         <div className={styles.symbolSelects}>
           <select className={styles.select} value={broker} onChange={e => onBrokerChange(e.target.value)}>
             <option value="">Broker</option>
-            {brokers.map(b => <option key={b} value={b}>{b.toUpperCase()}{brokerHidden && b === broker ? ' · hidden' : ''}</option>)}
+            {brokers.map(b => <option key={b} value={b}>{b.toUpperCase()}{brokerHidden && b === broker ? ' · hidden' : ''}{OPTION_ROOM}</option>)}
           </select>
 
           <select className={styles.select} value={symbol} onChange={e => onSymbolChange(e.target.value)} disabled={!broker}>
             <option value="">Symbol</option>
-            {symbols.map(s => <option key={s} value={s}>{s}{symbolHidden && s === symbol ? ' · hidden' : ''}</option>)}
+            {symbols.map(s => <option key={s} value={s}>{s}{symbolHidden && s === symbol ? ' · hidden' : ''}{OPTION_ROOM}</option>)}
           </select>
+
         </div>
 
         <div className={styles.tfGroup}>
-          {TIMEFRAMES.map(tf => (
-            <button
-              key={tf}
-              type="button"
-              className={`${styles.tfBtn} ${timeframe === tf ? styles.tfBtnActive : ''}`}
-              onClick={() => onTimeframeChange(tf)}
-            >
-              {tf}
-            </button>
-          ))}
+          <select className={styles.select} value={timeframe} onChange={e => onTimeframeChange(e.target.value)} aria-label="Timeframe">
+            {TIMEFRAMES.map(tf => <option key={tf} value={tf}>{tf}</option>)}
+          </select>
         </div>
 
       </div>
@@ -186,6 +208,18 @@ export const ChartToolbar = memo(function ChartToolbar({
         >
           <IconFilters size={16} />
         </button>
+        {onToggleLink && (
+          <button
+            type="button"
+            className={`${styles.iconBtn} ${linked ? styles.iconBtnActive : ''}`}
+            onClick={onToggleLink}
+            title={linked ? 'Linked: both charts share broker and pair' : 'Unlinked: each chart has its own broker and pair'}
+            aria-label={linked ? 'Unlink the charts' : 'Link the charts'}
+            aria-pressed={linked}
+          >
+            {linked ? <IconLink size={16} /> : <IconUnlink size={16} />}
+          </button>
+        )}
         <button
           type="button"
           className={`${styles.iconBtn} ${styles.desktopOnly}`}
