@@ -4,3 +4,11 @@
 |---|---|---|---|---|---|
 | 1. Memory + horizontal zoom | build + local app | `npm run build`; `eslint src/features/chart`; vite 5174 → `/chart` | ✅ | Build OK; lint clean; user checked it in the local app ("funciona"). `zoomMemory.ts` stores `chart.zoom` in localStorage (bar spacing by timeframe, price height by pair + timeframe, out-of-range values and storage errors ignored); the history load applies the stored spacing (default 6 px), the range-change handler saves a new spacing 400 ms after the gesture | 1.5 / 0.5 SP |
 | 2. Vertical zoom | build + local app | `npm run build`; `eslint src/features/chart`; vite 5174 → `/chart` | ✅ | Build OK; lint clean; user confirmed in the local app. At the end of each gesture (pointerup, touchend, double click, 400 ms after wheel; deferred so the pane-pan handlers run first) a manual scale saves its visible height for pair + timeframe and an automatic one forgets it; the fit-price button forgets it too (not in the design, consistent with it); a history load with a stored height opens the scale on manual around the last close | 1.5 / 0.5 SP |
+| 3. Production validation | manual (user) | push `master` (`ecb39b7..1cbb649`), frontend deploy (build 327) | ✅ | User validated on production | 0.5 / 0.25 SP |
+| 4. Close | build | `npm run build` | ✅ | Build OK; spec closed and archived under `archive/2026-11/` | 0.25 / 0.25 SP |
+
+## Est vs Actual
+
+**Total**: 3.75 SP estimated · 1.5 SP actual. The chart already had a single history-load path and a range-change handler, so both zooms were small additions; the estimate assumed more plumbing.
+
+**Deviation**: the fit-price button also forgets the stored height (consistent with AC 4). **Outside the spec**: `7748cdb` the journal opens the chart on the last timeframe (AC 7).

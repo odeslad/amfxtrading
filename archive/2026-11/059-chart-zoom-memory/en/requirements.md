@@ -1,6 +1,6 @@
 # 059 — Chart zoom memory
 
-> Status: **approved**
+> Status: **closed**
 
 ## Context
 

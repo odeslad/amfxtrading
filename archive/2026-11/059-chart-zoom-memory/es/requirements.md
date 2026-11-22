@@ -1,6 +1,6 @@
 # 059 — Memoria del zoom del gráfico
 
-> Estado: **aprobada**
+> Estado: **cerrada**
 
 ## Contexto
 
