@@ -32,7 +32,7 @@ function drawModeToKind(mode: DrawMode): { kind: DrawingKind; direction: MarkerD
   if (mode === 'symbolCheck') return { kind: 'symbol', direction: 'buy', variant: 'check' };
   return { kind: 'line', direction: 'buy', variant: 'cross' };
 }
-import { readBarSpacing, saveBarSpacing } from './zoomMemory';
+import { readBarSpacing, readPriceHeight, saveBarSpacing, savePriceHeight } from './zoomMemory';
 import styles from './LightweightChart.module.css';
 
 interface Candle {
@@ -1014,8 +1014,32 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     const interactionEvents = ['pointermove', 'pointerup', 'wheel', 'touchmove', 'touchend'] as const;
     for (const type of interactionEvents) container.addEventListener(type, onInteraction, { passive: true });
 
+    // Spec 059: the library has no price-scale event, so the vertical zoom is read when a
+    // gesture ends (after the pane-pan handlers, which may turn the automatic scale back on).
+    let priceCheckTimer = 0;
+    const rememberPriceScale = () => {
+      const series = seriesRef.current;
+      if (!series) return;
+      const symbol = symbolRef.current;
+      const timeframe = timeframeRef.current;
+      if (series.priceScale().options().autoScale) {
+        if (readPriceHeight(symbol, timeframe) !== null) savePriceHeight(symbol, timeframe, null);
+        return;
+      }
+      const range = series.priceScale().getVisibleRange();
+      if (range) savePriceHeight(symbol, timeframe, range.to - range.from);
+    };
+    const onGestureEnd = (e: Event) => {
+      window.clearTimeout(priceCheckTimer);
+      priceCheckTimer = window.setTimeout(rememberPriceScale, e.type === 'wheel' ? 400 : 0);
+    };
+    const gestureEndEvents = ['pointerup', 'touchend', 'wheel', 'dblclick'] as const;
+    for (const type of gestureEndEvents) container.addEventListener(type, onGestureEnd, { passive: true });
+
     return () => {
       window.clearTimeout(zoomSaveTimer);
+      window.clearTimeout(priceCheckTimer);
+      for (const type of gestureEndEvents) container.removeEventListener(type, onGestureEnd);
       for (const type of interactionEvents) container.removeEventListener(type, onInteraction);
       cancelAnimationFrame(interactionRaf);
       ro.disconnect();
@@ -1105,7 +1129,14 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
         }
       }
     } else if (chartRef.current && containerRef.current) {
-      seriesRef.current.priceScale().applyOptions({ autoScale: true });
+      const priceHeight = readPriceHeight(symbolRef.current, timeframeRef.current);
+      const lastClose = data[data.length - 1].close;
+      if (priceHeight !== null) {
+        seriesRef.current.priceScale().applyOptions({ autoScale: false });
+        seriesRef.current.priceScale().setVisibleRange({ from: lastClose - priceHeight / 2, to: lastClose + priceHeight / 2 });
+      } else {
+        seriesRef.current.priceScale().applyOptions({ autoScale: true });
+      }
       const barSpacing = readBarSpacing(timeframeRef.current) ?? DEFAULT_BAR_SPACING;
       barSpacingRef.current = barSpacing;
       chartRef.current.timeScale().applyOptions({ barSpacing });
@@ -1266,6 +1297,7 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
 
   const fitPrice = useCallback(() => {
     seriesRef.current?.priceScale().applyOptions({ autoScale: true, scaleMargins: { top: 0, bottom: 0 } });
+    savePriceHeight(symbolRef.current, timeframeRef.current, null);
     afterScaleChangeRef.current();
   }, []);
 
