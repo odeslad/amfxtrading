@@ -124,7 +124,12 @@ export function ChartPage() {
   }, []);
 
   // Last bid of the selected symbol: seeds the alerts panel price when it opens.
-  const lastBidRef = useRef<number | null>(null);
+  const lastBidsRef = useRef<Record<string, number>>({});
+  const pairKey = (pairBroker: string, pairSymbol: string): string => `${pairBroker}|${pairSymbol}`;
+  // The pair of the panels (alerts, indicators, New Trade): the side that opened them.
+  const panelBrokerRef = useRef('');
+  const panelSymbolRef = useRef('');
+  const rightPairRef = useRef({ broker: '', symbol: '' });
   // Price shown by the alerts panel; fed only while the panel is open.
   const [panelPrice, setPanelPrice] = useState<number | null>(null);
   const [indicatorsOpen, setIndicatorsOpen] = useState(false);
@@ -431,16 +436,13 @@ export function ChartPage() {
       return;
     }
 
-    if (m.broker !== broker) return;
     if (m.type !== 'ticks' || !m.ticks) return;
-    const last = m.ticks.findLast((t) => t.symbol === symbol);
-    if (!last) return;
-    lastBidRef.current = last.bid;
-    if (alertsOpen) setPanelPrice(last.bid);
-  }, [broker, symbol, user, refreshAlerts, alertsOpen, acceptPositions]));
-
-  // Selection changed: drop the previous symbol's bid.
-  useEffect(() => { lastBidRef.current = null; }, [broker, symbol]);
+    for (const t of m.ticks) {
+      const key = pairKey(m.broker, t.symbol);
+      lastBidsRef.current[key] = t.bid;
+      if (alertsOpen && key === pairKey(panelBrokerRef.current, panelSymbolRef.current)) setPanelPrice(t.bid);
+    }
+  }, [user, refreshAlerts, alertsOpen, acceptPositions]));
 
   useEffect(() => {
     const ac = new AbortController();
@@ -460,7 +462,11 @@ export function ChartPage() {
   }, [acceptPositions]);
 
   // Stable handlers so the memoised panels and toolbar skip renders (spec 019).
-  const openIndicators = useCallback((tf: string) => { setIndicatorsTimeframe(tf); setIndicatorsOpen(true); }, []);
+  // Spec 060: indicators, alerts and New Trade open for the side that asked.
+  const [panelSide, setPanelSide] = useState<ChartSide>('left');
+  const openIndicatorsFor = useCallback((side: ChartSide, tf: string) => { setPanelSide(side); setIndicatorsTimeframe(tf); setIndicatorsOpen(true); }, []);
+  const openIndicatorsLeft = useCallback((tf: string) => openIndicatorsFor('left', tf), [openIndicatorsFor]);
+  const openIndicatorsRight = useCallback((tf: string) => openIndicatorsFor('right', tf), [openIndicatorsFor]);
   const closeIndicators = useCallback(() => setIndicatorsOpen(false), []);
   // Spec 060: the filters panel (broker and pair on desktop) edits the side that opened it.
   const [filtersSide, setFiltersSide] = useState<ChartSide>('left');
@@ -472,24 +478,29 @@ export function ChartPage() {
   const [newTradeTimeframe, setNewTradeTimeframe] = useState(timeframe);
   // Spec 054: the order type and price chosen in the chart menu; the key makes each request apply once.
   const [newTradeOrder, setNewTradeOrder] = useState<NewTradeOrder | undefined>(undefined);
-  const openNewTrade = useCallback((tf: string, order?: { action: CommandAction; price: number }) => {
+  const openNewTradeFor = useCallback((side: ChartSide, tf: string, order?: { action: CommandAction; price: number }) => {
+    setPanelSide(side);
     setNewTradeTimeframe(tf);
     setNewTradeOrder(order ? { ...order, key: Date.now() } : undefined);
     setNewTradeOpen(true);
     setEditPosition(null);
   }, []);
+  const openNewTradeLeft = useCallback((tf: string, order?: { action: CommandAction; price: number }) => openNewTradeFor('left', tf, order), [openNewTradeFor]);
+  const openNewTradeRight = useCallback((tf: string, order?: { action: CommandAction; price: number }) => openNewTradeFor('right', tf, order), [openNewTradeFor]);
   const closeNewTrade = useCallback(() => setNewTradeOpen(false), []);
   const clearEdit = useCallback(() => setEditPosition(null), []);
   const clearClose = useCallback(() => setClosePosition(null), []);
   const editPositions = useMemo(() => (editPosition ? [editPosition] : []), [editPosition]);
 
-  const toggleAlerts = useCallback(() => {
-    setAlertsOpen(prev => {
-      if (!prev) setPanelPrice(lastBidRef.current);
-      return !prev;
-    });
+  const toggleAlertsFor = useCallback((side: ChartSide) => {
+    setPanelSide(side);
+    const pair = side === 'right' ? rightPairRef.current : { broker: brokerRef.current, symbol: symbolRef.current };
+    setPanelPrice(lastBidsRef.current[pairKey(pair.broker, pair.symbol)] ?? null);
+    setAlertsOpen(prev => !prev);
     setAlertFlash(false);
   }, []);
+  const toggleAlertsLeft = useCallback(() => toggleAlertsFor('left'), [toggleAlertsFor]);
+  const toggleAlertsRight = useCallback(() => toggleAlertsFor('right'), [toggleAlertsFor]);
 
   const positionActions = useCallback((list: Position[]) => ({
     onEditPosition: (ticket: number) => {
@@ -533,6 +544,16 @@ export function ChartPage() {
     [alerts, rightBroker, rightSymbol],
   );
 
+  const panelOnRight = panelSide === 'right' && showSplit;
+  const panelBroker = panelOnRight ? rightBroker : broker;
+  const panelSymbol = panelOnRight ? rightSymbol : symbol;
+  useEffect(() => {
+    panelBrokerRef.current = panelBroker;
+    panelSymbolRef.current = panelSymbol;
+    rightPairRef.current = { broker: rightBroker, symbol: rightSymbol };
+  }, [panelBroker, panelSymbol, rightBroker, rightSymbol]);
+  useTickSubscription(showSplit ? rightBroker : '', showSplit ? rightSymbol : '');
+
   // Linked, the right selectors change the left chart (and so both); unlinked, only the right one.
   const setRightBroker = useCallback((next: string) => {
     if (linked) setBroker(next);
@@ -570,11 +591,8 @@ export function ChartPage() {
     onEditAlertPrice: editAlertFromChart,
     onToggleAlert: toggleAlertFromChart,
     onDeleteAlert: deleteAlertFromChart,
-    onIndicators: openIndicators,
-    onAlerts: toggleAlerts,
     alertsActive: alertsOpen,
     alertsFlashing: alertFlash,
-    onNewTrade: openNewTrade,
     onCreateAlert: createAlert,
     quickOrders,
     onQuickOrder: openQuickOrder,
@@ -598,6 +616,9 @@ export function ChartPage() {
           <ChartSlot
             {...sharedSlotProps}
             side="left"
+            onIndicators={openIndicatorsLeft}
+            onAlerts={toggleAlertsLeft}
+            onNewTrade={openNewTradeLeft}
             onFilters={openFiltersLeft}
             {...leftPositionActions}
             linked={showSplit ? linked : undefined}
@@ -624,6 +645,9 @@ export function ChartPage() {
           <ChartSlot
             {...sharedSlotProps}
             side="right"
+            onIndicators={openIndicatorsRight}
+            onAlerts={toggleAlertsRight}
+            onNewTrade={openNewTradeRight}
             onFilters={openFiltersRight}
             {...rightPositionActions}
             brokers={rightBrokers}
@@ -647,7 +671,7 @@ export function ChartPage() {
           />
         )}
       </div>
-      <NewTradePanel docked open={newTradeOpen} onClose={closeNewTrade} initialBroker={broker} initialSymbol={symbol} initialTimeframe={newTradeTimeframe} initialOrder={newTradeOrder} />
+      <NewTradePanel docked open={newTradeOpen} onClose={closeNewTrade} initialBroker={panelBroker} initialSymbol={panelSymbol} initialTimeframe={newTradeTimeframe} initialOrder={newTradeOrder} />
       <BulkEditPanel
         docked
         open={!!editPosition}
@@ -665,10 +689,10 @@ export function ChartPage() {
       <AlertsPanel
         open={alertsOpen}
         onClose={closeAlerts}
-        broker={broker}
-        symbol={symbol}
-        brokers={brokers}
-        symbols={symbols}
+        broker={panelBroker}
+        symbol={panelSymbol}
+        brokers={panelOnRight ? rightBrokers : brokers}
+        symbols={panelOnRight ? rightSymbolOptions : symbols}
         currentPrice={panelPrice}
         alerts={alerts}
         onCreate={createAlert}
@@ -684,11 +708,11 @@ export function ChartPage() {
       <IndicatorsPanel
         open={indicatorsOpen}
         onClose={closeIndicators}
-        broker={broker}
+        broker={panelBroker}
         timeframe={indicatorsTimeframe}
         templates={maTemplates.templates}
-        template={maTemplates.templateFor(broker, indicatorsTimeframe)}
-        source={maTemplates.sourceOf(broker, indicatorsTimeframe)}
+        template={maTemplates.templateFor(panelBroker, indicatorsTimeframe)}
+        source={maTemplates.sourceOf(panelBroker, indicatorsTimeframe)}
         assignmentOf={maTemplates.assignmentOf}
         hidden={maTemplates.hidden}
         onToggleHidden={maTemplates.toggleHidden}
