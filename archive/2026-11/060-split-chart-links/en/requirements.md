@@ -1,6 +1,6 @@
 # 060 — Split chart links
 
-> Status: **approved**
+> Status: **closed**
 
 ## Context
 

@@ -1,6 +1,6 @@
 # 060 — Enlaces del gráfico partido
 
-> Estado: **aprobada**
+> Estado: **cerrada**
 
 ## Contexto
 
