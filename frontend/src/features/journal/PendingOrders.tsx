@@ -44,7 +44,7 @@ export function PendingOrders({ filters, onOptionsChange, onGroupChange, onEdit,
   }, [options, onOptionsChange]);
 
   const handleOpenChart = useCallback((p: Position) => {
-    const params = new URLSearchParams({ broker: p.broker ?? '', symbol: p.symbol, timeframe: 'H1' });
+    const params = new URLSearchParams({ broker: p.broker ?? '', symbol: p.symbol });
     navigate(`/chart?${params.toString()}`);
   }, [navigate]);
 

@@ -61,7 +61,7 @@ export function OpenPositions({ filters, onOptionsChange, onBulkChange }: OpenPo
   }, [options, onOptionsChange]);
 
   const handleOpenChart = useCallback((p: Position) => {
-    const params = new URLSearchParams({ broker: p.broker ?? '', symbol: p.symbol, timeframe: 'H1' });
+    const params = new URLSearchParams({ broker: p.broker ?? '', symbol: p.symbol });
     navigate(`/chart?${params.toString()}`);
   }, [navigate]);
 
