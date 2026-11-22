@@ -1,0 +1,5 @@
+# 059 — Memoria del zoom del gráfico · Verificación
+
+| Tarea | Mecanismo | Comandos | Resultado | Evidencia | Est vs Real |
+|---|---|---|---|---|---|
+| 1. Memoria + zoom horizontal | build + app local | `npm run build`; `eslint src/features/chart`; vite 5174 → `/chart` | ✅ | Build OK; lint limpio; el usuario lo comprobó en la app local ("funciona"). `zoomMemory.ts` guarda `chart.zoom` en localStorage (espaciado por temporalidad, alto de precios por par + temporalidad, ignorando valores fuera de rango y errores de almacenamiento); la carga del histórico aplica el espaciado guardado (6 px por defecto) y el manejador del rango guarda el nuevo espaciado 400 ms después del gesto | 1,5 / 0,5 SP |

@@ -32,6 +32,7 @@ function drawModeToKind(mode: DrawMode): { kind: DrawingKind; direction: MarkerD
   if (mode === 'symbolCheck') return { kind: 'symbol', direction: 'buy', variant: 'check' };
   return { kind: 'line', direction: 'buy', variant: 'cross' };
 }
+import { readBarSpacing, saveBarSpacing } from './zoomMemory';
 import styles from './LightweightChart.module.css';
 
 interface Candle {
@@ -45,6 +46,7 @@ interface Candle {
 const ROLLOVER_TIMEFRAMES = new Set(['M5', 'M15', 'H1', 'H4', 'D1']);
 // Minimum gap between two live-tick applications to the chart (spec 042).
 const LIVE_MIN_INTERVAL_MS = 250;
+const DEFAULT_BAR_SPACING = 6;
 const TF_SECONDS: Record<string, number> = { M5: 300, M15: 900, H1: 3600, H4: 14400, D1: 86400 };
 // EMA cross trades overlay (spec 039)
 const EMA_TRADE_ENTRY_COLOR = '#c8a840';
@@ -341,6 +343,8 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
   const askLineRef = useRef<IPriceLine | null>(null);
   const emasRef = useRef<MovingAverage[]>(emas);
   const timeframeRef = useRef<string>(timeframe);
+  // Last bar spacing applied or saved (spec 059): a different one means the operator zoomed.
+  const barSpacingRef = useRef<number | null>(null);
   const symbolRef = useRef<string>(symbol);
   const brokerRef = useRef<string>(broker);
   const candlesKeyRef = useRef<string | null>(null);
@@ -966,9 +970,17 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
       });
     });
 
+    let zoomSaveTimer = 0;
     chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
       drawRollovers();
       afterScaleChangeRef.current();
+      const spacing = chart.timeScale().options().barSpacing;
+      if (barSpacingRef.current !== null && spacing !== barSpacingRef.current) {
+        barSpacingRef.current = spacing;
+        const timeframe = timeframeRef.current;
+        window.clearTimeout(zoomSaveTimer);
+        zoomSaveTimer = window.setTimeout(() => saveBarSpacing(timeframe, spacing), 400);
+      }
       if (!range) return;
       if (range.from <= 30) onLoadMoreRef.current?.();
     });
@@ -1003,6 +1015,7 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     for (const type of interactionEvents) container.addEventListener(type, onInteraction, { passive: true });
 
     return () => {
+      window.clearTimeout(zoomSaveTimer);
       for (const type of interactionEvents) container.removeEventListener(type, onInteraction);
       cancelAnimationFrame(interactionRaf);
       ro.disconnect();
@@ -1093,7 +1106,8 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
       }
     } else if (chartRef.current && containerRef.current) {
       seriesRef.current.priceScale().applyOptions({ autoScale: true });
-      const barSpacing = 6;
+      const barSpacing = readBarSpacing(timeframeRef.current) ?? DEFAULT_BAR_SPACING;
+      barSpacingRef.current = barSpacing;
       chartRef.current.timeScale().applyOptions({ barSpacing });
       const visibleBars = Math.floor(containerRef.current.clientWidth / barSpacing);
       chartRef.current.timeScale().scrollToPosition(Math.floor(visibleBars * 0.3), false);
