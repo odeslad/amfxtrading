@@ -168,7 +168,10 @@ export function ChartPage() {
   // Spec 060: positions of every broker, since each side of the split chart has its own.
   const [positionsByBroker, setPositionsByBroker] = useState<Record<string, Position[]>>({});
   const positionsSigRef = useRef<Record<string, string>>({});
+  // Only the brokers on screen: every broker sends its positions each second.
+  const shownBrokersRef = useRef<string[]>([]);
   const acceptPositions = useCallback((positionsBroker: string, list: Position[]) => {
+    if (!shownBrokersRef.current.includes(positionsBroker)) return;
     const sig = positionsSignature(list);
     if (sig === positionsSigRef.current[positionsBroker]) return;
     positionsSigRef.current[positionsBroker] = sig;
@@ -444,7 +447,9 @@ export function ChartPage() {
     }
   }, [user, refreshAlerts, alertsOpen, acceptPositions]));
 
+  const shownRightBroker = showSplit ? ((split.linked ?? true) ? broker : split.rightBroker ?? broker) : broker;
   useEffect(() => {
+    shownBrokersRef.current = [broker, shownRightBroker];
     const ac = new AbortController();
     apiFetch<{ broker: string; brokerOffset?: number; currency?: string; positions: Position[] }[]>('/positions/live', { signal: ac.signal })
       .then(entries => {
@@ -459,7 +464,7 @@ export function ChartPage() {
       })
       .catch(() => {});
     return () => ac.abort();
-  }, [acceptPositions]);
+  }, [acceptPositions, broker, shownRightBroker]);
 
   // Stable handlers so the memoised panels and toolbar skip renders (spec 019).
   // Spec 060: indicators, alerts and New Trade open for the side that asked.
