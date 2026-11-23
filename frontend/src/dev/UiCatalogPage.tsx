@@ -252,6 +252,9 @@ export function UiCatalogPage() {
           <Field label="Text md" htmlFor="cat-text-md">
             <TextInput id="cat-text-md" placeholder="Name" />
           </Field>
+          <Field label="Text lg" htmlFor="cat-text-lg">
+            <TextInput id="cat-text-lg" size="lg" placeholder="user@domain.com" />
+          </Field>
           <Field label="Invalid" htmlFor="cat-invalid">
             <TextInput id="cat-invalid" invalid defaultValue="0" />
           </Field>

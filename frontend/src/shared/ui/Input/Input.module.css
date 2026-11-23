@@ -36,6 +36,20 @@
   padding: 0 10px;
 }
 
+.lg {
+  height: var(--h-lg);
+  padding: 0 16px;
+  font-size: var(--text-lg);
+}
+
+.control:-webkit-autofill,
+.control:-webkit-autofill:hover,
+.control:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text);
+  -webkit-box-shadow: 0 0 0 100px var(--bg) inset;
+  caret-color: var(--text);
+}
+
 .invalid {
   border-color: var(--red);
 }
@@ -83,6 +97,10 @@
   .sm,
   .md {
     height: var(--h-touch);
+    font-size: var(--text-xl);
+  }
+
+  .lg {
     font-size: var(--text-xl);
   }
 }
