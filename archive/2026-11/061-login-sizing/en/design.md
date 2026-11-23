@@ -1,6 +1,6 @@
 # 061 — Login sizing · Design
 
-> Status: **approved**
+> Status: **closed**
 
 ## Approach
 

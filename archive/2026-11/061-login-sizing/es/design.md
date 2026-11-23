@@ -1,6 +1,6 @@
 # 061 — Tamaño del login · Diseño
 
-> Estado: **aprobado**
+> Estado: **cerrada**
 
 ## Enfoque
 

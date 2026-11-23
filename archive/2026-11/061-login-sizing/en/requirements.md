@@ -1,6 +1,6 @@
 # 061 — Login sizing
 
-> Status: **approved**
+> Status: **closed**
 
 ## Context
 

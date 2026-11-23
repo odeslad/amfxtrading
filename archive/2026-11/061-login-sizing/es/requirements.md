@@ -1,6 +1,6 @@
 # 061 — Tamaño del login
 
-> Estado: **aprobado**
+> Estado: **cerrada**
 
 ## Contexto
 
