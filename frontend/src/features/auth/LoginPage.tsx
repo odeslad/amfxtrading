@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Button, Field, TextInput } from '../../shared/ui';
 import { useAuth } from './useAuth';
 import styles from './LoginPage.module.css';
 
@@ -40,39 +41,37 @@ export function LoginPage() {
         <div className={styles.subtitle}>Trading Terminal V2.0</div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="email">Email</label>
-            <input
+          <Field label="Email" htmlFor="email">
+            <TextInput
               id="email"
               type="email"
-              className={styles.input}
+              size="lg"
               placeholder="user@domain.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
               autoComplete="email"
               required
             />
-          </div>
+          </Field>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="password">Password</label>
-            <input
+          <Field label="Password" htmlFor="password">
+            <TextInput
               id="password"
               type="password"
-              className={styles.input}
+              size="lg"
               placeholder="••••••••"
               value={password}
               onChange={e => setPassword(e.target.value)}
               autoComplete="current-password"
               required
             />
-          </div>
+          </Field>
 
           <div className={styles.error}>{error}</div>
 
-          <button type="submit" className={styles.button} disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
+          <Button variant="primary" size="lg" type="submit" disabled={loading}>
+            {loading ? 'Signing in…' : 'Sign in'}
+          </Button>
         </form>
       </div>
     </div>

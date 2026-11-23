@@ -7,10 +7,10 @@
 }
 
 .card {
-  width: 360px;
+  width: 400px;
   background: var(--surface);
   border: 1px solid var(--border);
-  padding: 40px 32px 32px;
+  padding: 48px 40px 40px;
 }
 
 .brand {
@@ -33,78 +33,23 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.label {
-  font-size: var(--text-xs);
-  color: var(--muted);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-}
-
-.input {
-  background: var(--bg);
-  border: 1px solid var(--border-bright);
-  color: var(--text);
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  padding: 7px 10px;
-  outline: none;
-  transition: border-color 0.12s ease;
-  border-radius: 0;
-  width: 100%;
-}
-
-.input:-webkit-autofill,
-.input:-webkit-autofill:hover,
-.input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 100px var(--bg) inset;
-  -webkit-text-fill-color: var(--text);
-  caret-color: var(--text);
-}
-
-.input::placeholder {
-  color: #333;
-}
-
-.input:focus {
-  border-color: var(--orange);
+  gap: 20px;
 }
 
 .error {
-  font-size: var(--text-xs);
-  color: var(--red);
-  letter-spacing: var(--tracking-tight);
-  min-height: 16px;
-}
-
-.button {
-  height: 34px;
-  background: var(--orange);
-  color: #000;
-  font-family: var(--font-sans);
   font-size: var(--text-sm);
-  font-weight: 500;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.12s ease;
-  margin-top: 8px;
+  color: var(--red);
+  min-height: 16px;
+  margin-top: -12px;
 }
 
-.button:hover {
-  opacity: 0.85;
-}
+@media (max-width: 768px) {
+  .page {
+    padding: 0 16px;
+  }
 
-.button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+  .card {
+    width: 100%;
+    padding: 40px 24px 32px;
+  }
 }
