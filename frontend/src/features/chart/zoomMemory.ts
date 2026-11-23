@@ -62,3 +62,10 @@ export function savePriceHeight(symbol: string, timeframe: string, height: numbe
   else return;
   writeZoom({ ...zoom, priceHeight });
 }
+
+export function forgetBarSpacing(timeframe: string): void {
+  const zoom = readZoom();
+  const barSpacing = { ...zoom.barSpacing };
+  delete barSpacing[timeframe];
+  writeZoom({ ...zoom, barSpacing });
+}

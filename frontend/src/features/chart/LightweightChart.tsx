@@ -32,7 +32,7 @@ function drawModeToKind(mode: DrawMode): { kind: DrawingKind; direction: MarkerD
   if (mode === 'symbolCheck') return { kind: 'symbol', direction: 'buy', variant: 'check' };
   return { kind: 'line', direction: 'buy', variant: 'cross' };
 }
-import { readBarSpacing, readPriceHeight, saveBarSpacing, savePriceHeight } from './zoomMemory';
+import { forgetBarSpacing, readBarSpacing, readPriceHeight, saveBarSpacing, savePriceHeight } from './zoomMemory';
 import styles from './LightweightChart.module.css';
 
 interface Candle {
@@ -1303,10 +1303,21 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
 
   useImperativeHandle(ref, () => ({ updateLive }), [updateLive]);
 
+  const resetTimeZoom = () => {
+    const timeScale = chartRef.current?.timeScale();
+    if (!timeScale) return;
+    barSpacingRef.current = DEFAULT_BAR_SPACING;
+    timeScale.applyOptions({ barSpacing: DEFAULT_BAR_SPACING });
+    timeScale.scrollToRealTime();
+    forgetBarSpacing(timeframeRef.current);
+  };
+
   const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const scaleWidth = seriesRef.current?.priceScale().width() ?? 0;
-    const right = e.currentTarget.getBoundingClientRect().right;
+    const axisHeight = chartRef.current?.timeScale().height() ?? 0;
+    const { right, bottom } = e.currentTarget.getBoundingClientRect();
     if (e.clientX >= right - scaleWidth) fitPrice();
+    else if (e.clientY >= bottom - axisHeight) resetTimeZoom();
   };
 
   useEffect(() => {
