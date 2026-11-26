@@ -42,6 +42,25 @@ model CandleSync {
 // Spec 052: named lists of moving averages ({ id, type: 'ema'|'sma', period, color, style, width }).
 // One default per user, kept by routes/ma-templates.ts in a transaction (Prisma cannot
 // express a partial unique index); brokers without a row in ma_template_brokers use it.
+model SplitLayout {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id])
+  name           String
+  position       Int      @default(0)
+  leftBroker     String
+  leftSymbol     String
+  leftTimeframe  String
+  rightBroker    String
+  rightSymbol    String
+  rightTimeframe String
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("split_layouts")
+}
+
 model MaTemplate {
   id        Int                @id @default(autoincrement())
   userId    Int
@@ -198,6 +217,7 @@ model User {
   emaCrossAlerts    EmaCrossAlert[]
   emaNotifications  EmaNotification[]
   pushSubscriptions PushSubscription[]
+  splitLayouts      SplitLayout[]
 
   @@map("users")
 }

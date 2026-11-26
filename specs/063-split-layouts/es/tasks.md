@@ -2,7 +2,7 @@
 
 Cada tarea es un commit convencional. El proyecto debe compilar tras cada tarea. Tareas de capas distintas nunca comparten commit. Orden de despliegue: backend (con db) → frontend. El EA no se toca.
 
-- [ ] 1. [db] Modelo `SplitLayout` (+ `User.splitLayouts`) y migración a mano `split_layouts` · **Verificación:** `prisma generate` + `npm run build`; `prisma migrate diff` desde el esquema anterior da el mismo SQL que la migración · **Est:** 0.5 SP
+- [x] 1. [db] Modelo `SplitLayout` (+ `User.splitLayouts`) y migración a mano `split_layouts` · **Verificación:** `prisma generate` + `npm run build`; `prisma migrate diff` desde el esquema anterior da el mismo SQL que la migración · **Est:** 0.5 SP
 - [ ] 2. [backend] `routes/split-layouts.ts`: `GET` y `PUT` de la lista entera (transacción, conservando ids), validación `parseLayouts`, WS `split_layouts` al usuario; router y difusión conectados · **Verificación:** vitest de `parseLayouts` (lista válida, nombre vacío/repetido/demasiado largo, broker desconocido, temporalidad incorrecta, más de 20) + `npm run lint/typecheck/test/build` · **Est:** 2 SP
 - [ ] 3. [docs] `.claude/CLAUDE.md` y `backend/docs/architecture.md`: ruta, mensaje WS, modelo · **Verificación:** lectura manual, los dos documentos coinciden · **Est:** 0.25 SP
 - [ ] 4. [frontend] `useSplitLayouts` y la sección "Split layouts" de Settings › Display con el patrón de Mirror presets (Layout, Name, + New, Delete, tabla Left/Right, tarjetas en móvil, guardado automático unido con `combineSaves`) · **Verificación:** `npm run build` + eslint; revisión contra la maqueta · **Est:** 3 SP
