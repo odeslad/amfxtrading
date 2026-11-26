@@ -5,6 +5,7 @@
 | 1 | prisma generate + build + diff del esquema | ✅ | 0.5 SP | 0.25 SP |
 | 2 | vitest + lint/typecheck/test/build | ✅ | 2 SP | 1 SP |
 | 3 | lectura manual | ✅ | 0.25 SP | 0.25 SP |
+| 4 | build + eslint + revisión contra la maqueta; visual → tarea 6 🕐 | ✅ / 🕐 | 3 SP | 1 SP |
 
 ## Tarea 1 — [db] tabla split_layouts
 - Modelo `SplitLayout` (+ `User.splitLayouts`), único `(userId, name)`, índice en `userId`.
@@ -21,3 +22,12 @@
 - `backend/docs/architecture.md`: `/split-layouts` en la tabla de rutas, el mensaje WS `split_layouts`, la tabla `split_layouts`.
 - `.claude/CLAUDE.md`: `split_layouts` en la lista del WebSocket, una sección "Configuraciones de split (spec 063)", 22 routers con `/split-layouts`, el modelo `SplitLayout`.
 - Leídos en paralelo: la misma ruta, los mismos límites y el mismo mensaje ✅.
+
+## Tarea 4 — [frontend] sección de Settings
+- `lib/useSplitLayouts.ts`: tipos, `fetchSplitLayouts` / `saveSplitLayouts`, `isLinkedLayout`, y el hook `useSplitLayouts` (GET + recarga con el WS `split_layouts`) para el gráfico.
+- `SplitLayoutsSection` construido con `shared/ui` con el patrón de Mirror presets: una `Section`; una barra con el `Select` Layout, el `TextInput` Name, **+ New** y **Delete**; una `Table` Left/Right × Broker/Pair/Timeframe con tarjetas en móvil. Sin configuraciones muestra un estado vacío y + New.
+  - Los pares de un broker son sus pares activos (Settings › Visibility). Al cambiar el broker se conserva el par si ese broker lo ofrece; si no, EURUSD o su primer par.
+- `SettingsPage`: su propio `useAutosave` (validación: nombre obligatorio, sin nombres repetidos), unido al estado de la página con `combineSaves`; las configuraciones nuevas reciben su id del guardado sin remontar campos.
+- `npm run build` ✅ · eslint ✅.
+- Desviación: Settings ya no tiene sección "Display" (la spec 058 la reagrupó en Trading, Chart, Indicators…). La sección va en **Settings › Chart**, cuyo resumen ahora incluye "Split layouts".
+- 🕐 La prueba en la app en marcha necesita el backend desplegado (antes no existe la ruta `/split-layouts`). Pasa a la tarea 6.

@@ -1,0 +1,35 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0 4px;
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: 240px 240px max-content;
+  align-items: end;
+  gap: 12px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.chart {
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.cardControls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .bar {
+    grid-template-columns: 1fr;
+  }
+}

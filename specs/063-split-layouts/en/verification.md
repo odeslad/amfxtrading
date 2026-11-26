@@ -5,6 +5,7 @@
 | 1 | prisma generate + build + schema diff | ✅ | 0.5 SP | 0.25 SP |
 | 2 | vitest + lint/typecheck/test/build | ✅ | 2 SP | 1 SP |
 | 3 | manual read | ✅ | 0.25 SP | 0.25 SP |
+| 4 | build + eslint + review against the mockup; visual → task 6 🕐 | ✅ / 🕐 | 3 SP | 1 SP |
 
 ## Task 1 — [db] split_layouts table
 - `SplitLayout` model (+ `User.splitLayouts`), unique `(userId, name)`, index on `userId`.
@@ -21,3 +22,12 @@
 - `backend/docs/architecture.md`: `/split-layouts` in the routes table, the `split_layouts` WS message, the `split_layouts` table.
 - `.claude/CLAUDE.md`: `split_layouts` in the WebSocket list, a "Configuraciones de split (spec 063)" section, 22 routers with `/split-layouts`, the `SplitLayout` model.
 - Both read side by side: the same route, limits and message ✅.
+
+## Task 4 — [frontend] Settings section
+- `lib/useSplitLayouts.ts`: types, `fetchSplitLayouts` / `saveSplitLayouts`, `isLinkedLayout`, and the `useSplitLayouts` hook (GET + reload on the WS `split_layouts`) for the chart.
+- `SplitLayoutsSection` built from `shared/ui` in the Mirror presets pattern: a `Section`; a bar with the Layout `Select`, the Name `TextInput`, **+ New** and **Delete**; a `Table` Left/Right × Broker/Pair/Timeframe with cards on mobile. With no layouts it shows an empty state and + New.
+  - The pairs of a broker are its active pairs (Settings › Visibility). Changing the broker keeps the pair when that broker offers it, else EURUSD or its first pair.
+- `SettingsPage`: its own `useAutosave` (validation: a name is required, no repeated names), joined to the page status with `combineSaves`; new layouts get their id from the save without remounting fields.
+- `npm run build` ✅ · eslint ✅.
+- Deviation: Settings has no "Display" section any more (spec 058 regrouped it into Trading, Chart, Indicators…). The section goes in **Settings › Chart**, whose summary now lists "Split layouts".
+- 🕐 The check in the running app needs the backend deployed (no `/split-layouts` route before). It moves to task 6.

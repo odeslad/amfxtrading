@@ -14,6 +14,8 @@ import { ChartSettings } from './ChartSettings';
 import { CrossTradesSettings } from './CrossTradesSettings';
 import { SetupLevelsSettings } from './SetupLevelsSettings';
 import { MaTemplatesSection } from './MaTemplatesSection';
+import { SplitLayoutsSection, type SplitLayoutForm } from './SplitLayoutsSection';
+import { fetchSplitLayouts, saveSplitLayouts, type SplitLayout } from '../../lib/useSplitLayouts';
 import { NotificationsTab } from './NotificationsTab';
 import { NotificationPanel } from './NotificationPanel';
 import { DevicesSection } from './DevicesSection';
@@ -38,7 +40,7 @@ type SettingsSection = (typeof SECTIONS)[number];
 
 const SECTION_ITEMS: NavItem<SettingsSection>[] = [
   { id: 'trading', label: 'Trading', summary: 'Mirror presets · Quick orders · New trade' },
-  { id: 'chart', label: 'Chart', summary: 'P&L · Drawings · Price' },
+  { id: 'chart', label: 'Chart', summary: 'P&L · Drawings · Price · Split layouts' },
   { id: 'indicators', label: 'Indicators', summary: 'MA templates · Cross trades · SL / TP labels' },
   { id: 'alerts', label: 'Alerts & notifications', summary: 'Rules · Devices' },
   { id: 'brokers', label: 'Brokers & data', summary: 'Brokers · Pairs · Candle history' },
@@ -199,7 +201,60 @@ export function SettingsPage() {
 
   const settingsSave = useAutosave(settingsBody, { save: saveSettings, validate: validateSettings, enabled: loaded });
 
-  const pageSave = combineSaves(settingsSave, candleSync.targetsSave);
+  // Spec 063: split layouts belong to the user and save on their own route, beside the settings form.
+  const [layouts, setLayouts] = useState<SplitLayoutForm[]>([]);
+  const [layoutKey, setLayoutKey] = useState<string | null>(null);
+  const [layoutsLoaded, setLayoutsLoaded] = useState(false);
+
+  useEffect(() => {
+    const ac = new AbortController();
+    fetchSplitLayouts(ac.signal)
+      .then(list => {
+        setLayouts(list.map(l => ({ ...l, key: `saved-${l.id}` })));
+        setLayoutsLoaded(true);
+      })
+      .catch(err => { if (!ac.signal.aborted) addToast(errorMessage(err, 'Failed to load split layouts'), 'error'); });
+    return () => ac.abort();
+  }, []);
+
+  const layoutsBody = useMemo(
+    () => layouts.map(({ id, name, left, right }): SplitLayout => ({ id, name: name.trim(), left, right })),
+    [layouts],
+  );
+
+  const saveLayouts = useCallback(async (body: SplitLayout[]) => {
+    const saved = await saveSplitLayouts(body);
+    // A new layout gets its id from this save; the form keeps its keys so no field remounts.
+    setLayouts(prev => (prev.some((l, i) => l.id === undefined && saved[i])
+      ? prev.map((l, i) => (l.id === undefined && saved[i] ? { ...l, id: saved[i].id } : l))
+      : prev));
+  }, []);
+
+  const validateLayouts = useCallback((body: SplitLayout[]): string | null => {
+    if (body.some(l => l.name === '')) return 'A split layout needs a name';
+    const names = body.map(l => l.name.toLowerCase());
+    return names.some((n, i) => names.indexOf(n) !== i) ? 'Two split layouts have the same name' : null;
+  }, []);
+
+  const layoutsSave = useAutosave(layoutsBody, { save: saveLayouts, validate: validateLayouts, enabled: layoutsLoaded });
+
+  const addLayout = () => {
+    const broker = brokerNames[0] ?? '';
+    const side = { broker, symbol: 'EURUSD', timeframe: 'H1' };
+    const key = `new-${Date.now()}`;
+    setLayouts(prev => [...prev, { key, name: `Layout ${prev.length + 1}`, left: side, right: { ...side, timeframe: 'M5' } }]);
+    setLayoutKey(key);
+  };
+  const deleteLayout = () => {
+    const current = layouts.find(l => l.key === layoutKey) ?? layouts[0];
+    if (!current) return;
+    setLayouts(prev => prev.filter(l => l.key !== current.key));
+    setLayoutKey(null);
+  };
+  const changeLayout = (key: string, patch: Partial<SplitLayout>) =>
+    setLayouts(prev => prev.map(l => (l.key === key ? { ...l, ...patch } : l)));
+
+  const pageSave = combineSaves(settingsSave, candleSync.targetsSave, layoutsSave);
 
   const openSection = (id: SettingsSection) => {
     pageSave.flush();
@@ -276,7 +331,21 @@ export function SettingsPage() {
           </>
         );
       case 'chart':
-        return <ChartSettings display={display} onChange={updateDisplay} />;
+        return (
+          <>
+            <ChartSettings display={display} onChange={updateDisplay} />
+            <SplitLayoutsSection
+              layouts={layouts}
+              selectedKey={layoutKey}
+              brokers={brokers}
+              pairsOf={broker => savedVisibility.activeSymbols[broker] ?? []}
+              onSelect={setLayoutKey}
+              onAdd={addLayout}
+              onDelete={deleteLayout}
+              onChange={changeLayout}
+            />
+          </>
+        );
       case 'indicators':
         return (
           <>
