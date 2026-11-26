@@ -2,7 +2,7 @@
 
 Each task is one conventional commit. The project must build after every task. Tasks of different layers never share a commit. Deploy order: backend (with db) → frontend. The EA is not touched.
 
-- [ ] 1. [db] `EntryGroup` + `EntryGroupMember` models and hand-written migration `entry_groups` · **Verify:** `prisma generate` + `npm run build`; migration applied to the local tunnel DB and `prisma migrate diff` empty · **Est:** 0.75 SP
+- [x] 1. [db] `EntryGroup` + `EntryGroupMember` models and hand-written migration `entry_groups` · **Verify:** `prisma generate` + `npm run build`; migration applied to the local tunnel DB and `prisma migrate diff` empty · **Est:** 0.75 SP
 - [ ] 2. [backend] `store/entry-groups.ts`: cache + DB, `addMember` (colour on the 2nd member, first free in the palette or least used), `removeMember`, `syncOpenTickets` (only when the ticket set changes; a group with < 2 members is deleted; empty-list safeguard ≥ 5 s), change callback · **Verify:** vitest (palette, cleanup, empty list, load after restart) + `npm run lint/typecheck/test` · **Est:** 3 SP
 - [ ] 3. [backend] `groupId` in `POST /commands` (validated, only on opening actions) → `addMember` on an `ok` result with a ticket, late ones too; `syncOpenTickets` from the `positions` handler; `GET /entry-groups`, `DELETE /entry-groups/members`; WS `entry_groups` broadcast · **Verify:** vitest of the routes + local backend with flags off (curl GET/DELETE, 400 on a bad groupId) · **Est:** 2.5 SP
 - [ ] 4. [docs] `.claude/CLAUDE.md` (commands, WS, models) and `backend/docs/architecture.md` · **Verify:** manual read, the two documents agree · **Est:** 0.5 SP

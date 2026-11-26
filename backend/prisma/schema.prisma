@@ -156,6 +156,27 @@ model AccountColor {
   @@map("account_colors")
 }
 
+model EntryGroup {
+  id        String             @id
+  color     String             @default("")
+  createdAt DateTime           @default(now()) @map("created_at")
+  members   EntryGroupMember[]
+
+  @@map("entry_groups")
+}
+
+model EntryGroupMember {
+  id      Int        @id @default(autoincrement())
+  groupId String     @map("group_id")
+  broker  String
+  ticket  Int
+  group   EntryGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([broker, ticket])
+  @@index([groupId])
+  @@map("entry_group_members")
+}
+
 model PositionColor {
   id      Int    @id @default(autoincrement())
   broker  String

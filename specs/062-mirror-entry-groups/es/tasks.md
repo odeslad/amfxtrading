@@ -2,7 +2,7 @@
 
 Cada tarea es un commit convencional. El proyecto debe compilar tras cada tarea. Tareas de capas distintas nunca comparten commit. Orden de despliegue: backend (con db) → frontend. El EA no se toca.
 
-- [ ] 1. [db] Modelos `EntryGroup` + `EntryGroupMember` y migración a mano `entry_groups` · **Verificación:** `prisma generate` + `npm run build`; migración aplicada en la BD del túnel local y `prisma migrate diff` vacío · **Est:** 0.75 SP
+- [x] 1. [db] Modelos `EntryGroup` + `EntryGroupMember` y migración a mano `entry_groups` · **Verificación:** `prisma generate` + `npm run build`; migración aplicada en la BD del túnel local y `prisma migrate diff` vacío · **Est:** 0.75 SP
 - [ ] 2. [backend] `store/entry-groups.ts`: caché + BD, `addMember` (color al llegar el 2.º miembro, el primero libre de la paleta o el menos usado), `removeMember`, `syncOpenTickets` (solo cuando cambia el conjunto de tickets; un grupo con menos de 2 miembros se borra; salvaguarda de lista vacía de 5 s o más), aviso de cambios · **Verificación:** vitest (paleta, limpieza, lista vacía, carga tras reinicio) + `npm run lint/typecheck/test` · **Est:** 3 SP
 - [ ] 3. [backend] `groupId` en `POST /commands` (validado, solo en acciones de apertura) → `addMember` con resultado `ok` y ticket, también los tardíos; `syncOpenTickets` desde el handler de `positions`; `GET /entry-groups`, `DELETE /entry-groups/members`; difusión WS `entry_groups` · **Verificación:** vitest de las rutas + backend local con flags apagados (curl GET/DELETE, 400 con un groupId inválido) · **Est:** 2.5 SP
 - [ ] 4. [docs] `.claude/CLAUDE.md` (comandos, WS, modelos) y `backend/docs/architecture.md` · **Verificación:** lectura manual, los dos documentos coinciden · **Est:** 0.5 SP
