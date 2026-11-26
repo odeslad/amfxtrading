@@ -55,6 +55,9 @@ const subscribeStore = (l: () => void): (() => void) => {
 
 const getSnapshot = (): LiveSnapshot => snapshot;
 
+// The rows right now, for a click that must not subscribe the caller to every update.
+export const getLivePositions = (): Position[] => snapshot.positions;
+
 export function setLiveColor(broker: string, ticket: number, color: string): void {
   const next = new Map(snapshot.colors);
   if (color) next.set(posKey(broker, ticket), color);

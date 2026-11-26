@@ -10,6 +10,7 @@
 | 6 | build + eslint; visual → tarea 10 🕐 | ✅ / 🕐 | 1.5 SP | 0.75 SP |
 | 7 | build + eslint + ejecución de asMirrorGroup en node | ✅ | 0.75 SP | 0.5 SP |
 | 8 | build + eslint + simulación en node | ✅ | 1.5 SP | 0.75 SP |
+| 9 | build + eslint + ejecución de utilidades en node + revisión de código; visual → tarea 10 🕐 | ✅ / 🕐 | 4 SP | 2 SP |
 
 ## Tarea 1 — [db] tablas entry_groups
 - `npx prisma generate` y `npm run build` (tsc): correctos.
@@ -59,3 +60,15 @@
 - `npm run build` ✅ · eslint ✅.
 - `commandBatch` + `toast` empaquetados con esbuild y ejecutados en Node (espera acortada a 300 ms): 3 resultados con un error → `error: SL updated in 2 of 3 · FTMO — Invalid stops`; todos bien → `success: Closed in 2 of 2`; un id ajeno y un lote de un comando no se recogen (se queda su propio aviso); un resultado que no llega → `error: TP updated in 1 of 2 · FTMO — No response from EA` ✅.
 - Desviaciones: el aviso de fallo parcial usa el estilo `error` existente (no hay tipo de aviso de advertencia y añadirlo queda fuera de esta tarea). Un comando que el backend rechaza con 400 nunca recibe resultado por WS, así que se cuenta como "No response" pasados 35 s, además del aviso de rechazo que ya muestra quien lo envía.
+
+## Tarea 9 — [frontend] propagación y controles del grupo
+- Ampliación en el momento del clic (`features/journal/groupExpansion.ts` → `expandWithGroups`, sobre el feed en vivo del Diario o las filas de todos los brokers del gráfico):
+  - Positions › Edit y Close (`OpenPositions`), Orders › Edit y Cancel (`JournalPage`);
+  - el panel de edición del gráfico, el de cierre (`ClosePositionPanel` ahora recibe una lista) y `onModifyPosition` (arrastre de SL/TP, quitar SL/TP desde el menú contextual).
+- `GroupInfo` (en `BulkEditPanel` y `EditOrderPanel`): una caja de aviso con la estrella, "Applies to the N entries of the group: brokers", y **Take <broker> out of group** (`DELETE /entry-groups/members`, cierra el panel). Solo aparece cuando el panel contiene exactamente los miembros abiertos de un grupo activo.
+- `BulkEditPanel`: **Remove SL** / **Remove TP** a todas las entradas, "Save · N entries". `EditOrderPanel`: "Save · N orders". Las confirmaciones de cierre listan broker y lotes: "Close group of 3?", "Close 3".
+- Todo envío a varias entradas pasa por `trackBatch` (SL/TP updated, SL removed, TP removed, Order updated, Closed, Orders cancelled).
+- `npm run build` ✅ · eslint de `features/journal`, `ChartPage`, `lib` ✅.
+- Las utilidades de la tarea 5, empaquetadas con esbuild y ejecutadas en Node: un grupo de 3 abierto desde su 2.ª entrada → esa entrada primero y luego las otras dos; sin grupo → la entrada sola; un grupo en formación (sin color) → sola; un grupo con 1 abierta → sola (`activeGroupOf` null); dos entradas del mismo grupo → 3 entradas sin duplicados ✅.
+- Revisión de código contra la maqueta: el panel de edición (caja, Remove SL/TP, sacar del grupo, Save · N), el de orden (caja, precio, sacar del grupo, Save · N orders), la confirmación de cierre del grupo con brokers y lotes, un aviso por lote ✅. En móvil se abren los mismos paneles como hoja.
+- Desviación: como en la tarea 6, la prueba en la app en marcha necesita grupos reales, así que pasa a la tarea 10 🕐. El TP por ratio R de `BulkEditPanel` sigue calculando el TP de cada entrada desde su propio precio de apertura; es un cálculo explícito por entrada y se mantiene tal cual.

@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type MouseEvent as ReactMouseEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { apiFetch, errorMessage } from '../../lib/api';
-import { modifyCommand, sendCommand } from '../../lib/commands';
+import { modifyCommand, sendCommands } from '../../lib/commands';
+import { trackBatch } from '../../lib/commandBatch';
+import { expandWithGroups } from '../journal/groupExpansion';
 import { addToast } from '../../lib/toast';
 import { useWs } from '../../lib/useWs';
 import { useTickSubscription } from '../../lib/useTickSubscription';
@@ -178,6 +180,10 @@ export function ChartPage() {
     setPositionsByBroker(prev => ({ ...prev, [positionsBroker]: list }));
   }, []);
   const positions = positionsByBroker[broker] ?? EMPTY_POSITIONS;
+  // Spec 062: every broker's rows, so an action on a grouped entry reaches its siblings.
+  const allRows = useMemo(() => Object.values(positionsByBroker).flat(), [positionsByBroker]);
+  const allRowsRef = useRef(allRows);
+  useEffect(() => { allRowsRef.current = allRows; }, [allRows]);
   const [editPosition, setEditPosition] = useState<Position | null>(null);
   const [closePosition, setClosePosition] = useState<Position | null>(null);
   const [showSpread, setShowSpread] = useState(false);
@@ -495,7 +501,8 @@ export function ChartPage() {
   const closeNewTrade = useCallback(() => setNewTradeOpen(false), []);
   const clearEdit = useCallback(() => setEditPosition(null), []);
   const clearClose = useCallback(() => setClosePosition(null), []);
-  const editPositions = useMemo(() => (editPosition ? [editPosition] : []), [editPosition]);
+  const editPositions = useMemo(() => (editPosition ? expandWithGroups([editPosition], allRows) : []), [editPosition, allRows]);
+  const closePositions = useMemo(() => (closePosition ? expandWithGroups([closePosition], allRows) : []), [closePosition, allRows]);
 
   const toggleAlertsFor = useCallback((side: ChartSide) => {
     setPanelSide(side);
@@ -519,7 +526,9 @@ export function ChartPage() {
     onModifyPosition: (ticket: number, sl: number, tp: number) => {
       const pos = list.find(p => p.ticket === ticket);
       if (!pos) return;
-      sendCommand(modifyCommand(pos, sl, tp))
+      const commands = expandWithGroups([pos], allRowsRef.current).map(p => modifyCommand(p, sl, tp));
+      trackBatch('SL/TP updated', commands);
+      sendCommands(commands)
         .catch(err => addToast(errorMessage(err, 'Network error sending modify'), 'error'));
     },
   }), []);
@@ -729,7 +738,7 @@ export function ChartPage() {
 
       <ClosePositionPanel
         open={!!closePosition}
-        position={closePosition}
+        positions={closePositions}
         onClose={clearClose}
       />
     </div>

@@ -4,6 +4,8 @@ import { errorMessage } from '../../lib/api';
 import { modifyCommand, sendCommands } from '../../lib/commands';
 import { addToast } from '../../lib/toast';
 import { OrderList } from './OrderList';
+import { GroupInfo } from './GroupInfo';
+import { trackBatch } from '../../lib/commandBatch';
 import styles from './BulkEditPanel.module.css';
 import own from './EditOrderPanel.module.css';
 
@@ -60,9 +62,11 @@ export function EditOrderPanel({ open, orders, onClose }: EditOrderPanelProps) {
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      await sendCommands(orders.map(p =>
+      const commands = orders.map(p =>
         modifyCommand(p, sl ? parseFloat(sl) : p.sl, tp ? parseFloat(tp) : p.tp, newPrice ?? undefined)
-      ));
+      );
+      trackBatch('Order updated', commands);
+      await sendCommands(commands);
       addToast(`Modify sent for ${orders.length} order${many ? 's' : ''}`, 'info');
       onClose();
     } catch (err) {
@@ -83,6 +87,7 @@ export function EditOrderPanel({ open, orders, onClose }: EditOrderPanelProps) {
 
         <div className={styles.form}>
           <OrderList orders={orders} />
+          <GroupInfo entries={orders} onTakenOut={onClose} />
           <p className={styles.hint}>Leave a field empty to keep {many ? "each order's" : 'the'} current value.</p>
 
           <div className={styles.row}>
@@ -141,7 +146,7 @@ export function EditOrderPanel({ open, orders, onClose }: EditOrderPanelProps) {
           {sideError && <div className={own.error}>{sideError}</div>}
 
           <button type="button" className={styles.submitBtn} onClick={handleSubmit} disabled={!canSubmit}>
-            {submitting ? 'Sending...' : many ? `Modify ${orders.length}` : 'Modify order'}
+            {submitting ? 'Sending...' : many ? `Save · ${orders.length} orders` : 'Modify order'}
           </button>
         </div>
       </div>

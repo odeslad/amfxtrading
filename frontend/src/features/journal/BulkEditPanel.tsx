@@ -1,7 +1,10 @@
 import { useState, memo } from 'react';
 import { type Position, type TpRatio, TYPE_LABEL, TP_RATIOS, fmt, isBuySide, pricePrecision, tpForRatio } from './utils/position';
 import { errorMessage } from '../../lib/api';
-import { modifyCommand, sendCommands } from '../../lib/commands';
+import { modifyCommand, sendCommands, type Command } from '../../lib/commands';
+import { trackBatch } from '../../lib/commandBatch';
+import { Button } from '../../shared/ui';
+import { GroupInfo } from './GroupInfo';
 import { addToast } from '../../lib/toast';
 import styles from './BulkEditPanel.module.css';
 import dockedStyles from '../../shared/ui/DockedPanel.module.css';
@@ -44,11 +47,30 @@ export const BulkEditPanel = memo(function BulkEditPanel({ open, positions, onCl
 
   const chooseRatio = (r: TpRatio) => { setRatio(r); setTp(''); };
 
+  const send = async (label: string, commands: Command[]) => {
+    setSubmitting(true);
+    try {
+      trackBatch(label, commands);
+      await sendCommands(commands);
+      addToast(`Modify sent for ${positions.length} position${positions.length > 1 ? 's' : ''}`, 'info');
+      onClose();
+    } catch (err) {
+      addToast(errorMessage(err, 'Failed to send modify commands'), 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const removeSl = () => send('SL removed', positions.map(p => modifyCommand(p, 0, p.tp)));
+  const removeTp = () => send('TP removed', positions.map(p => modifyCommand(p, p.sl, 0)));
+
   const handleSubmit = async () => {
     if (!sl && !tp && ratio === null) return;
     setSubmitting(true);
     try {
-      await sendCommands(positions.map(p => modifyCommand(p, effectiveSl(p) ?? p.sl, tpFor(p))));
+      const commands = positions.map(p => modifyCommand(p, effectiveSl(p) ?? p.sl, tpFor(p)));
+      trackBatch('SL/TP updated', commands);
+      await sendCommands(commands);
       addToast(`Modify sent for ${positions.length} position${positions.length > 1 ? 's' : ''}`, 'info');
       onClose();
     } catch (err) {
@@ -69,6 +91,7 @@ export const BulkEditPanel = memo(function BulkEditPanel({ open, positions, onCl
 
         <div className={styles.form}>
           <div className={styles.meta}>{label} · {positions.length} position{positions.length !== 1 ? 's' : ''}</div>
+          <GroupInfo entries={positions} onTakenOut={onClose} />
           <p className={styles.hint}>Leave a field empty to keep each position's current value.</p>
 
           <div className={styles.row}>
@@ -136,13 +159,20 @@ export const BulkEditPanel = memo(function BulkEditPanel({ open, positions, onCl
             </div>
           )}
 
+          {positions.some(p => p.sl || p.tp) && (
+            <div className={styles.removeRow}>
+              <Button size="sm" onClick={removeSl} disabled={submitting || !positions.some(p => p.sl)}>Remove SL</Button>
+              <Button size="sm" onClick={removeTp} disabled={submitting || !positions.some(p => p.tp)}>Remove TP</Button>
+            </div>
+          )}
+
           <button
             type="button"
             className={styles.submitBtn}
             onClick={handleSubmit}
             disabled={submitting || (!sl && !tp && ratio === null)}
           >
-            {submitting ? 'Sending...' : `Modify ${positions.length}`}
+            {submitting ? 'Sending...' : positions.length > 1 ? `Save · ${positions.length} entries` : 'Save'}
           </button>
         </div>
       </div>

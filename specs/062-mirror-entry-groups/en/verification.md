@@ -10,6 +10,7 @@
 | 6 | build + eslint; visual → task 10 🕐 | ✅ / 🕐 | 1.5 SP | 0.75 SP |
 | 7 | build + eslint + node run of asMirrorGroup | ✅ | 0.75 SP | 0.5 SP |
 | 8 | build + eslint + node simulation | ✅ | 1.5 SP | 0.75 SP |
+| 9 | build + eslint + node run of the helpers + code review; visual → task 10 🕐 | ✅ / 🕐 | 4 SP | 2 SP |
 
 ## Task 1 — [db] entry_groups tables
 - `npx prisma generate` and `npm run build` (tsc): pass.
@@ -59,3 +60,15 @@
 - `npm run build` ✅ · eslint ✅.
 - `commandBatch` + `toast` bundled with esbuild and run in Node (timeout shortened to 300 ms): 3 results with one error → `error: SL updated in 2 of 3 · FTMO — Invalid stops`; all ok → `success: Closed in 2 of 2`; a foreign id and a single-command batch are not taken (their own toast stays); a missing result → `error: TP updated in 1 of 2 · FTMO — No response from EA` ✅.
 - Deviations: the partial-failure toast uses the existing `error` style (there is no warning toast type and adding one is outside this task). A command the backend rejects with 400 never gets a WS result, so it is reported as "No response" after 35 s, in addition to the rejection toast the caller already shows.
+
+## Task 9 — [frontend] propagation and group controls
+- Expansion at click time (`features/journal/groupExpansion.ts` → `expandWithGroups`, over the Journal live feed or the chart's rows of every broker):
+  - Positions › Edit and Close (`OpenPositions`), Orders › Edit and Cancel (`JournalPage`);
+  - the chart's edit panel, close panel (`ClosePositionPanel` now takes a list) and `onModifyPosition` (dragging SL/TP, removing SL/TP from the context menu).
+- `GroupInfo` (in `BulkEditPanel` and `EditOrderPanel`): a warning box with the star, "Applies to the N entries of the group: brokers", and **Take <broker> out of group** (`DELETE /entry-groups/members`, closes the panel). It shows only when the panel holds exactly the open members of an active group.
+- `BulkEditPanel`: **Remove SL** / **Remove TP** to every entry, "Save · N entries". `EditOrderPanel`: "Save · N orders". Close confirmations list broker and lots: "Close group of 3?", "Close 3".
+- Every multi-entry send goes through `trackBatch` (SL/TP updated, SL removed, TP removed, Order updated, Closed, Orders cancelled).
+- `npm run build` ✅ · eslint on `features/journal`, `ChartPage`, `lib` ✅.
+- The helpers of task 5, bundled with esbuild and run in Node: a group of 3 opened from its 2nd entry → that entry first, then the other two; no group → the entry alone; a forming group (no colour) → alone; a group left with 1 open → alone (`activeGroupOf` null); two entries of the same group → 3 entries with no duplicates ✅.
+- Code review against the mockup: the edit panel (box, Remove SL/TP, take out, Save · N), the order panel (box, price, take out, Save · N orders), close-group confirmation with brokers and lots, one toast per batch ✅. On mobile the same panels open as a sheet.
+- Deviation: as in task 6, the check in the running app needs real groups, so it moves to task 10 🕐. The TP by R ratio of `BulkEditPanel` still computes each entry's TP from its own open price; that is an explicit per-entry calculation, kept as it is.

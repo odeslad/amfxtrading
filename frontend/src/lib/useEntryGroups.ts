@@ -20,6 +20,8 @@ const subscribeStore = (l: () => void): (() => void) => {
 
 const getSnapshot = (): EntryGroup[] => snapshot;
 
+export const getEntryGroups = (): EntryGroup[] => snapshot;
+
 export function loadEntryGroups(signal?: AbortSignal): Promise<void> {
   return apiFetch<EntryGroup[]>('/entry-groups', { signal }).then(setEntryGroups).catch(() => {});
 }

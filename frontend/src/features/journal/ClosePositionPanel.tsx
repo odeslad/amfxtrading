@@ -1,19 +1,20 @@
 import { useState, memo } from 'react';
 import { type Position, TYPE_LABEL, fmt } from './utils/position';
 import { errorMessage } from '../../lib/api';
-import { closeCommand, sendCommand } from '../../lib/commands';
+import { closeCommand, sendCommands } from '../../lib/commands';
+import { trackBatch } from '../../lib/commandBatch';
 import { addToast } from '../../lib/toast';
 import styles from './BulkEditPanel.module.css';
 
 interface ClosePositionPanelProps {
   open: boolean;
-  position: Position | null;
+  positions: Position[];   // the position, then the open members of its mirror group (spec 062)
   onClose: () => void;
 }
 
 // Confirmation panel to close a single position from the chart. Reuses the
 // BulkEditPanel styles so it matches the edit-group panel.
-export const ClosePositionPanel = memo(function ClosePositionPanel({ open, position, onClose }: ClosePositionPanelProps) {
+export const ClosePositionPanel = memo(function ClosePositionPanel({ open, positions, onClose }: ClosePositionPanelProps) {
   const [submitting, setSubmitting] = useState(false);
 
   const [prevOpen, setPrevOpen] = useState(open);
@@ -22,13 +23,17 @@ export const ClosePositionPanel = memo(function ClosePositionPanel({ open, posit
     if (!open) setSubmitting(false);
   }
 
+  const position = positions[0] ?? null;
+  const many = positions.length > 1;
   const label = position ? `${TYPE_LABEL[position.type]} ${position.symbol}` : '';
 
   const handleConfirm = async () => {
     if (!position) return;
     setSubmitting(true);
     try {
-      await sendCommand(closeCommand(position));
+      const commands = positions.map(closeCommand);
+      trackBatch('Closed', commands);
+      await sendCommands(commands);
       addToast(`Close sent for ${label}`, 'info');
       onClose();
     } catch (err) {
@@ -43,17 +48,17 @@ export const ClosePositionPanel = memo(function ClosePositionPanel({ open, posit
       {open && <div className={styles.backdrop} onClick={onClose} />}
       <div className={`${styles.panel} ${open ? styles.panelOpen : ''}`}>
         <div className={styles.header}>
-          <div className={styles.title}>Close position</div>
+          <div className={styles.title}>{many ? `Close group of ${positions.length}` : 'Close position'}</div>
           <button type="button" className={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
         <div className={styles.form}>
           <div className={styles.meta}>{label}</div>
-          {position && (
-            <p className={styles.hint}>
-              Ticket #{position.ticket} · {fmt(position.lots, 2)} lots @ {fmt(position.openPrice, 5)}
+          {positions.map(p => (
+            <p key={`${p.broker}-${p.ticket}`} className={styles.hint}>
+              {many ? `${p.broker} · ` : ''}Ticket #{p.ticket} · {fmt(p.lots, 2)} lots @ {fmt(p.openPrice, 5)}
             </p>
-          )}
+          ))}
           <p className={styles.hint}>This closes the position at market. It cannot be undone.</p>
 
           <button
@@ -62,7 +67,7 @@ export const ClosePositionPanel = memo(function ClosePositionPanel({ open, posit
             onClick={handleConfirm}
             disabled={submitting || !position}
           >
-            {submitting ? 'Sending...' : 'Confirm close'}
+            {submitting ? 'Sending...' : many ? `Close ${positions.length}` : 'Confirm close'}
           </button>
         </div>
       </div>

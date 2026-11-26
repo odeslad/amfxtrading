@@ -12,6 +12,8 @@ import { BulkEditPanel } from './BulkEditPanel';
 import { ConfirmPanel } from './ConfirmPanel';
 import { CancelOrdersPanel } from './CancelOrdersPanel';
 import { EditOrderPanel } from './EditOrderPanel';
+import { expandWithGroups } from './groupExpansion';
+import { trackBatch } from '../../lib/commandBatch';
 import { errorMessage } from '../../lib/api';
 import { closeCommand, sendCommands } from '../../lib/commands';
 import { useLocalStorage } from '../../lib/useLocalStorage';
@@ -130,13 +132,16 @@ export function JournalPage() {
     }
   };
 
-  const handleEditOrder = useCallback((p: Position) => setEditOrders([p]), [setEditOrders]);
+  const handleEditOrder = useCallback((p: Position) => setEditOrders(expandWithGroups([p])), [setEditOrders]);
+  const handleCancelOrder = useCallback((p: Position) => setCancelOrders(expandWithGroups([p])), [setCancelOrders]);
 
   const handleCancelOrders = async () => {
     if (!cancelOrders) return;
     setCancelling(true);
     try {
-      await sendCommands(cancelOrders.map(closeCommand));
+      const commands = cancelOrders.map(closeCommand);
+      trackBatch('Orders cancelled', commands);
+      await sendCommands(commands);
       addToast(cancelOrders.length === 1 ? 'Cancel sent' : `Cancel sent for ${cancelOrders.length} orders`, 'info');
     } catch (err) {
       addToast(errorMessage(err, 'Failed to send cancel commands'), 'error');
@@ -297,7 +302,7 @@ export function JournalPage() {
             onOptionsChange={setOrderOptions}
             onGroupChange={handleOrderGroupChange}
             onEdit={handleEditOrder}
-            onCancel={p => setCancelOrders([p])}
+            onCancel={handleCancelOrder}
           />
         </div>
         <div className={tab === 'closed' ? styles.tabPanel : styles.tabPanelHidden}>

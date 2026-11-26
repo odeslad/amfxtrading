@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { errorMessage } from '../../lib/api';
-import { closeCommand, sendCommand } from '../../lib/commands';
+import { closeCommand, sendCommands } from '../../lib/commands';
+import { trackBatch } from '../../lib/commandBatch';
+import { expandWithGroups } from './groupExpansion';
 import { addToast } from '../../lib/toast';
 import { type Position, fmt, fmtPnlMode, calcPnl, currentQuote, fmtLocalTime, currencySymbol, TYPE_LABEL, isBuySide, isPending, sameSymbol } from './utils/position';
 import { useDisplaySettings } from '../../lib/useDisplaySettings';
@@ -44,9 +46,9 @@ export function OpenPositions({ filters, onOptionsChange, onBulkChange }: OpenPo
   const markOf = useGroupMarks(live.positions);
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const onColorChange = setLiveColor;
-  const [confirmClose, setConfirmClose] = useState<Position | null>(null);
+  const [confirmClose, setConfirmClose] = useState<Position[] | null>(null);
   const [closing, setClosing] = useState(false);
-  const [editPosition, setEditPosition] = useState<Position | null>(null);
+  const [editPositions, setEditPositions] = useState<Position[] | null>(null);
   const { pnlMode } = useDisplaySettings();
   const balances = useBalances();
 
@@ -69,15 +71,17 @@ export function OpenPositions({ filters, onOptionsChange, onBulkChange }: OpenPo
     navigate(`/chart?${params.toString()}`);
   }, [navigate]);
 
-  const handleEdit = (p: Position) => setEditPosition(p);
+  const handleEdit = (p: Position) => setEditPositions(expandWithGroups([p], live.positions));
 
-  const handleClose = (p: Position) => setConfirmClose(p);
+  const handleClose = (p: Position) => setConfirmClose(expandWithGroups([p], live.positions));
 
   const confirmAndClose = async () => {
     if (!confirmClose) return;
     setClosing(true);
     try {
-      await sendCommand(closeCommand(confirmClose));
+      const commands = confirmClose.map(closeCommand);
+      trackBatch('Closed', commands);
+      await sendCommands(commands);
     } catch (err) {
       addToast(errorMessage(err, 'Failed to send close command'), 'error');
     } finally {
@@ -216,17 +220,17 @@ export function OpenPositions({ filters, onOptionsChange, onBulkChange }: OpenPo
       </div>
 
       <BulkEditPanel
-        open={!!editPosition}
-        positions={editPosition ? [editPosition] : []}
-        onClose={() => setEditPosition(null)}
+        open={!!editPositions}
+        positions={editPositions ?? []}
+        onClose={() => setEditPositions(null)}
       />
 
       <ConfirmPanel
         open={!!confirmClose}
-        title="Close position?"
-        description={confirmClose ? `${TYPE_LABEL[confirmClose.type]} ${confirmClose.symbol} — ${fmt(confirmClose.lots, 2)} lots` : ''}
-        detail={confirmClose?.broker}
-        confirmLabel="Close"
+        title={confirmClose && confirmClose.length > 1 ? `Close group of ${confirmClose.length}?` : 'Close position?'}
+        description={confirmClose?.[0] ? `${TYPE_LABEL[confirmClose[0].type]} ${confirmClose[0].symbol}` : ''}
+        detail={confirmClose?.map(p => `${p.broker} ${fmt(p.lots, 2)}`).join(' · ')}
+        confirmLabel={confirmClose && confirmClose.length > 1 ? `Close ${confirmClose.length}` : 'Close'}
         confirming={closing}
         onConfirm={confirmAndClose}
         onClose={() => setConfirmClose(null)}

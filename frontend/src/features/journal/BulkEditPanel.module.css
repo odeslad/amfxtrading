@@ -300,3 +300,9 @@
     font-size: var(--text-xl);
   }
 }
+
+.removeRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
