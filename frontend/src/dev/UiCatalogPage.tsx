@@ -15,6 +15,7 @@ import {
   StatStrip,
   StatTile,
   StatusDot,
+  GroupStar,
   Table,
   type TableColumn,
   type TableSort,
@@ -515,7 +516,7 @@ export function UiCatalogPage() {
       </section>
 
       <section className={styles.block}>
-        <h2 className={styles.heading}>Badge · StatusDot · ProgressBar</h2>
+        <h2 className={styles.heading}>Badge · StatusDot · GroupStar · ProgressBar</h2>
         <div className={styles.swatches}>
           <Badge tone="green">Active</Badge>
           <Badge>Paused</Badge>
@@ -527,6 +528,7 @@ export function UiCatalogPage() {
           <StatusDot state="busy" label="Syncing" />
           <StatusDot state="muted" label="Unknown" />
           <StatusDot state="attention" label="Attention" />
+          {['#f5a623', '#3a7bd5', '#c77dff', '#2ec4b6', '#ff6fa8', '#e8e8e8'].map(c => <GroupStar key={c} color={c} />)}
           <div className={styles.lgBox}>
             <ProgressBar value={42} label="Sync" />
           </div>

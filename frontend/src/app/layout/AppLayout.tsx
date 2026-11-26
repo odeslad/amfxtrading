@@ -6,6 +6,8 @@ import { Toaster } from '../../shared/ui/Toast/Toaster';
 import { subscribe } from '../../lib/ws';
 import { addToast } from '../../lib/toast';
 import { useBuildInfo } from '../../lib/useBuildInfo';
+import { loadEntryGroups, setEntryGroups } from '../../lib/useEntryGroups';
+import type { EntryGroup } from '../../lib/entryGroups';
 import { loadVisibility, setBrokerSymbols, type BrokerSymbolsState } from '../../lib/visibility';
 import styles from './AppLayout.module.css';
 
@@ -24,12 +26,17 @@ export function AppLayout() {
   useEffect(() => {
     const ac = new AbortController();
     loadVisibility(ac.signal);
+    loadEntryGroups(ac.signal);
     return () => ac.abort();
   }, []);
 
   useEffect(() => subscribe((data) => {
     if (typeof data !== 'object' || data === null) return;
     const msg = data as { type: string; id: string; status: string; ticket?: number; error?: string };
+    if (msg.type === 'entry_groups') {
+      setEntryGroups((data as { groups: EntryGroup[] }).groups);
+      return;
+    }
     if (msg.type === 'broker_symbols') {
       setBrokerSymbols(data as BrokerSymbolsState);
       return;

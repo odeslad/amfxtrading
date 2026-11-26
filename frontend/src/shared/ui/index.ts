@@ -24,6 +24,8 @@ export { Toolbar, Hint, EmptyState, Loading } from './Feedback/Feedback';
 export type { HintTone } from './Feedback/Feedback';
 export { Table } from './Table/Table';
 export type { TableColumn, TableProps, TableSort, SortDirection, RowTone } from './Table/Table';
+export { GroupStar } from './GroupStar/GroupStar';
+export type { GroupStarProps } from './GroupStar/GroupStar';
 export { Pager, Badge, StatusDot, ProgressBar, Gauge, StatTile, StatStrip, Legend } from './Data/Data';
 export type { Tone, DotState, LegendItem } from './Data/Data';
 export { SidePanel, ConfirmDialog, FilterPanel } from './SidePanel/SidePanel';

@@ -6,6 +6,7 @@
 | 2 | vitest + lint/typecheck/test/build | ✅ | 3 SP | 1.5 SP |
 | 3 | vitest + typecheck/lint/build (curl → tarea 10) | ✅ | 2.5 SP | 1 SP |
 | 4 | lectura manual | ✅ | 0.5 SP | 0.25 SP |
+| 5 | build + eslint; /dev/ui 🕐 | ✅ / 🕐 | 1.5 SP | 0.75 SP |
 
 ## Tarea 1 — [db] tablas entry_groups
 - `npx prisma generate` y `npm run build` (tsc): correctos.
@@ -29,3 +30,11 @@
 - `backend/docs/architecture.md`: flujo de datos, ruta `/entry-groups`, `groupId` en `POST /commands`, WS `entry_groups`, una sección "Entry groups (spec 062)", las tablas y `store/entry-groups.ts` en el árbol del proyecto.
 - `.claude/CLAUDE.md`: `groupId` en Comandos, `entry_groups` en la lista del WebSocket, una sección "Grupos de entradas mirror (spec 062)", 21 routers con `/entry-groups`, los modelos `EntryGroup` / `EntryGroupMember`.
 - Leídos en paralelo: la misma paleta, las mismas reglas de limpieza y la misma espera de 5 s ✅.
+
+## Tarea 5 — [frontend] store de grupos, utilidades, GroupStar
+- `lib/entryGroups.ts`: `groupOf`, `openMembers`, `activeGroupOf` (un grupo cuenta mientras tiene color y 2 o más miembros abiertos), `expandToGroup`, `expandAllToGroups` (sin duplicados).
+- `lib/useEntryGroups.ts`: una copia para toda la app (`useSyncExternalStore`), `loadEntryGroups`, `setEntryGroups`, `takeOutOfGroup`. `AppLayout` la carga y aplica el WS `entry_groups`.
+- `shared/ui/GroupStar` exportado desde `shared/ui`, y los seis colores de la paleta en `/dev/ui` (Badge · StatusDot · GroupStar · ProgressBar).
+- `npm run build` ✅ · eslint de los archivos tocados ✅.
+- El frontend no tiene herramienta de tests y añadirla es una dependencia que la spec no recoge; las utilidades se comprueban en la revisión de la tarea 9.
+- 🕐 Revisión visual en `/dev/ui` (`npm run dev`, luego http://localhost:5174/dev/ui): pendiente del usuario.
