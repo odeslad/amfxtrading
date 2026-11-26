@@ -143,6 +143,10 @@ export function createWss(server: Server) {
     broadcastMaTemplates(userId: number) {
       sendToUser(userId, 'ma_templates', {});
     },
+    // Spec 062: groups of mirror entries changed; sent whole, they are few.
+    broadcastEntryGroups(groups: unknown) {
+      broadcast('entry_groups', { groups });
+    },
     broadcastTradesUpdated(broker: string) {
       broadcast('trades_updated', { broker });
     },

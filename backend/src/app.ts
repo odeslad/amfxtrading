@@ -21,6 +21,7 @@ import bookRouter from './routes/book';
 import serverRouter from './routes/server';
 import maTemplatesRouter from './routes/ma-templates';
 import brokerSymbolsRouter from './routes/broker-symbols';
+import entryGroupsRouter from './routes/entry-groups';
 import { requireAuth } from './middleware/requireAuth';
 import { errorHandler } from './middleware/errors';
 import { version } from './version';
@@ -68,6 +69,7 @@ app.use('/book', requireAuth, bookRouter);
 app.use('/server', requireAuth, serverRouter);
 app.use('/ma-templates', requireAuth, maTemplatesRouter);
 app.use('/broker-symbols', requireAuth, brokerSymbolsRouter);
+app.use('/entry-groups', requireAuth, entryGroupsRouter);
 
 app.use(errorHandler);
 

@@ -6,6 +6,7 @@ import { getAccount } from '../store/accounts';
 import { calculateLots } from '../services/sizing';
 import { asyncRoute } from '../middleware/asyncRoute';
 import { BadRequest } from '../middleware/errors';
+import { entryGroups } from '../store/entry-groups';
 import { writeCommand, waitForResult, discardStaleResult, errorText, type CommandResult } from '../bridge/command-io';
 import {
   bodyRecord, nonEmptyString, oneOf, optionalOneOf, finiteNumber, optionalFiniteNumber, optionalInteger,
@@ -27,11 +28,12 @@ interface CommandInput {
   tp?: number;
   price?: number;
   ticket?: number;
+  groupId?: string;
 }
 
 // Everything is checked before the 202 and before anything reaches command.json:
 // the EA silently drops what it cannot execute, which showed up as 10 s timeouts.
-function parseCommand(raw: unknown): CommandInput {
+export function parseCommand(raw: unknown): CommandInput {
   const body = bodyRecord(raw);
   const action = oneOf(body.action, 'action', ACTIONS);
   const id = nonEmptyString(body.id, 'id');
@@ -43,6 +45,9 @@ function parseCommand(raw: unknown): CommandInput {
     : optionalFiniteNumber(body.lots, 'lots', { positive: true });
   const ticket = optionalInteger(body.ticket, 'ticket', { min: 1 });
   if (TICKET_ACTIONS.has(action) && ticket === undefined) throw new BadRequest(`ticket is required for ${action}`);
+  const groupId = body.groupId === undefined ? undefined : nonEmptyString(body.groupId, 'groupId');
+  if (groupId !== undefined && !ID_RE.test(groupId)) throw new BadRequest('groupId must match ^[A-Za-z0-9_-]{1,64}$');
+  if (groupId !== undefined && TICKET_ACTIONS.has(action)) throw new BadRequest(`groupId is not allowed for ${action}`);
   return {
     action,
     id,
@@ -54,6 +59,7 @@ function parseCommand(raw: unknown): CommandInput {
     tp: optionalFiniteNumber(body.tp, 'tp', { min: 0 }),
     price: optionalFiniteNumber(body.price, 'price', { min: 0 }),
     ticket,
+    groupId,
   };
 }
 
@@ -77,7 +83,7 @@ function enqueue(broker: string, task: QueueTask): void {
 const router = Router();
 
 router.post('/', asyncRoute(async (req, res) => {
-  const { action, id, broker, symbol, lotsMode, lots: rawLots, sl, tp, price, ticket } = parseCommand(req.body);
+  const { action, id, broker, symbol, lotsMode, lots: rawLots, sl, tp, price, ticket, groupId } = parseCommand(req.body);
 
   const brokerConfig = config.brokers.find((b) => b.name === broker);
   if (!brokerConfig) {
@@ -140,6 +146,8 @@ router.post('/', asyncRoute(async (req, res) => {
     }
 
     const report = (result: CommandResult, late = false) => {
+      // Spec 062: an opened entry of a mirror send joins its group, a late one too.
+      if (groupId && result.status === 'ok' && result.ticket) entryGroups.addMember(groupId, broker, result.ticket);
       broadcaster?.(id, result.status, result.ticket, errorText(result), late);
       console.log(`[CMD:${broker}] ${late ? 'late result' : 'result'} id=${id} status=${result.status} ticket=${result.ticket ?? '-'}`);
     };

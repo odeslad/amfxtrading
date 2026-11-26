@@ -16,6 +16,7 @@ import { setPositions } from './store/positions';
 import { setTick } from './store/ticks';
 import { setAccount } from './store/accounts';
 import { syncColors } from './store/positionColors';
+import { entryGroups } from './store/entry-groups';
 import { register } from './store/liveness';
 import { setBroadcaster } from './routes/commands';
 import { evaluateAlerts, setAlertBroadcaster } from './alerts/alert-evaluator';
@@ -65,6 +66,7 @@ function startBroker(brokerName: string, bridgePath: string, wss: Wss) {
     setPositions(brokerName, positions, currency, brokerOffset);
     if (features.wsBroadcast) wss.broadcastPositions(brokerName, positions, currency, brokerOffset);
     const tickets = (positions as { ticket: number }[]).map(p => p.ticket);
+    entryGroups.syncOpenTickets(brokerName, tickets);
     syncColors(brokerName, tickets).catch((err: unknown) => {
       console.error(`[COLORS:${brokerName}]`, err instanceof Error ? err.message : String(err));
     });
@@ -120,9 +122,12 @@ async function main() {
   await refreshEmaNotifications();
   startEmaNotificationRefresh();
   console.log('[ALERT] Armed alerts loaded');
+  await entryGroups.load();
+  console.log(`[GROUPS] ${entryGroups.getGroups().length} entry groups loaded`);
 
   const server = http.createServer(app);
   const wss = createWss(server);
+  entryGroups.onChange(groups => { if (config.features.wsBroadcast) wss.broadcastEntryGroups(groups); });
   setBroadcaster((id, status, ticket, error, late) => wss.broadcastCommandResult(id, status, ticket, error, late));
   setAlertBroadcaster((userId, broker, symbol, price, direction) => wss.broadcastAlert(userId, broker, symbol, price, direction));
   setEmaAlertBroadcaster((userId, broker, symbol, timeframe, direction) => wss.broadcastEmaAlert(userId, broker, symbol, timeframe, direction));
