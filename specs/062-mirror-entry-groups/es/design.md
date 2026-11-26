@@ -6,7 +6,7 @@
 
 Un grupo es un conjunto de pares `(broker, ticket)` más un color, guardado en el backend. Lo crea el propio backend cuando los comandos de un mismo envío mirror vuelven con su ticket, así que no depende de que el navegador siga abierto. La propagación se queda en el frontend, que ya envía un comando por entrada (los paneles de edición y cierre aceptan listas): una acción sobre una entrada agrupada se amplía a todas las entradas abiertas de su grupo antes de enviarla. El contrato EA ↔ backend no cambia.
 
-En MT4 una orden pendiente conserva su ticket al ejecutarse, así que el AC 8 sale gratis.
+En MT4 una orden pendiente conserva su ticket al ejecutarse. Para el AC 8 el backend distingue posiciones de órdenes por su tipo en el mensaje `positions`: las posiciones ejecutadas de un grupo de órdenes pasan a su grupo hermano `<id>_f` (tarea 10).
 
 ### Alternativas consideradas
 
@@ -29,7 +29,7 @@ Editar / cerrar / cancelar / quitar SL·TP / arrastre en el gráfico de una entr
   → el frontend la amplía a los miembros abiertos → sendCommands (uno por broker, como hoy)
   → los command_result los recoge un lote → un único aviso resumen (AC 7)
 mensaje positions del pipe (por broker) → se quitan los miembros cuyo ticket ya no está abierto;
-  un grupo con menos de 2 miembros abiertos se borra → WS entry_groups
+  un grupo sin miembros se borra; las órdenes ejecutadas pasan a `<id>_f` → WS entry_groups
 ```
 
 ## Cambios por capa
@@ -63,7 +63,7 @@ model EntryGroupMember {
 - `routes/commands.ts`: `groupId` opcional (mismo patrón que `id`), solo admitido en las acciones de apertura. Cuando el resultado es `ok` con ticket → `addMember(groupId, broker, ticket)`. Un resultado tardío (`late: true`) también cuenta.
 - `store/entry-groups.ts` (nuevo): caché en memoria + BD.
   - `addMember`: crea el grupo con su primer miembro, todavía sin color. Al llegar el segundo le asigna el primer color de la paleta que no use otro grupo, o el menos usado si están todos cogidos.
-  - `syncOpenTickets(broker, tickets)`: se llama desde el handler de `positions` de `index.ts`, como `syncColors`, pero solo cuando cambia el conjunto de tickets. Quita los miembros que ya no están abiertos y borra los grupos con menos de 2 miembros.
+  - `syncOpenEntries(broker, entries)` (antes `syncOpenTickets`, renombrado en la tarea 10; recibe ticket y tipo): se llama desde el handler de `positions` de `index.ts`, como `syncColors`, pero solo cuando cambian las entradas abiertas. Quita los miembros que ya no están abiertos y borra los grupos que se quedan sin miembros (tarea 10; hasta entonces un grupo con color se borraba con menos de 2). El frontend oculta la estrella de un grupo con menos de 2 miembros abiertos. Las posiciones de un grupo de órdenes pasan a `<id>_f` cuando quedan órdenes pendientes a su lado o cuando `<id>_f` ya existe.
   - `removeMember(broker, ticket)`: saca la entrada de su grupo (AC 10).
   - Cada cambio → difusión `entry_groups`.
 - `routes/entry-groups.ts` (nuevo, `requireAuth`): `GET /entry-groups` devuelve `[{ id, color, members: [{ broker, ticket }] }]`, y `DELETE /entry-groups/members` con cuerpo `{ broker, ticket }`.

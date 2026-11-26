@@ -6,7 +6,7 @@
 
 A group is a set of `(broker, ticket)` pairs plus a colour, stored in the backend. It is created by the backend itself when the commands of one mirror send come back with their tickets, so it does not depend on the browser staying open. Propagation stays in the frontend, which already sends one command per entry (the edit and close panels take lists): an action on a grouped entry is expanded to every open entry of its group before sending. The EA ↔ backend contract does not change.
 
-An MT4 pending order keeps its ticket when it fills, so AC 8 comes free.
+An MT4 pending order keeps its ticket when it fills. For AC 8 the backend tells positions from orders by their type in the `positions` message: the filled positions of a group of orders move to its sibling group `<id>_f` (task 10).
 
 ### Alternatives considered
 
@@ -29,7 +29,7 @@ Edit / close / cancel / remove SL·TP / chart drag on a grouped entry
   → frontend expands it to the open members → sendCommands (one per broker, as today)
   → each command_result is collected by a batch → one summary toast (AC 7)
 positions message from the pipe (per broker) → members whose ticket is no longer open are removed;
-  a group with < 2 members left open is deleted → WS entry_groups
+  a group with no member left is deleted; filled orders move to `<id>_f` → WS entry_groups
 ```
 
 ## Per-layer changes
@@ -63,7 +63,7 @@ model EntryGroupMember {
 - `routes/commands.ts`: optional `groupId` (same pattern as `id`), only allowed on opening actions. When the result is `ok` with a ticket → `addMember(groupId, broker, ticket)`. A late result (`late: true`) also counts.
 - `store/entry-groups.ts` (new): in-memory cache + BD.
   - `addMember`: creates the group on its first member, with no colour yet. On the second member it picks the first colour of the palette not used by another group, or the least used one when all are taken.
-  - `syncOpenTickets(broker, tickets)`: called from the `positions` handler in `index.ts`, like `syncColors`, but only when the set of tickets changes. It removes members that are no longer open and deletes groups with fewer than 2 members.
+  - `syncOpenEntries(broker, entries)` (renamed from `syncOpenTickets` in task 10; it takes ticket and type): called from the `positions` handler in `index.ts`, like `syncColors`, but only when the open entries change. It removes members that are no longer open and deletes groups with no member left (task 10; until then a coloured group was deleted below 2). The frontend hides the star of a group with fewer than 2 open members. The positions of a group of orders move to `<id>_f` when pending orders remain beside them or once `<id>_f` exists.
   - `removeMember(broker, ticket)`: take the entry out of its group (AC 10).
   - Every change → broadcast `entry_groups`.
 - `routes/entry-groups.ts` (new, `requireAuth`): `GET /entry-groups` returns `[{ id, color, members: [{ broker, ticket }] }]`, and `DELETE /entry-groups/members` with body `{ broker, ticket }`.

@@ -11,6 +11,7 @@
 | 7 | build + eslint + node run of asMirrorGroup | ✅ | 0.75 SP | 0.5 SP |
 | 8 | build + eslint + node simulation | ✅ | 1.5 SP | 0.75 SP |
 | 9 | build + eslint + node run of the helpers + code review; visual → task 10 🕐 | ✅ / 🕐 | 4 SP | 2 SP |
+| 10 | vitest + lint/typecheck/test/build | ✅ | 2 SP | 1 SP |
 
 ## Task 1 — [db] entry_groups tables
 - `npx prisma generate` and `npm run build` (tsc): pass.
@@ -72,3 +73,9 @@
 - The helpers of task 5, bundled with esbuild and run in Node: a group of 3 opened from its 2nd entry → that entry first, then the other two; no group → the entry alone; a forming group (no colour) → alone; a group left with 1 open → alone (`activeGroupOf` null); two entries of the same group → 3 entries with no duplicates ✅.
 - Code review against the mockup: the edit panel (box, Remove SL/TP, take out, Save · N), the order panel (box, price, take out, Save · N orders), close-group confirmation with brokers and lots, one toast per batch ✅. On mobile the same panels open as a sheet.
 - Deviation: as in task 6, the check in the running app needs real groups, so it moves to task 10 🕐. The TP by R ratio of `BulkEditPanel` still computes each entry's TP from its own open price; that is an explicit per-entry calculation, kept as it is.
+
+## Task 10 — [backend] split a partly filled group (added during validation)
+- The user asked, on 2026-11-26, that a group of orders partly filled becomes two groups: the orders still pending (they keep the colour) and the filled positions (a new colour). AC 8 and the design were updated.
+- `store/entry-groups.ts`: `syncOpenEntries(broker, [{ ticket, type }])` replaces `syncOpenTickets`. The positions of a group of orders move to `<id>_f` while pending orders remain beside them or once `<id>_f` exists; a group placed at market is never split; an entry whose broker has not reported yet is left alone. A group is now deleted only when empty, because a group of orders left with 1 must still know its `_f` sibling when that order fills (the star already hides below 2 open members).
+- vitest: 10 store tests + 5 route tests ✅, among them 4 orders → 1 fills (`g1` keeps 3 with its colour, `g1_f` 1 without colour) → 2 more (`g1_f` 3 with another colour) → the last (`g1` deleted, `g1_f` 4), a market group not split, and keep while 1 open / delete when none.
+- `npm run typecheck` ✅ · eslint ✅ · `npm run build` ✅ · `npm test` 242/242 ✅.

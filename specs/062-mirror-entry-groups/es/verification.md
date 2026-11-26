@@ -11,6 +11,7 @@
 | 7 | build + eslint + ejecución de asMirrorGroup en node | ✅ | 0.75 SP | 0.5 SP |
 | 8 | build + eslint + simulación en node | ✅ | 1.5 SP | 0.75 SP |
 | 9 | build + eslint + ejecución de utilidades en node + revisión de código; visual → tarea 10 🕐 | ✅ / 🕐 | 4 SP | 2 SP |
+| 10 | vitest + lint/typecheck/test/build | ✅ | 2 SP | 1 SP |
 
 ## Tarea 1 — [db] tablas entry_groups
 - `npx prisma generate` y `npm run build` (tsc): correctos.
@@ -72,3 +73,9 @@
 - Las utilidades de la tarea 5, empaquetadas con esbuild y ejecutadas en Node: un grupo de 3 abierto desde su 2.ª entrada → esa entrada primero y luego las otras dos; sin grupo → la entrada sola; un grupo en formación (sin color) → sola; un grupo con 1 abierta → sola (`activeGroupOf` null); dos entradas del mismo grupo → 3 entradas sin duplicados ✅.
 - Revisión de código contra la maqueta: el panel de edición (caja, Remove SL/TP, sacar del grupo, Save · N), el de orden (caja, precio, sacar del grupo, Save · N orders), la confirmación de cierre del grupo con brokers y lotes, un aviso por lote ✅. En móvil se abren los mismos paneles como hoja.
 - Desviación: como en la tarea 6, la prueba en la app en marcha necesita grupos reales, así que pasa a la tarea 10 🕐. El TP por ratio R de `BulkEditPanel` sigue calculando el TP de cada entrada desde su propio precio de apertura; es un cálculo explícito por entrada y se mantiene tal cual.
+
+## Tarea 10 — [backend] partir un grupo ejecutado en parte (añadida en la validación)
+- El usuario pidió, el 2026-11-26, que un grupo de órdenes ejecutado en parte se convierta en dos grupos: las órdenes que siguen pendientes (conservan el color) y las posiciones ejecutadas (color nuevo). Se actualizaron el AC 8 y el diseño.
+- `store/entry-groups.ts`: `syncOpenEntries(broker, [{ ticket, type }])` sustituye a `syncOpenTickets`. Las posiciones de un grupo de órdenes pasan a `<id>_f` mientras quedan órdenes pendientes a su lado o cuando `<id>_f` ya existe; un grupo lanzado a mercado nunca se parte; una entrada cuyo broker aún no ha informado se deja como está. Un grupo ahora solo se borra cuando se queda vacío, porque un grupo de órdenes con 1 tiene que seguir conociendo su hermano `_f` cuando esa orden se ejecute (la estrella ya se oculta con menos de 2 abiertas).
+- vitest: 10 tests del store + 5 de las rutas ✅, entre ellos 4 órdenes → se ejecuta 1 (`g1` conserva 3 con su color, `g1_f` 1 sin color) → 2 más (`g1_f` 3 con otro color) → la última (`g1` borrado, `g1_f` 4), un grupo a mercado sin partir, y se conserva con 1 abierta / se borra sin ninguna.
+- `npm run typecheck` ✅ · eslint ✅ · `npm run build` ✅ · `npm test` 242/242 ✅.

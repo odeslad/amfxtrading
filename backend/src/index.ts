@@ -66,7 +66,7 @@ function startBroker(brokerName: string, bridgePath: string, wss: Wss) {
     setPositions(brokerName, positions, currency, brokerOffset);
     if (features.wsBroadcast) wss.broadcastPositions(brokerName, positions, currency, brokerOffset);
     const tickets = (positions as { ticket: number }[]).map(p => p.ticket);
-    entryGroups.syncOpenTickets(brokerName, tickets);
+    entryGroups.syncOpenEntries(brokerName, (positions as { ticket: number; type: number }[]).map(p => ({ ticket: p.ticket, type: p.type })));
     syncColors(brokerName, tickets).catch((err: unknown) => {
       console.error(`[COLORS:${brokerName}]`, err instanceof Error ? err.message : String(err));
     });

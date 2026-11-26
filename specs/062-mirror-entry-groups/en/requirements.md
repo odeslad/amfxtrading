@@ -21,7 +21,7 @@ An entry placed with a mirror preset (New Trade, or the chart menu's quick order
 - AC 5. WHEN the user removes the SL or TP of a grouped entry THEN it is removed from every other entry of the group.
 - AC 6. WHEN the user closes a grouped position or cancels a grouped order THEN every other entry of the group is closed/cancelled.
 - AC 7. WHEN a change fails on one or more brokers THEN the user is told which broker failed and the entries that succeeded keep the change (no rollback).
-- AC 8. WHEN a grouped pending order fills THEN the resulting position keeps the group and the star.
+- AC 8. WHEN some pending orders of a group fill and others do not THEN the group splits in two: the orders still pending keep their group and star, and the filled positions form a group of their own with another colour, which later fills of the same group join. A group never mixes positions and pending orders, so an edit, close or cancel never crosses from one to the other. *(Changed 2026-11-26 during validation: it read "the resulting position keeps the group and the star".)*
 - AC 9. WHEN one entry of the group closes on its own (SL/TP hit, manual close outside the app) THEN the remaining entries stay grouped.
 - AC 10. WHEN the user takes an entry out of its group THEN its star disappears and later changes to it or to the group no longer propagate between them.
 - AC 11. WHEN only one entry of a group remains open THEN it shows no star (a group of one is no group).

@@ -21,7 +21,7 @@ Una entrada lanzada con un mirror preset (New Trade, o las órdenes rápidas del
 - AC 5. CUANDO el usuario quita el SL o el TP de una entrada agrupada ENTONCES se quita en todas las demás del grupo.
 - AC 6. CUANDO el usuario cierra una posición agrupada o cancela una orden agrupada ENTONCES se cierran/cancelan todas las demás del grupo.
 - AC 7. CUANDO un cambio falla en uno o más brokers ENTONCES se avisa al usuario de qué broker ha fallado y las entradas en las que funcionó conservan el cambio (sin deshacer).
-- AC 8. CUANDO una orden pendiente agrupada se ejecuta ENTONCES la posición resultante conserva el grupo y la estrella.
+- AC 8. CUANDO unas órdenes pendientes de un grupo se ejecutan y otras no ENTONCES el grupo se parte en dos: las órdenes que siguen pendientes conservan su grupo y su estrella, y las posiciones ejecutadas forman un grupo propio con otro color, al que se suman las siguientes ejecuciones del mismo grupo. Un grupo nunca mezcla posiciones y órdenes pendientes, así que editar, cerrar o cancelar nunca pasa de unas a otras. *(Cambiado el 2026-11-26 durante la validación: decía "la posición resultante conserva el grupo y la estrella".)*
 - AC 9. CUANDO una entrada del grupo se cierra por su cuenta (salta SL/TP, cierre manual fuera de la app) ENTONCES las demás siguen agrupadas.
 - AC 10. CUANDO el usuario saca una entrada de su grupo ENTONCES desaparece su estrella y los cambios posteriores dejan de propagarse entre ella y el grupo.
 - AC 11. CUANDO solo queda una entrada abierta de un grupo ENTONCES no muestra estrella (un grupo de uno no es grupo).

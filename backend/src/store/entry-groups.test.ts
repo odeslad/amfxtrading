@@ -22,6 +22,9 @@ function memoryRepo(initial: EntryGroup[] = []) {
   return { repo, rows };
 }
 
+const market = (...tickets: number[]) => tickets.map(ticket => ({ ticket, type: 0 }));
+const pending = (...tickets: number[]) => tickets.map(ticket => ({ ticket, type: 2 }));
+
 let clock = 0;
 const now = () => clock;
 
@@ -48,16 +51,16 @@ describe('entry group store', () => {
     expect(store.getGroups().find(g => g.id === 'g2')?.color).toBe(GROUP_PALETTE[1]);
   });
 
-  it('keeps a forming group of one, and deletes a coloured one left with one member', () => {
+  it('keeps a group while one member is open, and deletes it when none is', () => {
     const store = createEntryGroupStore(memoryRepo().repo, now);
     store.addMember('g1', 'ic', 10);
-    store.syncOpenTickets('ic', [10]);
+    store.syncOpenEntries('ic', market(10));
     expect(store.getGroups()).toHaveLength(1);
 
     store.addMember('g1', 'pp', 20);
-    store.syncOpenTickets('pp', []);
-    clock += EMPTY_LIST_GRACE_MS;
-    store.syncOpenTickets('pp', []);
+    store.syncOpenEntries('pp', market(21));
+    expect(store.getGroups()[0].members).toEqual([{ broker: 'ic', ticket: 10 }]);
+    store.syncOpenEntries('ic', market(11));
     expect(store.getGroups()).toHaveLength(0);
   });
 
@@ -66,7 +69,7 @@ describe('entry group store', () => {
     store.addMember('g1', 'ic', 10);
     store.addMember('g1', 'pp', 20);
     store.addMember('g1', 'ft', 30);
-    store.syncOpenTickets('ft', [31]);
+    store.syncOpenEntries('ft', market(31));
     expect(store.getGroups()[0].members).toEqual([{ broker: 'ic', ticket: 10 }, { broker: 'pp', ticket: 20 }]);
   });
 
@@ -75,16 +78,16 @@ describe('entry group store', () => {
     store.addMember('g1', 'ic', 10);
     store.addMember('g1', 'pp', 20);
     store.addMember('g1', 'ft', 30);
-    store.syncOpenTickets('ic', []);
+    store.syncOpenEntries('ic', []);
     clock += EMPTY_LIST_GRACE_MS - 1;
-    store.syncOpenTickets('ic', []);
+    store.syncOpenEntries('ic', []);
     expect(store.getGroups()[0].members).toHaveLength(3);
-    store.syncOpenTickets('ic', [10]);
+    store.syncOpenEntries('ic', market(10));
     clock += EMPTY_LIST_GRACE_MS;
-    store.syncOpenTickets('ic', []);
+    store.syncOpenEntries('ic', []);
     expect(store.getGroups()[0].members).toHaveLength(3);
     clock += EMPTY_LIST_GRACE_MS;
-    store.syncOpenTickets('ic', []);
+    store.syncOpenEntries('ic', []);
     expect(store.getGroups()[0].members).toHaveLength(2);
   });
 
@@ -97,7 +100,46 @@ describe('entry group store', () => {
     expect(store.getGroups()[0].members).toHaveLength(2);
     expect(store.removeMember('ft', 30)).toBe(false);
     store.removeMember('pp', 20);
+    store.removeMember('ic', 10);
     expect(store.getGroups()).toHaveLength(0);
+  });
+
+  it('moves the filled orders of a group to its _f sibling, and later fills join it', () => {
+    const store = createEntryGroupStore(memoryRepo().repo, now);
+    for (const [broker, ticket] of [['a', 1], ['b', 2], ['c', 3], ['d', 4]] as const) {
+      store.addMember('g1', broker, ticket);
+      store.syncOpenEntries(broker, pending(ticket));
+    }
+    const color = store.getGroups()[0].color;
+    expect(store.getGroups()).toHaveLength(1);
+
+    store.syncOpenEntries('a', market(1));
+    const afterFirst = store.getGroups();
+    expect(afterFirst.find(g => g.id === 'g1')?.members).toHaveLength(3);
+    expect(afterFirst.find(g => g.id === 'g1_f')).toEqual({ id: 'g1_f', color: '', members: [{ broker: 'a', ticket: 1 }] });
+
+    store.syncOpenEntries('b', market(2));
+    store.syncOpenEntries('c', market(3));
+    const orders = store.getGroups().find(g => g.id === 'g1');
+    const filled = store.getGroups().find(g => g.id === 'g1_f');
+    expect(orders).toEqual({ id: 'g1', color, members: [{ broker: 'd', ticket: 4 }] });
+    expect(filled?.members).toHaveLength(3);
+    expect(filled?.color).not.toBe('');
+    expect(filled?.color).not.toBe(color);
+
+    store.syncOpenEntries('d', market(4));
+    expect(store.getGroups().map(g => g.id)).toEqual(['g1_f']);
+    expect(store.getGroups()[0].members).toHaveLength(4);
+  });
+
+  it('does not split a group of positions or one whose brokers have not reported', () => {
+    const store = createEntryGroupStore(memoryRepo().repo, now);
+    store.addMember('g1', 'a', 1);
+    store.addMember('g1', 'b', 2);
+    store.syncOpenEntries('a', market(1));
+    expect(store.getGroups().map(g => g.id)).toEqual(['g1']);
+    store.syncOpenEntries('b', market(2));
+    expect(store.getGroups().map(g => g.id)).toEqual(['g1']);
   });
 
   it('notifies listeners on every change', () => {
@@ -106,7 +148,7 @@ describe('entry group store', () => {
     store.onChange(listener);
     store.addMember('g1', 'ic', 10);
     store.addMember('g1', 'pp', 20);
-    store.syncOpenTickets('ic', [10]);
+    store.syncOpenEntries('ic', market(10));
     expect(listener).toHaveBeenCalledTimes(2);
     expect(listener.mock.calls[1][0][0].members).toHaveLength(2);
   });
