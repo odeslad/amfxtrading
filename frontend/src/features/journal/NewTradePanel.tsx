@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api';
+import { trackBatch } from '../../lib/commandBatch';
 import { asMirrorGroup, newCommandId, sendCommand, type Command, type CommandAction } from '../../lib/commands';
 import { subscribe } from '../../lib/ws';
 import { useTickSubscription } from '../../lib/useTickSubscription';
@@ -302,6 +303,7 @@ export const NewTradePanel = memo(function NewTradePanel({ open, onClose, initia
         ? [{ ...base, id: newCommandId(), broker, lots: parseFloat(lots), lotsMode }]
         : asMirrorGroup(activeMirrorBrokers.map(m => ({ ...base, id: newCommandId(), broker: m.broker, lots: m.lots, lotsMode: m.lotsMode })));
       commands.forEach(c => pendingIds.current.add(c.id));
+      trackBatch('Order placed', commands);
       await Promise.all(commands.map(sendCommand));
     } catch (err) {
       setSubmitting(false);

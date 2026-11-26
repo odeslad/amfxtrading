@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { sendCommand } from '../../lib/commands';
+import { trackBatch } from '../../lib/commandBatch';
 import { errorMessage } from '../../lib/api';
 import { addToast } from '../../lib/toast';
 import type { QuickOrderPlan } from '../../lib/quickOrders';
@@ -31,6 +32,7 @@ export function QuickOrderConfirm({ symbol, plan, onClose }: QuickOrderConfirmPr
     if (!plan) return;
     setSending(true);
     try {
+      trackBatch('Order placed', plan.commands);
       await Promise.all(plan.commands.map(sendCommand));
       onClose();
     } catch (err) {

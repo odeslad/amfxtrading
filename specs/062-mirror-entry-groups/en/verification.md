@@ -9,6 +9,7 @@
 | 5 | build + eslint; /dev/ui 🕐 | ✅ / 🕐 | 1.5 SP | 0.75 SP |
 | 6 | build + eslint; visual → task 10 🕐 | ✅ / 🕐 | 1.5 SP | 0.75 SP |
 | 7 | build + eslint + node run of asMirrorGroup | ✅ | 0.75 SP | 0.5 SP |
+| 8 | build + eslint + node simulation | ✅ | 1.5 SP | 0.75 SP |
 
 ## Task 1 — [db] entry_groups tables
 - `npx prisma generate` and `npm run build` (tsc): pass.
@@ -51,3 +52,10 @@
 - `lib/commands.ts`: `Command.groupId?` and `asMirrorGroup(cmds)`, which gives the same new id to all the commands when there are ≥ 2 and leaves a single command untouched. Used by `NewTradePanel` (mirror mode) and `planQuickOrder` (`lib/quickOrders.ts`, which `QuickOrderConfirm` sends as is).
 - `npm run build` ✅ · eslint ✅.
 - In place of the network check (no local backend before the deploy, see task 3), `asMirrorGroup` bundled with esbuild and run in Node gives 1 broker → `groupId` undefined, and 3 brokers → the same id on all three, matching `^[A-Za-z0-9_-]{1,64}$` ✅. The real request is checked in task 10.
+
+## Task 8 — [frontend] one summary toast per batch
+- `lib/commandBatch.ts`: `trackBatch(label, commands)` (2 or more only), `takeBatchResult(msg)` (true when the result belongs to a batch), `summaryOf`, and a 35 s timeout that reports the missing brokers as "No response from EA". `AppLayout` skips its own toast for a result taken by a batch.
+- Also wired in this task: New Trade (mirror) and the quick orders track their sends as "Order placed", so a mirror entry gets one toast too.
+- `npm run build` ✅ · eslint ✅.
+- `commandBatch` + `toast` bundled with esbuild and run in Node (timeout shortened to 300 ms): 3 results with one error → `error: SL updated in 2 of 3 · FTMO — Invalid stops`; all ok → `success: Closed in 2 of 2`; a foreign id and a single-command batch are not taken (their own toast stays); a missing result → `error: TP updated in 1 of 2 · FTMO — No response from EA` ✅.
+- Deviations: the partial-failure toast uses the existing `error` style (there is no warning toast type and adding one is outside this task). A command the backend rejects with 400 never gets a WS result, so it is reported as "No response" after 35 s, in addition to the rejection toast the caller already shows.

@@ -9,6 +9,7 @@
 | 5 | build + eslint; /dev/ui 🕐 | ✅ / 🕐 | 1.5 SP | 0.75 SP |
 | 6 | build + eslint; visual → tarea 10 🕐 | ✅ / 🕐 | 1.5 SP | 0.75 SP |
 | 7 | build + eslint + ejecución de asMirrorGroup en node | ✅ | 0.75 SP | 0.5 SP |
+| 8 | build + eslint + simulación en node | ✅ | 1.5 SP | 0.75 SP |
 
 ## Tarea 1 — [db] tablas entry_groups
 - `npx prisma generate` y `npm run build` (tsc): correctos.
@@ -51,3 +52,10 @@
 - `lib/commands.ts`: `Command.groupId?` y `asMirrorGroup(cmds)`, que da el mismo id nuevo a todos los comandos cuando hay 2 o más y deja intacto un comando único. Lo usan `NewTradePanel` (modo mirror) y `planQuickOrder` (`lib/quickOrders.ts`, que `QuickOrderConfirm` envía tal cual).
 - `npm run build` ✅ · eslint ✅.
 - En lugar de la comprobación en la red (sin backend local antes del deploy, ver tarea 3), `asMirrorGroup` empaquetado con esbuild y ejecutado en Node da 1 broker → `groupId` undefined, y 3 brokers → el mismo id en los tres, que cumple `^[A-Za-z0-9_-]{1,64}$` ✅. La petición real se comprueba en la tarea 10.
+
+## Tarea 8 — [frontend] un único aviso resumen por lote
+- `lib/commandBatch.ts`: `trackBatch(label, commands)` (solo con 2 o más), `takeBatchResult(msg)` (true cuando el resultado pertenece a un lote), `summaryOf`, y una espera máxima de 35 s que da por "No response from EA" a los brokers que faltan. `AppLayout` no muestra su propio aviso para un resultado que recoge un lote.
+- Conectado también en esta tarea: New Trade (mirror) y las órdenes rápidas siguen sus envíos como "Order placed", así que una entrada mirror también tiene un solo aviso.
+- `npm run build` ✅ · eslint ✅.
+- `commandBatch` + `toast` empaquetados con esbuild y ejecutados en Node (espera acortada a 300 ms): 3 resultados con un error → `error: SL updated in 2 of 3 · FTMO — Invalid stops`; todos bien → `success: Closed in 2 of 2`; un id ajeno y un lote de un comando no se recogen (se queda su propio aviso); un resultado que no llega → `error: TP updated in 1 of 2 · FTMO — No response from EA` ✅.
+- Desviaciones: el aviso de fallo parcial usa el estilo `error` existente (no hay tipo de aviso de advertencia y añadirlo queda fuera de esta tarea). Un comando que el backend rechaza con 400 nunca recibe resultado por WS, así que se cuenta como "No response" pasados 35 s, además del aviso de rechazo que ya muestra quien lo envía.

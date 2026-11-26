@@ -5,6 +5,7 @@ import { IconJournal, IconChart, IconStats, IconBook, IconSettings, IconSignOut 
 import { Toaster } from '../../shared/ui/Toast/Toaster';
 import { subscribe } from '../../lib/ws';
 import { addToast } from '../../lib/toast';
+import { takeBatchResult } from '../../lib/commandBatch';
 import { useBuildInfo } from '../../lib/useBuildInfo';
 import { loadEntryGroups, setEntryGroups } from '../../lib/useEntryGroups';
 import type { EntryGroup } from '../../lib/entryGroups';
@@ -49,6 +50,7 @@ export function AppLayout() {
       return;
     }
     if (msg.type !== 'command_result') return;
+    if (takeBatchResult(msg)) return;
     if (msg.status === 'ok') {
       const detail = msg.ticket != null ? ` — ticket #${msg.ticket}` : '';
       addToast(`Order executed${detail}`, 'success');
