@@ -15,12 +15,20 @@ export interface Command {
   tp?: number;
   price?: number;
   ticket?: number;
+  groupId?: string;
 }
 
 type PositionRef = Pick<Position, 'broker' | 'symbol' | 'ticket' | 'lots'>;
 
 export function newCommandId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+// Spec 062: the commands of one mirror send share a group id, so their entries are linked.
+export function asMirrorGroup(cmds: Command[]): Command[] {
+  if (cmds.length < 2) return cmds;
+  const groupId = newCommandId();
+  return cmds.map(c => ({ ...c, groupId }));
 }
 
 export function closeCommand(p: PositionRef): Command {

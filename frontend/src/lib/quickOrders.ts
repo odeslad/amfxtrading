@@ -1,4 +1,4 @@
-import { newCommandId, type Command, type CommandAction } from './commands';
+import { asMirrorGroup, newCommandId, type Command, type CommandAction } from './commands';
 import { orderTypeAt, type Side } from './orderType';
 import { pipSize, pricePrecision } from '../features/journal/utils/position';
 
@@ -96,9 +96,9 @@ export function buildQuickOrder(config: QuickOrders, req: QuickOrderRequest): Qu
   if (targets.length === 0) return { error: `Preset "${preset?.name}" has no enabled broker` };
   if (sl === 0 && targets.some(t => t.lotsMode === 'risk_pct')) return { error: 'Risk % sizing needs a stop loss in the quick order settings' };
 
-  const commands: Command[] = targets.map(t => ({
+  const commands: Command[] = asMirrorGroup(targets.map(t => ({
     id: newCommandId(), action, broker: t.broker, symbol: symbol.toUpperCase(), lots: t.lots, lotsMode: t.lotsMode, sl, tp,
     ...(req.price !== null ? { price: round(req.price) } : {}),
-  }));
+  })));
   return { plan: { action, entry: round(entry), sl, tp, slPips: config.slPips, tpLabel, presetName: preset?.name ?? null, targets, commands } };
 }

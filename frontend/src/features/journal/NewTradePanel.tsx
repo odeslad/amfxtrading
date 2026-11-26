@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api';
-import { newCommandId, sendCommand, type Command, type CommandAction } from '../../lib/commands';
+import { asMirrorGroup, newCommandId, sendCommand, type Command, type CommandAction } from '../../lib/commands';
 import { subscribe } from '../../lib/ws';
 import { useTickSubscription } from '../../lib/useTickSubscription';
 import { addToast } from '../../lib/toast';
@@ -300,7 +300,7 @@ export const NewTradePanel = memo(function NewTradePanel({ open, onClose, initia
     try {
       const commands: Command[] = mode === 'manual'
         ? [{ ...base, id: newCommandId(), broker, lots: parseFloat(lots), lotsMode }]
-        : activeMirrorBrokers.map(m => ({ ...base, id: newCommandId(), broker: m.broker, lots: m.lots, lotsMode: m.lotsMode }));
+        : asMirrorGroup(activeMirrorBrokers.map(m => ({ ...base, id: newCommandId(), broker: m.broker, lots: m.lots, lotsMode: m.lotsMode })));
       commands.forEach(c => pendingIds.current.add(c.id));
       await Promise.all(commands.map(sendCommand));
     } catch (err) {

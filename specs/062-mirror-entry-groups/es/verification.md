@@ -8,6 +8,7 @@
 | 4 | lectura manual | ✅ | 0.5 SP | 0.25 SP |
 | 5 | build + eslint; /dev/ui 🕐 | ✅ / 🕐 | 1.5 SP | 0.75 SP |
 | 6 | build + eslint; visual → tarea 10 🕐 | ✅ / 🕐 | 1.5 SP | 0.75 SP |
+| 7 | build + eslint + ejecución de asMirrorGroup en node | ✅ | 0.75 SP | 0.5 SP |
 
 ## Tarea 1 — [db] tablas entry_groups
 - `npx prisma generate` y `npm run build` (tsc): correctos.
@@ -45,3 +46,8 @@
 - `OpenPositions` / `PendingOrders`: una estrella delante del broker; al pasar el ratón por una fila se resaltan todas las de su grupo (`.groupRow`, `--tint-selected`). `PositionCard` / `OrderCard`: una estrella en la cabecera de la tarjeta, delante de la insignia de color, y en el campo Broker.
 - `npm run build` ✅ · eslint de los archivos tocados ✅.
 - Desviación: la revisión visual en local contra la maqueta necesita grupos reales, y solo existen cuando el backend está desplegado (tarea 3: sin backend local contra la BD de producción antes de la migración). Pasa a la validación en producción (tarea 10) 🕐.
+
+## Tarea 7 — [frontend] groupId desde New Trade y las órdenes rápidas
+- `lib/commands.ts`: `Command.groupId?` y `asMirrorGroup(cmds)`, que da el mismo id nuevo a todos los comandos cuando hay 2 o más y deja intacto un comando único. Lo usan `NewTradePanel` (modo mirror) y `planQuickOrder` (`lib/quickOrders.ts`, que `QuickOrderConfirm` envía tal cual).
+- `npm run build` ✅ · eslint ✅.
+- En lugar de la comprobación en la red (sin backend local antes del deploy, ver tarea 3), `asMirrorGroup` empaquetado con esbuild y ejecutado en Node da 1 broker → `groupId` undefined, y 3 brokers → el mismo id en los tres, que cumple `^[A-Za-z0-9_-]{1,64}$` ✅. La petición real se comprueba en la tarea 10.
