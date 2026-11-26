@@ -27,6 +27,7 @@ import { evaluateEmaNotifications, setEmaNotificationBroadcaster } from './alert
 import { refreshEmaNotifications, startEmaNotificationRefresh } from './alerts/ema-notification-store';
 import { startServerMonitor } from './services/server-monitor';
 import { setMaTemplatesBroadcaster } from './routes/ma-templates';
+import { setSplitLayoutsBroadcaster } from './routes/split-layouts';
 import { setBrokerSymbolsBroadcaster, setSymbolsTurnedOnHandler } from './routes/broker-symbols';
 import { setCandleSyncBroadcaster, syncNewSymbols } from './routes/candle-sync';
 import { startHiddenSymbolsRollout } from './services/hidden-symbols-rollout';
@@ -133,6 +134,7 @@ async function main() {
   setEmaAlertBroadcaster((userId, broker, symbol, timeframe, direction) => wss.broadcastEmaAlert(userId, broker, symbol, timeframe, direction));
   setEmaNotificationBroadcaster((fire) => wss.broadcastEmaNotification(fire.userId, { ...fire }));
   setMaTemplatesBroadcaster((userId) => wss.broadcastMaTemplates(userId));
+  setSplitLayoutsBroadcaster((userId) => wss.broadcastSplitLayouts(userId));
   setBrokerSymbolsBroadcaster((state) => wss.broadcastBrokerSymbols(state));
   if (config.features.watcher) startHiddenSymbolsRollout();
   setCandleSyncBroadcaster((broker, update) => wss.broadcastCandleSync(broker, update));
