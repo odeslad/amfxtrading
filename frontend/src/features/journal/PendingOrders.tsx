@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { matchesColorFilter } from './utils/colorFilter';
 import { useNavigate } from 'react-router-dom';
 import { type Position, fmt, fmtDistance, fmtLocalTime, TYPE_LABEL, isBuySide, isPending, orderDistancePips, sameSymbol } from './utils/position';
@@ -8,6 +8,8 @@ import { OrderCard } from './OrderCard';
 import { ColorBadge } from './ColorBadge';
 import { posKey, setLiveColor, useLivePositions } from './useLivePositions';
 import { isVisible, useVisibility } from '../../lib/visibility';
+import { GroupStar } from '../../shared/ui';
+import { useGroupMarks } from '../../lib/useEntryGroups';
 import styles from './JournalPage.module.css';
 
 interface PendingOrdersProps {
@@ -28,6 +30,8 @@ export function PendingOrders({ filters, onOptionsChange, onGroupChange, onEdit,
     [live.positions, visibility],
   );
   const colors = live.colors;
+  const markOf = useGroupMarks(live.positions);
+  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const onColorChange = setLiveColor;
 
   const options = useMemo(() => {
@@ -103,8 +107,20 @@ export function PendingOrders({ filters, onOptionsChange, onGroupChange, onEdit,
             {filtered.map(p => {
               const distance = orderDistancePips(p);
               return (
-                <tr key={`${p.broker}-${p.ticket}`} onDoubleClick={() => handleOpenChart(p)} style={{ cursor: 'pointer' }}>
-                  <td className={styles.broker}>{p.broker}</td>
+                <tr
+                  key={`${p.broker}-${p.ticket}`}
+                  className={hoveredGroup !== null && markOf(p.broker, p.ticket)?.id === hoveredGroup ? styles.groupRow : undefined}
+                  onDoubleClick={() => handleOpenChart(p)}
+                  onMouseEnter={() => setHoveredGroup(markOf(p.broker, p.ticket)?.id ?? null)}
+                  onMouseLeave={() => setHoveredGroup(null)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <td className={styles.broker}>
+                  <span className={styles.brokerCell}>
+                    {markOf(p.broker, p.ticket) && <GroupStar color={markOf(p.broker, p.ticket)!.color} />}
+                    {p.broker}
+                  </span>
+                </td>
                   <td>
                     <span className={styles.symbolCell}>
                       <ColorBadge
@@ -144,6 +160,7 @@ export function PendingOrders({ filters, onOptionsChange, onGroupChange, onEdit,
             key={`${p.broker}-${p.ticket}`}
             order={p}
             color={colors.get(posKey(p.broker!, p.ticket))}
+            groupColor={markOf(p.broker, p.ticket)?.color}
             onColorChange={onColorChange}
             onEdit={onEdit}
             onCancel={onCancel}

@@ -14,6 +14,8 @@ import { ColorBadge } from './ColorBadge';
 import { ConfirmPanel } from './ConfirmPanel';
 import { BulkEditPanel } from './BulkEditPanel';
 import { posKey, setLiveColor, useLivePositions } from './useLivePositions';
+import { GroupStar } from '../../shared/ui';
+import { useGroupMarks } from '../../lib/useEntryGroups';
 import styles from './JournalPage.module.css';
 
 export interface BulkGroup {
@@ -39,6 +41,8 @@ export function OpenPositions({ filters, onOptionsChange, onBulkChange }: OpenPo
     [live.positions, visibility],
   );
   const colors = live.colors;
+  const markOf = useGroupMarks(live.positions);
+  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const onColorChange = setLiveColor;
   const [confirmClose, setConfirmClose] = useState<Position | null>(null);
   const [closing, setClosing] = useState(false);
@@ -140,8 +144,20 @@ export function OpenPositions({ filters, onOptionsChange, onBulkChange }: OpenPo
           </thead>
           <tbody>
             {filtered.map(p => (
-              <tr key={`${p.broker}-${p.ticket}`} onDoubleClick={() => handleOpenChart(p)} style={{ cursor: 'pointer' }}>
-                <td className={styles.broker}>{p.broker}</td>
+              <tr
+                  key={`${p.broker}-${p.ticket}`}
+                  className={hoveredGroup !== null && markOf(p.broker, p.ticket)?.id === hoveredGroup ? styles.groupRow : undefined}
+                  onDoubleClick={() => handleOpenChart(p)}
+                  onMouseEnter={() => setHoveredGroup(markOf(p.broker, p.ticket)?.id ?? null)}
+                  onMouseLeave={() => setHoveredGroup(null)}
+                  style={{ cursor: 'pointer' }}
+                >
+                <td className={styles.broker}>
+                  <span className={styles.brokerCell}>
+                    {markOf(p.broker, p.ticket) && <GroupStar color={markOf(p.broker, p.ticket)!.color} />}
+                    {p.broker}
+                  </span>
+                </td>
                 <td>
                   <span className={styles.symbolCell}>
                     <ColorBadge
@@ -190,6 +206,7 @@ export function OpenPositions({ filters, onOptionsChange, onBulkChange }: OpenPo
             pnlMode={pnlMode}
             balance={balances[p.broker ?? '']}
             color={colors.get(posKey(p.broker!, p.ticket))}
+            groupColor={markOf(p.broker, p.ticket)?.color}
             onColorChange={onColorChange}
             onEdit={handleEdit}
             onClose={handleClose}

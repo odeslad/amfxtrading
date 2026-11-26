@@ -7,6 +7,7 @@
 | 3 | vitest + typecheck/lint/build (curl → tarea 10) | ✅ | 2.5 SP | 1 SP |
 | 4 | lectura manual | ✅ | 0.5 SP | 0.25 SP |
 | 5 | build + eslint; /dev/ui 🕐 | ✅ / 🕐 | 1.5 SP | 0.75 SP |
+| 6 | build + eslint; visual → tarea 10 🕐 | ✅ / 🕐 | 1.5 SP | 0.75 SP |
 
 ## Tarea 1 — [db] tablas entry_groups
 - `npx prisma generate` y `npm run build` (tsc): correctos.
@@ -38,3 +39,9 @@
 - `npm run build` ✅ · eslint de los archivos tocados ✅.
 - El frontend no tiene herramienta de tests y añadirla es una dependencia que la spec no recoge; las utilidades se comprueban en la revisión de la tarea 9.
 - 🕐 Revisión visual en `/dev/ui` (`npm run dev`, luego http://localhost:5174/dev/ui): pendiente del usuario.
+
+## Tarea 6 — [frontend] estrella en Positions y Orders
+- `useGroupMarks(open)`: una búsqueda `(broker, ticket) → { id, color }` sobre las posiciones en vivo, que cuenta solo los grupos con color y 2 o más miembros abiertos (AC 3, AC 11).
+- `OpenPositions` / `PendingOrders`: una estrella delante del broker; al pasar el ratón por una fila se resaltan todas las de su grupo (`.groupRow`, `--tint-selected`). `PositionCard` / `OrderCard`: una estrella en la cabecera de la tarjeta, delante de la insignia de color, y en el campo Broker.
+- `npm run build` ✅ · eslint de los archivos tocados ✅.
+- Desviación: la revisión visual en local contra la maqueta necesita grupos reales, y solo existen cuando el backend está desplegado (tarea 3: sin backend local contra la BD de producción antes de la migración). Pasa a la validación en producción (tarea 10) 🕐.

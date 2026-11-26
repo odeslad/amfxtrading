@@ -1,6 +1,7 @@
 import { type Position, type PnlMode, fmt, fmtPnlMode, calcPnl, currentQuote, fmtLocalTime, currencySymbol } from './utils/position';
 import { useSwipeActions } from './utils/useSwipeActions';
 import { ColorBadge } from './ColorBadge';
+import { GroupStar } from '../../shared/ui';
 import styles from './PositionCard.module.css';
 
 interface PositionCardProps {
@@ -8,13 +9,14 @@ interface PositionCardProps {
   pnlMode: PnlMode;
   balance?: number;
   color?: string;
+  groupColor?: string;
   onColorChange: (broker: string, ticket: number, color: string) => void;
   onEdit: (p: Position) => void;
   onClose: (p: Position) => void;
   onOpenChart?: (p: Position) => void;
 }
 
-export function PositionCard({ position: p, pnlMode, balance, color, onColorChange, onEdit, onClose, onOpenChart }: PositionCardProps) {
+export function PositionCard({ position: p, pnlMode, balance, color, groupColor, onColorChange, onEdit, onClose, onOpenChart }: PositionCardProps) {
   const { open, expanded, touchHandlers, onSummaryClick } = useSwipeActions(() => onOpenChart?.(p));
 
   const pnlValue = calcPnl(p, pnlMode, balance);
@@ -43,6 +45,7 @@ export function PositionCard({ position: p, pnlMode, balance, color, onColorChan
           <span className={`${styles.label} ${styles.right}`}>P&amp;L</span>
 
           <span className={styles.symbolCell}>
+            {groupColor && <GroupStar color={groupColor} />}
             <ColorBadge broker={p.broker!} ticket={p.ticket} color={color} onColorChange={onColorChange} />
             <span className={p.type === 0 ? styles.buy : styles.sell}>{p.symbol}</span>
           </span>
@@ -81,7 +84,7 @@ export function PositionCard({ position: p, pnlMode, balance, color, onColorChan
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Broker</span>
-            <span className={styles.brokerName}>{p.broker}</span>
+            <span className={styles.brokerName}>{groupColor && <GroupStar color={groupColor} />} {p.broker}</span>
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Open Time</span>

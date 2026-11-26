@@ -1,12 +1,14 @@
 import { type Position, fmt, fmtDistance, fmtLocalTime, isBuySide, orderDistancePips, TYPE_LABEL } from './utils/position';
 import { useSwipeActions } from './utils/useSwipeActions';
 import { ColorBadge } from './ColorBadge';
+import { GroupStar } from '../../shared/ui';
 import styles from './PositionCard.module.css';
 import own from './OrderCard.module.css';
 
 interface OrderCardProps {
   order: Position;
   color?: string;
+  groupColor?: string;
   onColorChange: (broker: string, ticket: number, color: string) => void;
   onEdit: (p: Position) => void;
   onCancel: (p: Position) => void;
@@ -17,7 +19,7 @@ const kindOf = (type: number): string => (type === 2 || type === 3 ? 'Limit' : '
 
 // The Positions card with the order's price and its distance to the market in
 // the P&L slot; the order kind sits in the label row so the symbol line stays clean.
-export function OrderCard({ order: p, color, onColorChange, onEdit, onCancel, onOpenChart }: OrderCardProps) {
+export function OrderCard({ order: p, color, groupColor, onColorChange, onEdit, onCancel, onOpenChart }: OrderCardProps) {
   const { open, expanded, touchHandlers, onSummaryClick } = useSwipeActions(() => onOpenChart?.(p));
   const distance = orderDistancePips(p);
   const distanceClass = distance === null ? own.pending : distance >= 0 ? styles.profit : styles.loss;
@@ -46,6 +48,7 @@ export function OrderCard({ order: p, color, onColorChange, onEdit, onCancel, on
           <span className={`${styles.label} ${styles.right}`}>Distance</span>
 
           <span className={styles.symbolCell}>
+            {groupColor && <GroupStar color={groupColor} />}
             <ColorBadge broker={p.broker!} ticket={p.ticket} color={color} onColorChange={onColorChange} />
             <span className={isBuySide(p.type) ? styles.buy : styles.sell}>{p.symbol}</span>
           </span>
@@ -74,7 +77,7 @@ export function OrderCard({ order: p, color, onColorChange, onEdit, onCancel, on
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Broker</span>
-            <span className={styles.brokerName}>{p.broker}</span>
+            <span className={styles.brokerName}>{groupColor && <GroupStar color={groupColor} />} {p.broker}</span>
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Placed</span>

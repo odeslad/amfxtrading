@@ -7,6 +7,7 @@
 | 3 | vitest + typecheck/lint/build (curl → task 10) | ✅ | 2.5 SP | 1 SP |
 | 4 | manual read | ✅ | 0.5 SP | 0.25 SP |
 | 5 | build + eslint; /dev/ui 🕐 | ✅ / 🕐 | 1.5 SP | 0.75 SP |
+| 6 | build + eslint; visual → task 10 🕐 | ✅ / 🕐 | 1.5 SP | 0.75 SP |
 
 ## Task 1 — [db] entry_groups tables
 - `npx prisma generate` and `npm run build` (tsc): pass.
@@ -38,3 +39,9 @@
 - `npm run build` ✅ · eslint on the touched files ✅.
 - The frontend has no test runner and adding one is a dependency the spec does not list; the helpers are checked in the task 9 review.
 - 🕐 Visual check in `/dev/ui` (`npm run dev`, then http://localhost:5174/dev/ui): pending for the user.
+
+## Task 6 — [frontend] star in Positions and Orders
+- `useGroupMarks(open)`: a `(broker, ticket) → { id, color }` lookup over the live positions, counting only groups with a colour and ≥ 2 open members (AC 3, AC 11).
+- `OpenPositions` / `PendingOrders`: a star before the broker; hovering a row highlights every row of its group (`.groupRow`, `--tint-selected`). `PositionCard` / `OrderCard`: a star in the card header, before the colour badge, and in the Broker field.
+- `npm run build` ✅ · eslint on the touched files ✅.
+- Deviation: the local visual check against the mockup needs real groups, and they exist only once the backend is deployed (task 3: no local backend against the production DB before the migration). It moves to the production validation (task 10) 🕐.
