@@ -141,6 +141,7 @@ Every router except `/auth` and `/health` sits behind `requireAuth`: the JWT tra
 | `/commands` | `POST` | Send an order to the EA (below) |
 | `/trades` | `GET` | Closed trades (broker, symbol, from, to, limit, offset) |
 | `/positions` | `GET /live`, `PATCH /color` | Open positions from the stores; colour per ticket |
+| `/split-layouts` | `GET`, `PUT` | Spec 063: the user's named split layouts (broker, pair and timeframe of each chart); `PUT { layouts }` replaces the whole list in a transaction (≤ 20, names unique, brokers from `brokers.json`, timeframes M5 · M15 · H1 · H4 · D1) and sends `split_layouts` to the user |
 | `/entry-groups` | `GET`, `DELETE /members` | Spec 062: groups of entries placed with a mirror preset; `DELETE` takes `{ broker, ticket }` out of its group (`404` when not grouped) |
 | `/balances` | `GET`, `GET /daily-pnl`, `PATCH /color` | Daily balance rows with the account colour (spec 055); today's P&L per broker; set an account colour |
 | `/settings` | `GET`, `PUT` | EA mirror settings per broker, display settings and `visibility` (brokers and per-broker symbols hidden from the frontend; purely visual, spec 024); `display.quickOrders` (spec 054) is validated like New Trade (risk % and R need an SL, the preset must exist) |
@@ -228,6 +229,7 @@ Every message is `{ "type", … }` with `broker` at the root (never per item):
 | `candle` | `{ broker, symbol, timeframe, time, open, high, low, close }` | a candle closed on the tick stream (`<tf>_time` changed, spec 025): stored at once unless the EA's file already wrote it, `time` in seconds |
 | `command_result` | `{ id, status, ticket?, error?, late? }` | command bridge |
 | `entry_groups` | `{ groups: [{ id, color, members: [{ broker, ticket }] }] }` | every entry group, sent whole on each change (spec 062) |
+| `split_layouts` | `{}` | the user's split layouts changed; their clients reload `/split-layouts` (spec 063) |
 | `ma_templates` | `{}` | the user's moving average templates or assignments changed; their clients reload `/ma-templates` (spec 052) |
 | `candle_sync` | `{ broker, timeframe, state, detail, candleCount, lastSyncAt, done?, total? }` | sync watcher: progress and result of a manual candle sync (spec 049) |
 | `alert` | `{ broker, symbol, price, direction }` | price alert, only to its owner |
@@ -285,6 +287,7 @@ Managed with **Prisma**; see `prisma/schema.prisma`. Migrations are hand-written
 | `ema_notifications`, `ema_notification_events` | `/ema-notifications`, `ema-notification-evaluator` | standing rules (never self-disabled) and every fire: symbol, kind, direction, candle, time |
 | `drawings` | `/drawings` | chart drawings JSON per user, broker, symbol, timeframe |
 | `ma_templates` | `/ma-templates` | moving average templates per user: `name`, `isDefault` (one per user), `averages` JSON (spec 052) |
+| `split_layouts` | `/split-layouts` | split layouts per user: `name` (unique per user), `position`, `left`/`right` `Broker`, `Symbol`, `Timeframe` (spec 063) |
 | `ma_template_brokers` | `/ma-templates/assignments` | template per broker, key `(userId, broker, timeframe)`, `timeframe ''` = every timeframe; cascades with its template (spec 052) |
 
 ### Common commands
