@@ -70,6 +70,8 @@ interface ChartSlotProps {
   splitAvailable?: boolean;
   splitActive?: boolean;
   onSplit?: () => void;
+  onSplitLayouts?: () => void;
+  splitLayoutsOpen?: boolean;
   linked?: boolean;
   onToggleLink?: () => void;
   // Spec 060: a linked pair this side's broker does not offer.
@@ -145,7 +147,7 @@ export function ChartSlot({
   alerts, onMoveAlert, onEditAlertPrice, onToggleAlert, onDeleteAlert,
   onIndicators, onFilters, onAlerts, alertsActive, alertsFlashing,
   onNewTrade, onCreateAlert, quickOrders, onQuickOrder, onEditPosition, onClosePosition, onModifyPosition, onFullscreen, isFullscreen,
-  splitAvailable, splitActive, onSplit, linked, onToggleLink, symbolUnavailable = false,
+  splitAvailable, splitActive, onSplit, onSplitLayouts, splitLayoutsOpen, linked, onToggleLink, symbolUnavailable = false,
 }: ChartSlotProps) {
   const emas = useMemo(() => averagesFor(broker, timeframe), [averagesFor, broker, timeframe]);
   const openIndicators = useCallback(() => onIndicators(timeframe), [onIndicators, timeframe]);
@@ -383,6 +385,8 @@ export function ChartSlot({
         splitAvailable={splitAvailable}
         splitActive={splitActive}
         onSplit={onSplit}
+        onSplitLayouts={onSplitLayouts}
+        splitLayoutsOpen={splitLayoutsOpen}
         linked={linked}
         onToggleLink={onToggleLink}
       />

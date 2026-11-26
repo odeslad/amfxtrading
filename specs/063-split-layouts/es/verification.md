@@ -6,6 +6,7 @@
 | 2 | vitest + lint/typecheck/test/build | ✅ | 2 SP | 1 SP |
 | 3 | lectura manual | ✅ | 0.25 SP | 0.25 SP |
 | 4 | build + eslint + revisión contra la maqueta; visual → tarea 6 🕐 | ✅ / 🕐 | 3 SP | 1 SP |
+| 5 | build + eslint + revisión contra la maqueta; visual → tarea 6 🕐 | ✅ / 🕐 | 3 SP | 1 SP |
 
 ## Tarea 1 — [db] tabla split_layouts
 - Modelo `SplitLayout` (+ `User.splitLayouts`), único `(userId, name)`, índice en `userId`.
@@ -31,3 +32,14 @@
 - `npm run build` ✅ · eslint ✅.
 - Desviación: Settings ya no tiene sección "Display" (la spec 058 la reagrupó en Trading, Chart, Indicators…). La sección va en **Settings › Chart**, cuyo resumen ahora incluye "Split layouts".
 - 🕐 La prueba en la app en marcha necesita el backend desplegado (antes no existe la ruta `/split-layouts`). Pasa a la tarea 6.
+
+## Tarea 5 — [frontend] botón, panel y aplicar en el gráfico
+- `IconSplitLayouts` en `shared/ui/icons`. `ChartToolbar` / `ChartSlot`: un botón `onSplitLayouts` junto al del split, solo en el gráfico izquierdo y solo en escritorio (`splitAvailable` + `desktopOnly`), resaltado mientras el panel está abierto.
+- `SplitLayoutsPanel` sobre el `SidePanel` compartido:
+  - cada configuración muestra I/D `broker · par · temporalidad` y linked/unlinked;
+  - **Active** cuando el split está abierto y los dos lados coinciden;
+  - **Unavailable**, con el motivo, cuando un broker está oculto o un par apagado, y el botón queda desactivado;
+  - un estado vacío y un enlace a Settings › Chart.
+- `ChartPage.applySplitLayout`: fija el broker, el par y la temporalidad del izquierdo, y luego el split `{ on, rightTimeframe, linked, rightBroker, rightSymbol }`. `linked` se activa cuando los dos lados comparten broker y par; el ancho no se toca; se borra la memoria de cerrar/reabrir; el panel se cierra. Las configuraciones salen de `useSplitLayouts` (recarga por WS).
+- `npm run build` ✅ · eslint de `features/chart` e `icons` ✅.
+- 🕐 La prueba en la app en marcha pasa a la tarea 6 (necesita el backend desplegado).

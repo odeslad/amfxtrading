@@ -25,6 +25,8 @@ import { ChartSlot, type ChartSide } from './ChartSlot';
 import { useChartSymbols } from './useChartSymbols';
 import { BulkEditPanel } from '../journal/BulkEditPanel';
 import { ClosePositionPanel } from '../journal/ClosePositionPanel';
+import { SplitLayoutsPanel } from './SplitLayoutsPanel';
+import { isLinkedLayout, useSplitLayouts, type SplitLayout } from '../../lib/useSplitLayouts';
 import { NewTradePanel, type NewTradeOrder } from '../journal/NewTradePanel';
 import { QuickOrderConfirm } from './QuickOrderConfirm';
 import { useQuickOrders } from '../../lib/useQuickOrders';
@@ -495,6 +497,30 @@ export function ChartPage() {
   const openFiltersLeft = useCallback(() => { setFiltersSide('left'); setFiltersOpen(true); }, []);
   const openFiltersRight = useCallback(() => { setFiltersSide('right'); setFiltersOpen(true); }, []);
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
+
+  // Spec 063: named split layouts, applied from the left chart's toolbar.
+  const splitLayouts = useSplitLayouts();
+  const [layoutsOpen, setLayoutsOpen] = useState(false);
+  const toggleLayouts = useCallback(() => setLayoutsOpen(open => !open), []);
+  const closeLayouts = useCallback(() => setLayoutsOpen(false), []);
+  const applySplitLayout = useCallback((layout: SplitLayout) => {
+    setBroker(layout.left.broker);
+    setSymbol(layout.left.symbol);
+    setTimeframe(layout.left.timeframe);
+    // The width (ratio) stays; the close/reopen memory of the left chart no longer applies.
+    setSplit(prev => ({
+      ...prev,
+      on: true,
+      rightTimeframe: layout.right.timeframe,
+      linked: isLinkedLayout(layout),
+      rightBroker: layout.right.broker,
+      rightSymbol: layout.right.symbol,
+      leftTimeframe: undefined,
+      leftBroker: undefined,
+      leftSymbol: undefined,
+    }));
+    setLayoutsOpen(false);
+  }, [setSplit]);
   const closeAlerts = useCallback(() => setAlertsOpen(false), []);
   // New Trade carries the timeframe of the chart it was opened from (AC 7).
   const [newTradeTimeframe, setNewTradeTimeframe] = useState(timeframe);
@@ -652,6 +678,8 @@ export function ChartPage() {
             onTimeframeChange={setTimeframe}
             onFullscreen={toggleFullscreenLeft}
             onSplit={toggleSplitLeft}
+            onSplitLayouts={toggleLayouts}
+            splitLayoutsOpen={layoutsOpen}
           />
         )}
         {splitLayout && (
@@ -746,6 +774,19 @@ export function ChartPage() {
 
 
       <QuickOrderConfirm symbol={quickOrder?.symbol ?? ''} plan={quickOrder?.plan ?? null} onClose={closeQuickOrder} />
+
+      <SplitLayoutsPanel
+        open={layoutsOpen && isDesktop}
+        onClose={closeLayouts}
+        layouts={splitLayouts}
+        shown={{
+          splitOn: showSplit,
+          left: { broker, symbol, timeframe },
+          right: { broker: rightBroker, symbol: rightSymbol, timeframe: split.rightTimeframe },
+        }}
+        visibility={visibility}
+        onApply={applySplitLayout}
+      />
 
       <ClosePositionPanel
         open={!!closePosition}
