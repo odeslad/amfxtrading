@@ -51,6 +51,9 @@ interface SplitState {
   linked?: boolean;
   rightBroker?: string;
   rightSymbol?: string;
+  // Left broker and pair replaced by the unlinked right chart's on a close from the right; reopening restores them.
+  leftBroker?: string;
+  leftSymbol?: string;
 }
 
 const EMPTY_POSITIONS: Position[] = [];
@@ -196,23 +199,31 @@ export function ChartPage() {
   const [split, setSplit] = useLocalStorage<SplitState>('chart.split', DEFAULT_SPLIT);
   const isDesktop = useMediaQuery('(min-width: 769px)');
   const showSplit = split.on && isDesktop;
-  const timeframeRef = useRef(timeframe);
-  useEffect(() => { timeframeRef.current = timeframe; }, [timeframe]);
-  // Closing from a chart keeps that chart: from the right one, its timeframe becomes the
-  // single chart's timeframe (AC 5). Reopening restores the pair that was closed; the very
-  // first split opens the next timeframe up on the right.
+  const selectionRef = useRef({ timeframe, broker, symbol });
+  useEffect(() => { selectionRef.current = { timeframe, broker, symbol }; }, [timeframe, broker, symbol]);
+  // Closing from a chart keeps that chart: from the right one, its timeframe (AC 5) and, while
+  // unlinked, its broker and pair become the single chart's. Reopening restores the pair of
+  // charts that was closed; the very first split opens the next timeframe up on the right.
   const toggleSplit = useCallback((side: ChartSide) => {
     setSplit(prev => {
       if (!prev.on) {
+        if (prev.leftBroker) setBroker(prev.leftBroker);
+        if (prev.leftSymbol) setSymbol(prev.leftSymbol);
+        const restored = { ...prev, on: true, leftBroker: undefined, leftSymbol: undefined };
         if (prev.leftTimeframe) {
           setTimeframe(prev.leftTimeframe);
-          return { ...prev, on: true };
+          return restored;
         }
-        return { ...prev, on: true, rightTimeframe: nextTimeframeUp(timeframeRef.current) };
+        return { ...restored, rightTimeframe: nextTimeframeUp(selectionRef.current.timeframe) };
       }
-      const leftTimeframe = timeframeRef.current;
-      if (side === 'right') setTimeframe(prev.rightTimeframe);
-      return { ...prev, on: false, leftTimeframe };
+      const current = selectionRef.current;
+      const closed = { ...prev, on: false, leftTimeframe: current.timeframe, leftBroker: undefined, leftSymbol: undefined };
+      if (side === 'left') return closed;
+      setTimeframe(prev.rightTimeframe);
+      if ((prev.linked ?? true) || !prev.rightBroker || !prev.rightSymbol) return closed;
+      setBroker(prev.rightBroker);
+      setSymbol(prev.rightSymbol);
+      return { ...closed, leftBroker: current.broker, leftSymbol: current.symbol };
     });
   }, [setSplit]);
   const toggleSplitLeft = useCallback(() => toggleSplit('left'), [toggleSplit]);
