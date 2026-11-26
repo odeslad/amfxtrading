@@ -5,6 +5,7 @@
 | 1 | build + diff del esquema | ✅ | 0.75 SP | 0.5 SP |
 | 2 | vitest + lint/typecheck/test/build | ✅ | 3 SP | 1.5 SP |
 | 3 | vitest + typecheck/lint/build (curl → tarea 10) | ✅ | 2.5 SP | 1 SP |
+| 4 | lectura manual | ✅ | 0.5 SP | 0.25 SP |
 
 ## Tarea 1 — [db] tablas entry_groups
 - `npx prisma generate` y `npm run build` (tsc): correctos.
@@ -23,3 +24,8 @@
 - `GET /entry-groups` y `DELETE /entry-groups/members` (404 si la entrada no está en un grupo), tras `requireAuth`.
 - `routes/entry-groups.test.ts`: 5 tests ✅ (`parseMember`, `groupId` opcional, mal formado, rechazado en close/modify). Typecheck ✅ · lint ✅ · build ✅ · `npm test` 239/240: el mismo fallo intermitente de tiempos de `pipe-reader` que en la tarea 2, que en CI se salta (`skipIf(platform !== win32)`).
 - Desviación: la prueba con curl contra un backend local no es posible antes del deploy. El backend local usa la BD de producción por el túnel, donde las tablas no existen hasta que corre `prisma migrate deploy`, y `load()` fallaría al arrancar. El GET, el DELETE y un 400 pasan a la validación en producción (tarea 10).
+
+## Tarea 4 — [docs] arquitectura
+- `backend/docs/architecture.md`: flujo de datos, ruta `/entry-groups`, `groupId` en `POST /commands`, WS `entry_groups`, una sección "Entry groups (spec 062)", las tablas y `store/entry-groups.ts` en el árbol del proyecto.
+- `.claude/CLAUDE.md`: `groupId` en Comandos, `entry_groups` en la lista del WebSocket, una sección "Grupos de entradas mirror (spec 062)", 21 routers con `/entry-groups`, los modelos `EntryGroup` / `EntryGroupMember`.
+- Leídos en paralelo: la misma paleta, las mismas reglas de limpieza y la misma espera de 5 s ✅.

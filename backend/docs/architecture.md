@@ -16,7 +16,7 @@ MT4 EA (one terminal per broker)
     ├── Named Pipe \\.\pipe\mt4tick_<broker>   (backend is the SERVER, the EA connects)
     │       └── bridge/pipe-reader.ts — one JSON line per message:
     │               [ …ticks ]                   every 100 ms → store/ticks, WS 'ticks', alerts
-    │               { "type": "positions", … }   every 1 s   → store/positions, WS 'positions', position colours
+    │               { "type": "positions", … }   every 1 s   → store/positions, WS 'positions', position colours, entry groups
     │               { "type": "account", … }     every 1 s   → store/accounts, WS 'account'
     │
     └── <bridgePath>/*.json (written by the EA every 60 s)
@@ -103,6 +103,7 @@ backend/
 │   │   ├── positions.ts          # open positions from the pipe
 │   │   ├── accounts.ts           # balance/currency from the pipe
 │   │   ├── liveness.ts           # pipe state, last tick, last sync → /health
+│   │   ├── entry-groups.ts       # mirror entry groups (DB-backed cache, spec 062)
 │   │   └── positionColors.ts     # user colours per ticket (DB-backed cache)
 │   └── ws/
 │       ├── ws.ts                 # WebSocket server on /ws
@@ -140,6 +141,7 @@ Every router except `/auth` and `/health` sits behind `requireAuth`: the JWT tra
 | `/commands` | `POST` | Send an order to the EA (below) |
 | `/trades` | `GET` | Closed trades (broker, symbol, from, to, limit, offset) |
 | `/positions` | `GET /live`, `PATCH /color` | Open positions from the stores; colour per ticket |
+| `/entry-groups` | `GET`, `DELETE /members` | Spec 062: groups of entries placed with a mirror preset; `DELETE` takes `{ broker, ticket }` out of its group (`404` when not grouped) |
 | `/balances` | `GET`, `GET /daily-pnl`, `PATCH /color` | Daily balance rows with the account colour (spec 055); today's P&L per broker; set an account colour |
 | `/settings` | `GET`, `PUT` | EA mirror settings per broker, display settings and `visibility` (brokers and per-broker symbols hidden from the frontend; purely visual, spec 024); `display.quickOrders` (spec 054) is validated like New Trade (risk % and R need an SL, the preset must exist) |
 | `/symbols` | `GET` | Symbols with a tick per broker |
@@ -182,6 +184,7 @@ Sends a trading command to the EA by writing `command.json` to the bridge folder
 - On expiry, if `command.json` is still there (the EA never read it) the backend removes it and broadcasts `{ id, status: "cancelled", error: "EA not running — order cancelled" }`: the order cannot execute later. Otherwise it broadcasts `{ id, status: "timeout", error: "No response from EA" }` and keeps watching 60 s more; a result that still arrives is broadcast with its real `status`/`ticket`/`error` plus `late: true` and logged as `[CMD:<broker>] late result id=…`.
 - `error` carries the EA's `message` when present: `EA error: ticket not found (code 130)`.
 - A `result.json` left over from an earlier command is removed and logged before the next command is written.
+- Optional `groupId` (same pattern as `id`, opening actions only; `400` on `close`/`modify`): the commands of one mirror send share it, and each `ok` result with a ticket, a late one too, adds `(broker, ticket)` to that entry group (spec 062, below).
 
 **Request body:**
 ```json
@@ -224,6 +227,7 @@ Every message is `{ "type", … }` with `broker` at the root (never per item):
 | `trades_updated` | `{ broker }` | the watcher synced a changed `history.json` (spec 030): History and Stats refetch |
 | `candle` | `{ broker, symbol, timeframe, time, open, high, low, close }` | a candle closed on the tick stream (`<tf>_time` changed, spec 025): stored at once unless the EA's file already wrote it, `time` in seconds |
 | `command_result` | `{ id, status, ticket?, error?, late? }` | command bridge |
+| `entry_groups` | `{ groups: [{ id, color, members: [{ broker, ticket }] }] }` | every entry group, sent whole on each change (spec 062) |
 | `ma_templates` | `{}` | the user's moving average templates or assignments changed; their clients reload `/ma-templates` (spec 052) |
 | `candle_sync` | `{ broker, timeframe, state, detail, candleCount, lastSyncAt, done?, total? }` | sync watcher: progress and result of a manual candle sync (spec 049) |
 | `alert` | `{ broker, symbol, price, direction }` | price alert, only to its owner |
@@ -250,6 +254,10 @@ The backend reports on the machine it runs on. `services/server-monitor.ts` read
 
 The chart draws the moving averages (EMA or SMA) of a template. A template (`ma_templates`) is a named list `[{ id, type: 'ema'|'sma', period, color, style, width }]`; each user has exactly one default (kept by `PUT /ma-templates/:id/default` in a transaction; `GET` creates an empty one when missing) and it cannot be deleted (`409`). `ma_template_brokers` assigns a template to a broker on every timeframe (`timeframe ''`) or on one; a chart uses broker + timeframe, then broker, then the default. Deleting a template cascades its assignments, so those brokers fall back. Validation: period a whole number ≥ 1 with no upper limit, colour `#rrggbb`, style solid/dashed/dotted, width 1–3. Every write sends `ma_templates` over the WebSocket to the user's clients. Templates are edited in Settings › Display; the chart's indicators button chooses a broker's template (optionally only for its timeframe) and hides averages per device (`localStorage`). The SMA is computed in the frontend like the EMA, including the live candle. Cross alerts, notifications, the cross trades overlay and setup levels choose EMA or SMA per side (`fastType`/`slowType`, default `ema`; `indicators/moving-average.ts`, spec 053); tables and routes keep their `ema_*` names.
 
+## Entry groups (spec 062)
+
+The entries of one mirror send (New Trade in mirror mode, or a quick order with a mirror preset) form a group. `store/entry-groups.ts` keeps the groups in memory, loads them at startup and writes every change to `entry_groups` / `entry_group_members` in order. A group gets its colour on its second member: the first colour of the palette (`#f5a623 #3a7bd5 #c77dff #2ec4b6 #ff6fa8 #e8e8e8`) not used by another group, else the least used. On every `positions` message whose open tickets changed, the members that are no longer open leave their group; a group with a colour that is left with fewer than two members is deleted (a group still forming, with one member and no colour, is kept). An empty list counts only after it lasts 5 s, since an EA that reconnects reports no positions for a moment. A pending order keeps its ticket when it fills, so it keeps its group. Every change broadcasts `entry_groups`. Propagation is done by the frontend: an edit, close or cancel of a grouped entry sends the same command, with the same price, to every open member.
+
 ## Libro de esquemas (book)
 
 `src/book/` keeps the operator's hand-made backtest of the EURUSD H1 scheme system (454 schemes and 878 operations from 2015, imported once from `data/esquemas y operaciones EURUSD.html` with `npx tsx --env-file=.env scripts/import-book.ts "<path>"`, idempotent). It is informational and has no link to brokers, positions or trades. `book_schemes` holds number, start, end, result (`auto` by default, or a hand-typed `T1` / `T2` / `T3` / `RE` / `Pierde` / `Empate`) and note; `book_trades` the operations (ticket, slot, direction, lots, entry, SL, open / close time, close price, note) with their computed €, R and balance after. `calc.ts` reproduces the document's arithmetic: the account starts at 10 000; € = lots × pips × 10; the balance chains in **close order**; R = € ÷ 1 % of the balance before the close; the lots the app proposes are 1 % of the latest balance ÷ (SL pips × 10), but the operator's lots are kept and editable; an operation without close is open (lots only). `recomputeAll` rewrites €, R and balances after any write. A scheme's summary (trades line, tickets, net € and R) and the effective result (`Pendiente` while `auto` and no end / no operations / an open one; else derived: draw inside ±0.5 R, the last operation with R ≥ 1.5, else `Pierde`) and the totals of a selection are computed on read. Routes under `/book`: paginated schemes by year with totals and years, scheme and trade CRUD, and `POST /preview` for the figures a trade body would get.
@@ -270,6 +278,7 @@ Managed with **Prisma**; see `prisma/schema.prisma`. Migrations are hand-written
 | `settings_display` | `/settings` | display settings (single row) plus `hiddenBrokers` (visibility, spec 024) and `hiddenSymbols` (unused since spec 056, which turned those symbols off in each `config.json`; kept until a later clean-up) and `quickOrders` (JSON or null: size lots / risk %, SL pips, TP pips or R, optional mirror preset; the chart menu's quick orders, spec 054) |
 | `account_colors` | `/balances` | colour per broker account (Journal › Accounts, spec 055), unrelated to position colours; `GET /balances` adds `color`, `PATCH /balances/color` sets it (empty clears) |
 | `position_colors` | `/positions/color` | colour per broker and ticket |
+| `entry_groups`, `entry_group_members` | `/commands` results, `positions` messages, `/entry-groups` | spec 062: a group (`id` = the frontend `groupId`, `color` empty until the 2nd member) and its `(broker, ticket)` members, unique per entry, cascading with the group |
 | `users` | — | created out of band; bcrypt password hash |
 | `price_alerts`, `ema_cross_alerts` | `/alerts`, `/ema-alerts`, evaluators | per user; `triggeredAt` set when fired |
 | `push_subscriptions` | `/push` | Web Push endpoints per user, with `userAgent` and `lastPushAt` |
