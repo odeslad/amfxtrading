@@ -344,6 +344,8 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
   const showSpreadRef = useRef(showSpread);
   const quoteRef = useRef<{ bid: number | null; ask: number | null }>({ bid: null, ask: null });
   const bidLineRef = useRef<IPriceLine | null>(null);
+  // The selected alert's line is a price line of the library, like the position lines.
+  const alertLineRef = useRef<IPriceLine | null>(null);
   const askLineRef = useRef<IPriceLine | null>(null);
   const emasRef = useRef<MovingAverage[]>(emas);
   const timeframeRef = useRef<string>(timeframe);
@@ -491,8 +493,20 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     chart: IChartApi,
     series: ISeriesApi<'Candlestick'>,
   ) => {
+    const syncAlertLine = (price: number | null) => {
+      if (price === null) {
+        if (alertLineRef.current) { series.removePriceLine(alertLineRef.current); alertLineRef.current = null; }
+        return;
+      }
+      if (alertLineRef.current) {
+        if (alertLineRef.current.options().price !== price) alertLineRef.current.applyOptions({ price });
+        return;
+      }
+      alertLineRef.current = series.createPriceLine({ price, color: '#f5a623', lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: false });
+    };
+
     const list = alertsRef.current;
-    if (!list || list.length === 0) return;
+    if (!list || list.length === 0) { syncAlertLine(null); return; }
 
     const priceAxisW = chart.priceScale('right').width();
     const right = ctx.canvas.width - priceAxisW;
@@ -505,12 +519,12 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     const precision = precisionRef.current;
     const drag = dragStateRef.current;
 
-    // Drawn before the tag, which covers its end.
+    // Where a dragged alert started; the same 2 px dashes as the price lines.
     const dashedLine = (y: number, color: string, endX: number) => {
       ctx.save();
       ctx.strokeStyle = color;
       ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
+      ctx.setLineDash([2, 2]);
       ctx.beginPath();
       ctx.moveTo(0, Math.round(y) + 0.5);
       ctx.lineTo(endX, Math.round(y) + 0.5);
@@ -543,6 +557,7 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
       return x;
     };
 
+    let selectedPrice: number | null = null;
     for (const alert of list) {
       const levelId = alertLevelId(alert.id);
       const dragging = drag?.level.id === levelId;
@@ -560,12 +575,13 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
         const pips = (price - drag.startPrice) / pipSize(symbolRef.current);
         if (!window.matchMedia('(max-width: 768px)').matches) text += ` · ${pips >= 0 ? '+' : ''}${pips.toFixed(1)} pips`;
       }
-      if (selected) dashedLine(y, '#f5a623', right - TIP_W);
+      if (selected) selectedPrice = price;
 
       if (selected) tag(y, text, '#f5a623', '#0d0d0d');
       else if (alert.enabled) tag(y, text, '#2a2110', '#f5a623');
       else tag(y, text, '#1e1e1e', '#8a8a8a');
     }
+    syncAlertLine(selectedPrice);
   }, [alertDisplayPrice]);
 
   // EMA cross trades (spec 039): for each trade a faint vertical line at the cross candle, the
