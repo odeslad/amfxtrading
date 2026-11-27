@@ -27,7 +27,6 @@ interface Balance {
   color: string;
 }
 
-const DAY_PNL_POLL_MS = 5000;
 
 const countsLabel = (c: AccountCounts): string => `${c.trades} / ${c.orders}`;
 
@@ -75,7 +74,8 @@ interface AccountsProps {
 
 export function Accounts({ onSelectBroker, filters, onOptionsChange }: AccountsProps) {
   const [balances, setBalances] = useState<Balance[]>([]);
-  const [dayPnl, setDayPnl] = useState<Record<string, number>>({});
+  // Spec 064: the closed part of the Day P&L comes with each account message; null while the pipe is not live.
+  const [closedToday, setClosedToday] = useState<Record<string, number | null>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -86,26 +86,21 @@ export function Accounts({ onSelectBroker, filters, onOptionsChange }: AccountsP
       .finally(() => setLoading(false));
   }, []);
 
-  // Daily P&L poll, paused while the browser tab is hidden (spec 019).
-  useEffect(() => {
-    const fetchDayPnl = () => {
-      apiFetch<Record<string, number>>('/balances/daily-pnl')
-        .then(setDayPnl)
-        .catch(() => {});
-    };
-    let id: number | null = null;
-    const stop = () => { if (id !== null) { clearInterval(id); id = null; } };
-    const start = () => { stop(); fetchDayPnl(); id = window.setInterval(fetchDayPnl, DAY_PNL_POLL_MS); };
-    const onVisibility = () => (document.hidden ? stop() : start());
-    if (!document.hidden) start();
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
-  }, []);
+  // Day P&L = closed today + the floating result (equity − balance), at the pace of the Profit.
+  const dayPnl = useMemo(() => {
+    const result: Record<string, number> = {};
+    for (const b of balances) {
+      const closed = closedToday[b.broker];
+      if (closed != null) result[b.broker] = closed + b.equity - b.balance;
+    }
+    return result;
+  }, [balances, closedToday]);
 
   const handleWsMessage = useCallback((data: unknown) => {
     if (typeof data !== 'object' || data === null) return;
-    const msg = data as { type: string; broker: string; account: Balance };
+    const msg = data as { type: string; broker: string; account: Balance; closedToday?: number | null };
     if (msg.type !== 'account') return;
+    setClosedToday(prev => (prev[msg.broker] === (msg.closedToday ?? null) ? prev : { ...prev, [msg.broker]: msg.closedToday ?? null }));
     setBalances(prev => {
       const withoutBroker = prev.filter(b => b.broker !== msg.broker);
       // The colour is not in the EA's account message: keep the one loaded from /balances.
