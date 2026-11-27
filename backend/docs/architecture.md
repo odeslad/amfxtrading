@@ -143,7 +143,7 @@ Every router except `/auth` and `/health` sits behind `requireAuth`: the JWT tra
 | `/positions` | `GET /live`, `PATCH /color` | Open positions from the stores; colour per ticket |
 | `/split-layouts` | `GET`, `PUT` | Spec 063: the user's named split layouts (broker, pair and timeframe of each chart); `PUT { layouts }` replaces the whole list in a transaction (≤ 20, names unique, brokers from `brokers.json`, timeframes M5 · M15 · H1 · H4 · D1) and sends `split_layouts` to the user |
 | `/entry-groups` | `GET`, `DELETE /members` | Spec 062: groups of entries placed with a mirror preset; `DELETE` takes `{ broker, ticket }` out of its group (`404` when not grouped) |
-| `/balances` | `GET`, `GET /daily-pnl`, `PATCH /color` | Daily balance rows with the account colour (spec 055); today's P&L per broker; set an account colour |
+| `/balances` | `GET`, `PATCH /color` | Daily balance rows with the account colour (spec 055); set an account colour. The Day P&L no longer has a route: its closed part comes with the WS `account` message (spec 064) |
 | `/settings` | `GET`, `PUT` | EA mirror settings per broker, display settings and `visibility` (brokers and per-broker symbols hidden from the frontend; purely visual, spec 024); `display.quickOrders` (spec 054) is validated like New Trade (risk % and R need an SL, the preset must exist) |
 | `/symbols` | `GET` | Symbols with a tick per broker |
 | `/candles` | `GET` | Closed candles (`before` / `after` paging, up to 5 000) |
@@ -224,7 +224,7 @@ Every message is `{ "type", … }` with `broker` at the root (never per item):
 |--------|---------|--------|
 | `ticks` | `{ broker, ticks: [ …tick ] }` | pipe, every 100 ms, only when `FEATURE_WS_BROADCAST` is on, and only the pairs the client subscribed to (below) |
 | `positions` | `{ broker, currency, brokerOffset, positions: [ …open positions with current bid/ask and colour ] }` | pipe, every 1 s |
-| `account` | `{ broker, account }` | pipe every 1 s, and `account.json` when its content changes |
+| `account` | `{ broker, account, closedToday }` | pipe every 1 s, and `account.json` when its content changes. `closedToday` (spec 064) is the net result of the trades closed since the broker's midnight, kept in memory by `store/closed-today.ts` and recomputed once after each history with changes and on a new broker day; `null` while the pipe is not live or the value is not ready. Accounts shows Day P&L = `closedToday + equity − balance` |
 | `trades_updated` | `{ broker }` | the watcher synced a changed `history.json` (spec 030): History and Stats refetch |
 | `candle` | `{ broker, symbol, timeframe, time, open, high, low, close }` | a candle closed on the tick stream (`<tf>_time` changed, spec 025): stored at once unless the EA's file already wrote it, `time` in seconds |
 | `command_result` | `{ id, status, ticket?, error?, late? }` | command bridge |

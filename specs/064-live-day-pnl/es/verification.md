@@ -4,6 +4,7 @@
 |---|---|---|---|---|
 | 1 | vitest + lint/typecheck/test/build | ✅ | 2 SP | 0.75 SP |
 | 2 | build + eslint + revisión de código; producción → tarea 4 🕐 | ✅ / 🕐 | 1 SP | 0.5 SP |
+| 3 | lint/typecheck/test/build + grep | ✅ | 0.5 SP | 0.25 SP |
 
 ## Tarea 1 — [backend] cerrado hoy en memoria y en el mensaje de cuenta
 - `store/closed-today.ts`: `brokerDayStart` (la medianoche del broker en UTC, la misma regla que `/balances/daily-pnl`); `createClosedToday(aggregate, now, log)` con una caché por broker `{ dayStart, value }`.
@@ -19,3 +20,9 @@
 - Revisión de código: no queda ningún `setInterval` ni `daily-pnl` en el archivo; la fila inactiva sigue dependiendo de `dayPnl == null`; `AccountCard` (móvil) recibe el mismo `dayPnl[b.broker]` que antes.
 - `npm run build` ✅ · eslint ✅.
 - 🕐 La prueba en producción (la misma cifra que antes, moviéndose con el Profit, sin peticiones repetidas) es la tarea 4.
+
+## Tarea 3 — [backend] ruta eliminada, documentación
+- `routes/balances.ts`: se elimina `GET /balances/daily-pnl`, junto con los imports que solo usaba ella (`getAllPositions`, `isPipeLive`, `pipeStateOf`).
+- `backend/docs/architecture.md`: la fila de `/balances` y el mensaje WS `account` (`closedToday` y cómo se mantiene). `.claude/CLAUDE.md`: el mensaje `account` en la lista del WebSocket.
+- `grep -rn daily-pnl frontend/src backend/src`: nada ✅. Typecheck ✅ · eslint ✅ · build ✅ · `npm test` 251/252: el fallo intermitente conocido de `pipe-reader`, que en CI se salta.
+- Se despliega después de la tarea 2, para que ningún frontend siga llamando a la ruta.

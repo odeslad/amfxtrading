@@ -1,8 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db/client';
 import type { AuthRequest } from '../middleware/requireAuth';
-import { getAllPositions } from '../store/positions';
-import { isPipeLive, pipeStateOf } from '../store/liveness';
 import { asyncRoute } from '../middleware/asyncRoute';
 import { BadRequest } from '../middleware/errors';
 import { bodyRecord, nonEmptyString } from '../middleware/parse';
@@ -42,37 +40,6 @@ router.patch('/color', asyncRoute<AuthRequest>(async (req, res) => {
   if (color === '') await db.accountColor.deleteMany({ where: { broker } });
   else await db.accountColor.upsert({ where: { broker }, update: { color }, create: { broker, color } });
   res.json({ ok: true });
-}));
-
-// Day P&L per broker: net P&L of trades closed today (broker time) plus the live
-// floating P&L of currently open positions.
-router.get('/daily-pnl', asyncRoute<AuthRequest>(async (_req, res) => {
-  const liveByBroker = getAllPositions();
-  const result: Record<string, number> = {};
-
-  for (const { broker, positions, brokerOffset } of liveByBroker) {
-    // The positions store keeps the last entry forever; a broker whose EA is
-    // gone is left out so the Accounts row turns inactive.
-    if (!isPipeLive(pipeStateOf(broker) ?? 'connected')) continue;
-    // start of today in broker time, expressed as a UTC instant
-    const nowBrokerMs = Date.now() + brokerOffset * 1000;
-    const brokerMidnight = new Date(nowBrokerMs);
-    brokerMidnight.setUTCHours(0, 0, 0, 0);
-    const dayStartUtc = new Date(brokerMidnight.getTime() - brokerOffset * 1000);
-
-    const closed = await db.trade.aggregate({
-      where: { broker, closeTime: { gte: dayStartUtc } },
-      _sum: { profit: true, swap: true, commission: true },
-    });
-    const closedNet = (closed._sum.profit ?? 0) + (closed._sum.swap ?? 0) + (closed._sum.commission ?? 0);
-
-    const floating = (positions as { profit?: number; swap?: number; commission?: number }[])
-      .reduce((sum, p) => sum + (p.profit ?? 0) + (p.swap ?? 0) + (p.commission ?? 0), 0);
-
-    result[broker] = closedNet + floating;
-  }
-
-  res.json(result);
 }));
 
 export default router;

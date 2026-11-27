@@ -4,6 +4,7 @@
 |---|---|---|---|---|
 | 1 | vitest + lint/typecheck/test/build | ✅ | 2 SP | 0.75 SP |
 | 2 | build + eslint + code review; production → task 4 🕐 | ✅ / 🕐 | 1 SP | 0.5 SP |
+| 3 | lint/typecheck/test/build + grep | ✅ | 0.5 SP | 0.25 SP |
 
 ## Task 1 — [backend] closed today in memory and in the account message
 - `store/closed-today.ts`: `brokerDayStart` (the broker's midnight as UTC, the same rule as `/balances/daily-pnl`); `createClosedToday(aggregate, now, log)` with a cache per broker `{ dayStart, value }`.
@@ -19,3 +20,9 @@
 - Code review: no `setInterval` and no `daily-pnl` left in the file; the inactive row still depends on `dayPnl == null`; `AccountCard` (mobile) gets the same `dayPnl[b.broker]` as before.
 - `npm run build` ✅ · eslint ✅.
 - 🕐 The check on production (the same figure as before, moving with the Profit, no repeated request) is task 4.
+
+## Task 3 — [backend] route removed, docs
+- `routes/balances.ts`: `GET /balances/daily-pnl` removed, together with the imports only it used (`getAllPositions`, `isPipeLive`, `pipeStateOf`).
+- `backend/docs/architecture.md`: the `/balances` row and the `account` WS message (`closedToday`, how it is kept). `.claude/CLAUDE.md`: the `account` message in the WebSocket list.
+- `grep -rn daily-pnl frontend/src backend/src`: nothing ✅. Typecheck ✅ · eslint ✅ · build ✅ · `npm test` 251/252: the known `pipe-reader` timing flake, skipped in CI.
+- Deploy after task 2, so no frontend still calls the route.
