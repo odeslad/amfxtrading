@@ -6,6 +6,7 @@ import { Toaster } from '../../shared/ui/Toast/Toaster';
 import { subscribe } from '../../lib/ws';
 import { addToast } from '../../lib/toast';
 import { takeBatchResult } from '../../lib/commandBatch';
+import { playAlertBeep, unlockAlertSound } from '../../lib/beep';
 import { useBuildInfo } from '../../lib/useBuildInfo';
 import { loadEntryGroups, setEntryGroups } from '../../lib/useEntryGroups';
 import type { EntryGroup } from '../../lib/entryGroups';
@@ -31,9 +32,13 @@ export function AppLayout() {
     return () => ac.abort();
   }, []);
 
+  useEffect(() => unlockAlertSound(), []);
+
   useEffect(() => subscribe((data) => {
     if (typeof data !== 'object' || data === null) return;
     const msg = data as { type: string; id: string; status: string; ticket?: number; error?: string };
+    // A price or moving average alert of this user: audible on any screen, even in the background.
+    if (msg.type === 'alert' || msg.type === 'ema_alert') playAlertBeep();
     if (msg.type === 'entry_groups') {
       setEntryGroups((data as { groups: EntryGroup[] }).groups);
       return;

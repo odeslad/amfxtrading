@@ -500,3 +500,37 @@ select.input {
     font-size: var(--text-xl);
   }
 }
+
+.soundRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.soundTest {
+  height: 34px;
+  padding: 0 14px;
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  border-radius: 3px;
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.soundTest:hover {
+  color: var(--text);
+  border-color: var(--orange);
+}
+
+.soundTest:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}

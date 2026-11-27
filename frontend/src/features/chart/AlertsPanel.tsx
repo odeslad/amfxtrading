@@ -9,6 +9,8 @@ import type { EmaCrossAlert, NewEmaAlert, EmaAlertDirection } from '../../lib/us
 import type { MaType } from './chart.types';
 import { MaTypeToggle } from './MaTypeToggle';
 import { maLabel } from './movingAverages';
+import { ALERT_SOUND_KEY, ALERT_SOUNDS, DEFAULT_ALERT_SOUND, playAlertSound } from '../../lib/beep';
+import { useLocalStorage } from '../../lib/useLocalStorage';
 import styles from './AlertsPanel.module.css';
 
 const TIMEFRAMES = ['M5', 'M15', 'H1', 'H4', 'D1'];
@@ -110,6 +112,9 @@ export const AlertsPanel = memo(function AlertsPanel({ open, onClose, broker, sy
   const handleToggleEma = (a: EmaCrossAlert) => onToggleEma(a).catch(reportFailure('Failed to update cross alert'));
   const handleDeleteEma = (id: number) => onDeleteEma(id).catch(reportFailure('Failed to delete cross alert'));
 
+  // The alert sound is chosen per device; AppLayout plays it when an alert fires.
+  const [sound, setSound] = useLocalStorage<string>(ALERT_SOUND_KEY, DEFAULT_ALERT_SOUND);
+
   return (
     <>
       {open && <div className={styles.backdrop} onClick={onClose} />}
@@ -130,6 +135,21 @@ export const AlertsPanel = memo(function AlertsPanel({ open, onClose, broker, sy
             className={`${styles.tab} ${tab === 'ema' ? styles.tabActive : ''}`}
             onClick={() => setTab('ema')}
           >MA cross</button>
+        </div>
+
+        <div className={styles.soundRow}>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="alert-sound">Alert sound · this device</label>
+            <select
+              id="alert-sound"
+              className={styles.input}
+              value={sound}
+              onChange={e => { setSound(e.target.value); playAlertSound(e.target.value); }}
+            >
+              {ALERT_SOUNDS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
+          </div>
+          <button type="button" className={styles.soundTest} onClick={() => playAlertSound(sound)} aria-label="Play the alert sound">▶ Test</button>
         </div>
 
         {pushStatus !== 'subscribed' && (

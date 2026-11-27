@@ -8,7 +8,6 @@ import { addToast } from '../../lib/toast';
 import { useWs } from '../../lib/useWs';
 import { useTickSubscription } from '../../lib/useTickSubscription';
 import { useAuth } from '../auth/useAuth';
-import { playAlertBeep } from '../../lib/beep';
 import { ChartFiltersPanel } from './ChartFiltersPanel';
 import { AlertsPanel } from './AlertsPanel';
 import { useAlerts, type PriceAlert } from '../../lib/useAlerts';
@@ -442,11 +441,10 @@ export function ChartPage() {
       positions?: Position[];
     };
 
-    // A price alert fired (any broker/symbol, for this user): flash + beep.
+    // A price alert fired (any broker/symbol, for this user): flash; AppLayout plays the sound.
     if (m.type === 'alert') {
       if (user && m.userId === user.id) {
         setAlertFlash(true);
-        playAlertBeep();
         refreshAlerts();
       }
       return;
