@@ -45,7 +45,6 @@ export function LoginPage() {
             <TextInput
               id="email"
               type="email"
-              size="lg"
               placeholder="user@domain.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
@@ -58,7 +57,6 @@ export function LoginPage() {
             <TextInput
               id="password"
               type="password"
-              size="lg"
               placeholder="••••••••"
               value={password}
               onChange={e => setPassword(e.target.value)}
@@ -69,7 +67,7 @@ export function LoginPage() {
 
           <div className={styles.error}>{error}</div>
 
-          <Button variant="primary" size="lg" type="submit" disabled={loading}>
+          <Button variant="primary" type="submit" disabled={loading}>
             {loading ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
