@@ -534,11 +534,13 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
 
     // A tag with its tip on the price axis: tinted when armed, grey when off, solid while
     // selected or dragged; a 1 px dotted line runs to it only while selected.
-    const TAG_H = 20;
-    const TIP_W = 10;
+    const TAG_H = 16;
+    const TIP_W = 8;
+    const PAD_LEFT = 5;
+    const PAD_RIGHT = 4;
     const tag = (y: number, text: string, fill: string, ink: string) => {
       ctx.font = '11px "DM Mono", monospace';
-      const w = ctx.measureText(text).width + 8 + 14 + TIP_W - 4;
+      const w = PAD_LEFT + ctx.measureText(text).width + PAD_RIGHT + TIP_W;
       const x = right - w;
       const top = Math.round(y - TAG_H / 2);
       ctx.fillStyle = fill;
@@ -552,7 +554,7 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
       ctx.fill();
       ctx.fillStyle = ink;
       ctx.textAlign = 'left';
-      ctx.fillText(text, x + 8, y + 1);
+      ctx.fillText(text, x + PAD_LEFT, y + 1);
       ctx.textAlign = 'right';
       return x;
     };
