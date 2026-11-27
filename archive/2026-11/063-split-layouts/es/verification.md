@@ -1,3 +1,6 @@
+| 6 | despliegue + validación del usuario + ajustes | ✅ (parcial, ver abajo) | 1 SP | 1 SP |
+| 7 | cierre y archivo | ✅ | 0.25 SP | 0.25 SP |
+| **Total** | | | **10 SP** | **4.75 SP** |
 # 063 — Configuraciones de split · Verificación
 
 | Tarea | Mecanismo | Resultado | Est | Real |
@@ -52,3 +55,12 @@
   - una fila por gráfico con la etiqueta Left / Right, con broker, par y temporalidad en columnas propias;
   - enlazado / desenlazado como una pequeña etiqueta debajo.
 - `npm run build` ✅ · eslint ✅.
+
+## Tarea 6 — despliegue y validación
+- Desplegado: backend 297 (tareas 1–3), frontend 341 (tareas 4–5), frontend 342 (los ajustes pedidos en la validación, arriba).
+- Validación del usuario el 2026-11-27: el botón y el panel en el gráfico, tras pedir el botón en los dos gráficos y un panel menos apretado.
+- **Pendiente, cerrado por decisión del usuario el 2026-11-27** (avisará si falla algo): la sección de Settings › Chart en escritorio y móvil con guardado automático, enlazados/desenlazados al aplicar, las marcas Active y Unavailable, y la actualización en vivo entre pestañas.
+
+## Tarea 7 — cierre
+- `npm run build` backend ✅ y frontend ✅ antes de cerrar.
+- Calibración: 4,75 SP frente a 10 SP. El patrón de Mirror presets y los componentes compartidos existentes dejaron las dos tareas de frontend en un tercio de lo estimado.

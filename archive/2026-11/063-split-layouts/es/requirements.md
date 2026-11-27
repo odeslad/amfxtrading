@@ -1,6 +1,6 @@
 # 063 — Configuraciones de split
 
-> Status: **approved**
+> Status: **closed**
 
 ## Contexto
 La vista split del gráfico (spec 036, gráficos desenlazados desde la spec 060) se monta a mano cada vez: el broker, el par y la temporalidad de cada gráfico. El operador usa dos o tres montajes que se repiten. Esta spec los guarda como configuraciones de split con nombre, que se editan en Settings y se aplican desde un botón del gráfico que abre un panel lateral a la derecha, como los demás paneles del gráfico.

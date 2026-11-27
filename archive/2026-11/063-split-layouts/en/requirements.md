@@ -1,6 +1,6 @@
 # 063 — Split layouts
 
-> Status: **approved**
+> Status: **closed**
 
 ## Context
 The chart's split view (spec 036, unlinked charts since spec 060) is set up by hand every time: the broker, pair and timeframe of each chart. The operator uses two or three recurring set-ups. This spec stores them as named split layouts, edited in Settings and applied from a button on the chart that opens a side panel on the right, like the other chart panels.

@@ -1,3 +1,6 @@
+| 6 | deploy + user validation + adjustments | ✅ (partial, see below) | 1 SP | 1 SP |
+| 7 | close and archive | ✅ | 0.25 SP | 0.25 SP |
+| **Total** | | | **10 SP** | **4.75 SP** |
 # 063 — Split layouts · Verification
 
 | Task | Mechanism | Outcome | Est | Actual |
@@ -52,3 +55,12 @@
   - one row per chart labelled Left / Right, with broker, pair and timeframe in their own columns;
   - linked / unlinked as a small label underneath.
 - `npm run build` ✅ · eslint ✅.
+
+## Task 6 — deploy and validation
+- Deployed: backend 297 (tasks 1–3), frontend 341 (tasks 4–5), frontend 342 (the adjustments asked during validation, above).
+- User validation on 2026-11-27: the button and the panel on the chart, after asking for the button on both charts and a roomier panel.
+- **Pending, closed by the user's decision on 2026-11-27** (they report any failure): the Settings › Chart section on desktop and mobile with autosave, linked/unlinked when applying, the Active and Unavailable marks, and the live refresh across tabs.
+
+## Task 7 — close
+- `npm run build` backend ✅ and frontend ✅ before closing.
+- Calibration: 4.75 SP against 10 SP. The Mirror presets pattern and the existing shared components made the two frontend tasks about a third of their estimate.
