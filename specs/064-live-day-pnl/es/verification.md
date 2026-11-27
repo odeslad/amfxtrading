@@ -26,3 +26,9 @@
 - `backend/docs/architecture.md`: la fila de `/balances` y el mensaje WS `account` (`closedToday` y cómo se mantiene). `.claude/CLAUDE.md`: el mensaje `account` en la lista del WebSocket.
 - `grep -rn daily-pnl frontend/src backend/src`: nada ✅. Typecheck ✅ · eslint ✅ · build ✅ · `npm test` 251/252: el fallo intermitente conocido de `pipe-reader`, que en CI se salta.
 - Se despliega después de la tarea 2, para que ningún frontend siga llamando a la ruta.
+
+## Arreglo encontrado en producción — el desfase del broker varía (2026-11-27)
+- Con la tarea 1 desplegada, el log mostraba unos 2,4 recálculos `[DAYPNL]` por segundo entre todos los brokers, más o menos tantas sumas como la consulta periódica antigua.
+- Causa: el EA envía `TimeCurrent() − TimeGMT()`, y `TimeCurrent()` es la hora del último precio, así que el desfase varía unos segundos de un tick a otro. La caché comparaba la medianoche del broker al segundo, así que cada variación parecía un día nuevo.
+- Arreglo: `brokerDayStart` redondea el desfase al cuarto de hora más cercano (los desfases reales de los brokers son cuartos de hora exactos). Test nuevo: variaciones de −12…+7 s no lanzan ninguna suma nueva ✅ (7 tests). Typecheck ✅ · eslint ✅ · build ✅.
+- El frontend no estaba desplegado cuando se encontró, así que seguía en uso la consulta periódica antigua.

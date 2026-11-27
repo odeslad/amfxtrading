@@ -71,6 +71,15 @@ describe('closed today', () => {
     expect(aggregate).toHaveBeenCalledTimes(2);
   });
 
+  it('does not recompute when the offset drifts by a few seconds', async () => {
+    const { store, aggregate } = setup();
+    store.get('ic', 2 * HOUR);
+    await flush();
+    for (const drift of [-3, 1, 7, -12, 2]) expect(store.get('ic', 2 * HOUR + drift)).toBe(12.5);
+    expect(aggregate).toHaveBeenCalledTimes(1);
+    expect(brokerDayStart(Date.UTC(2026, 10, 27, 23, 30), 2 * HOUR - 4)).toBe(Date.UTC(2026, 10, 27, 22));
+  });
+
   it('keeps each broker apart', async () => {
     const { store, calls } = setup();
     store.get('ic', 0);

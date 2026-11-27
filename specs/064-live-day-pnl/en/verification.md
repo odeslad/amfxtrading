@@ -26,3 +26,9 @@
 - `backend/docs/architecture.md`: the `/balances` row and the `account` WS message (`closedToday`, how it is kept). `.claude/CLAUDE.md`: the `account` message in the WebSocket list.
 - `grep -rn daily-pnl frontend/src backend/src`: nothing ✅. Typecheck ✅ · eslint ✅ · build ✅ · `npm test` 251/252: the known `pipe-reader` timing flake, skipped in CI.
 - Deploy after task 2, so no frontend still calls the route.
+
+## Fix found on production — the broker offset drifts (2026-11-27)
+- With task 1 deployed, the log showed about 2.4 `[DAYPNL]` recomputes a second across the brokers, about as many aggregates as the old polling.
+- Cause: the EA sends `TimeCurrent() − TimeGMT()`, and `TimeCurrent()` is the time of the last quote, so the offset drifts by a few seconds from tick to tick. The cache compared the broker midnight to the second, so every drift looked like a new day.
+- Fix: `brokerDayStart` rounds the offset to the nearest 15 minutes (real broker offsets are whole quarters of an hour). New test: drifts of −12…+7 s give no new aggregate ✅ (7 tests). Typecheck ✅ · eslint ✅ · build ✅.
+- The frontend was not deployed while this was found, so the old polling was still the one in use.

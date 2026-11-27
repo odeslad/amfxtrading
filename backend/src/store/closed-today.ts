@@ -11,11 +11,18 @@ interface Entry {
   value: number | null;
 }
 
+// The EA sends TimeCurrent() − TimeGMT(), and TimeCurrent() is the time of the last quote, so
+// the offset drifts by a few seconds from tick to tick. Real broker offsets are whole quarters
+// of an hour: rounding keeps the broker day stable instead of recomputing on every drift.
+const OFFSET_STEP_SEC = 15 * 60;
+const roundOffset = (sec: number): number => Math.round(sec / OFFSET_STEP_SEC) * OFFSET_STEP_SEC;
+
 // Start of today in broker time, as a UTC instant.
 export function brokerDayStart(nowMs: number, brokerOffsetSec: number): number {
-  const brokerNow = new Date(nowMs + brokerOffsetSec * 1000);
+  const offset = roundOffset(brokerOffsetSec);
+  const brokerNow = new Date(nowMs + offset * 1000);
   brokerNow.setUTCHours(0, 0, 0, 0);
-  return brokerNow.getTime() - brokerOffsetSec * 1000;
+  return brokerNow.getTime() - offset * 1000;
 }
 
 export function createClosedToday(aggregate: Aggregate, now: () => number = Date.now, log: (line: string) => void = console.log) {
