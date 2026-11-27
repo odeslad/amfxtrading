@@ -50,6 +50,8 @@ const DEFAULT_BAR_SPACING = 6;
 const TF_SECONDS: Record<string, number> = { M5: 300, M15: 900, H1: 3600, H4: 14400, D1: 86400 };
 // EMA cross trades overlay (spec 039)
 const EMA_TRADE_ENTRY_COLOR = '#c8a840';
+// Pending orders are not in the market yet: their entry line is pastel yellow, apart from positions.
+const PENDING_ORDER_COLOR = '#f0d98c';
 const EMA_TRADE_SL_COLOR = '#e05c5c';
 const EMA_TRADE_TP_COLOR = '#4caf84';
 const EMA_TRADE_CROSS_COLOR = 'rgba(200,168,64,0.35)';
@@ -1340,7 +1342,7 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     for (const p of positions ?? []) {
       const isBuy = isBuySide(p.type);
       const pending = isPending(p.type);
-      const entryColor = isBuy ? '#4caf84' : '#e05c5c';
+      const entryColor = pending ? PENDING_ORDER_COLOR : isBuy ? '#4caf84' : '#e05c5c';
 
       const addLine = (id: string, price: number, color: string, text: string) => {
         const opts = {
