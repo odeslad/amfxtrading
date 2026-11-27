@@ -177,7 +177,12 @@ export function ChartPage() {
   const positionsSigRef = useRef<Record<string, string>>({});
   // Only the brokers on screen: every broker sends its positions each second.
   const shownBrokersRef = useRef<string[]>([]);
+  // Spec 062: every broker's rows, kept out of state so the brokers off screen cause no render;
+  // read when an action on a grouped entry must reach its siblings on other brokers.
+  const everyBrokerRowsRef = useRef<Record<string, Position[]>>({});
+  const everyRow = useCallback((): Position[] => Object.values(everyBrokerRowsRef.current).flat(), []);
   const acceptPositions = useCallback((positionsBroker: string, list: Position[]) => {
+    everyBrokerRowsRef.current[positionsBroker] = list;
     if (!shownBrokersRef.current.includes(positionsBroker)) return;
     const sig = positionsSignature(list);
     if (sig === positionsSigRef.current[positionsBroker]) return;
@@ -185,12 +190,11 @@ export function ChartPage() {
     setPositionsByBroker(prev => ({ ...prev, [positionsBroker]: list }));
   }, []);
   const positions = positionsByBroker[broker] ?? EMPTY_POSITIONS;
-  // Spec 062: every broker's rows, so an action on a grouped entry reaches its siblings.
-  const allRows = useMemo(() => Object.values(positionsByBroker).flat(), [positionsByBroker]);
-  const allRowsRef = useRef(allRows);
-  useEffect(() => { allRowsRef.current = allRows; }, [allRows]);
   const [editPosition, setEditPosition] = useState<Position | null>(null);
   const [closePosition, setClosePosition] = useState<Position | null>(null);
+  // The entry and the open members of its group, taken when the panel opens.
+  const [editGroup, setEditGroup] = useState<Position[]>([]);
+  const [closeGroup, setCloseGroup] = useState<Position[]>([]);
   const [showSpread, setShowSpread] = useState(false);
   const [trendlineAppearance, setTrendlineAppearance] = useState<TrendlineAppearance>({ color: '#8c8c8c', style: 'dashed', width: 1 });
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -538,8 +542,8 @@ export function ChartPage() {
   const closeNewTrade = useCallback(() => setNewTradeOpen(false), []);
   const clearEdit = useCallback(() => setEditPosition(null), []);
   const clearClose = useCallback(() => setClosePosition(null), []);
-  const editPositions = useMemo(() => (editPosition ? expandWithGroups([editPosition], allRows) : []), [editPosition, allRows]);
-  const closePositions = useMemo(() => (closePosition ? expandWithGroups([closePosition], allRows) : []), [closePosition, allRows]);
+  const editPositions = editPosition ? editGroup : EMPTY_POSITIONS;
+  const closePositions = closePosition ? closeGroup : EMPTY_POSITIONS;
 
   const toggleAlertsFor = useCallback((side: ChartSide) => {
     setPanelSide(side);
@@ -554,21 +558,21 @@ export function ChartPage() {
   const positionActions = useCallback((list: Position[]) => ({
     onEditPosition: (ticket: number) => {
       const pos = list.find(p => p.ticket === ticket);
-      if (pos) { setEditPosition(pos); setNewTradeOpen(false); }
+      if (pos) { setEditGroup(expandWithGroups([pos], everyRow())); setEditPosition(pos); setNewTradeOpen(false); }
     },
     onClosePosition: (ticket: number) => {
       const pos = list.find(p => p.ticket === ticket);
-      if (pos) setClosePosition(pos);
+      if (pos) { setCloseGroup(expandWithGroups([pos], everyRow())); setClosePosition(pos); }
     },
     onModifyPosition: (ticket: number, sl: number, tp: number) => {
       const pos = list.find(p => p.ticket === ticket);
       if (!pos) return;
-      const commands = expandWithGroups([pos], allRowsRef.current).map(p => modifyCommand(p, sl, tp));
+      const commands = expandWithGroups([pos], everyRow()).map(p => modifyCommand(p, sl, tp));
       trackBatch('SL/TP updated', commands);
       sendCommands(commands)
         .catch(err => addToast(errorMessage(err, 'Network error sending modify'), 'error'));
     },
-  }), []);
+  }), [everyRow]);
   const leftPositionActions = useMemo(() => positionActions(positions), [positionActions, positions]);
 
   // Spec 060: the right chart's broker and pair — the left ones while linked, its own otherwise.
