@@ -5,6 +5,9 @@
 | 1 | vitest + lint/typecheck/test/build | ✅ | 2 SP | 0.75 SP |
 | 2 | build + eslint + revisión de código; producción → tarea 4 🕐 | ✅ / 🕐 | 1 SP | 0.5 SP |
 | 3 | lint/typecheck/test/build + grep | ✅ | 0.5 SP | 0.25 SP |
+| 4 | despliegue en tres pasos + validación del usuario + recuento del log | ✅ | 1 SP | 1 SP |
+| 5 | cierre y archivo | ✅ | 0.25 SP | 0.25 SP |
+| **Total** | | | **4.75 SP** | **3.5 SP** (+ 0.5 SP del arreglo del desfase) |
 
 ## Tarea 1 — [backend] cerrado hoy en memoria y en el mensaje de cuenta
 - `store/closed-today.ts`: `brokerDayStart` (la medianoche del broker en UTC, la misma regla que `/balances/daily-pnl`); `createClosedToday(aggregate, now, log)` con una caché por broker `{ dayStart, value }`.
@@ -32,3 +35,21 @@
 - Causa: el EA envía `TimeCurrent() − TimeGMT()`, y `TimeCurrent()` es la hora del último precio, así que el desfase varía unos segundos de un tick a otro. La caché comparaba la medianoche del broker al segundo, así que cada variación parecía un día nuevo.
 - Arreglo: `brokerDayStart` redondea el desfase al cuarto de hora más cercano (los desfases reales de los brokers son cuartos de hora exactos). Test nuevo: variaciones de −12…+7 s no lanzan ninguna suma nueva ✅ (7 tests). Typecheck ✅ · eslint ✅ · build ✅.
 - El frontend no estaba desplegado cuando se encontró, así que seguía en uso la consulta periódica antigua.
+
+## Tarea 4 — despliegue, validación y medición
+- Desplegado en orden: backend 298 (tarea 1), frontend 346 (tarea 2), backend 300 (tarea 3 + el arreglo del desfase). El arreglo tuvo que salir después del frontend porque el historial es lineal y un push mixto rompe el deploy del backend.
+- **Medición (AC 7)**, por hora con una pestaña de Accounts abierta:
+
+| | Antes | Después |
+|---|---|---|
+| Peticiones del Day P&L | ~720 | 0 |
+| Sumas en la base de datos | ~9 360 (13 por petición) | 13 al arrancar, y luego una por historial con cambios |
+| Refresco del Day P&L | cada 5 s | cada 1 s, con el Profit |
+
+  Evidencia en el log: 15 líneas `[DAYPNL]` en los primeros 100 s del backend 300 y seguían siendo 15 a los 752 s.
+- CPU de la máquina tras los despliegues: 9–28 % instantánea, el proceso del backend alrededor del 1 %. El pico de 08:00–08:15 (media 26–27 %, máximo 49 %) coincide con las tres compilaciones en el VPS, no con este cambio.
+- Validación del usuario el 2026-11-27: Accounts muestra el mismo Day P&L, se mueve con el Profit y no hay consultas periódicas ✅.
+
+## Tarea 5 — cierre
+- `npm run build` backend ✅ y frontend ✅ antes de cerrar.
+- Calibración: el código fue más rápido de lo estimado (3,5 frente a 4,75 SP). La variación del desfase, que ningún test podía mostrar, solo salió en producción: una caché basada en un valor que envía el EA necesita comprobar ese valor en vivo antes de salir.

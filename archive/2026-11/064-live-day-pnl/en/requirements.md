@@ -1,6 +1,6 @@
 # 064 — Live Day P&L without polling
 
-> Status: **approved**
+> Status: **closed**
 
 ## Context
 Journal › Accounts shows a Day P&L per broker: the net result of the trades closed today (broker day) plus the floating result of the open positions. Today every open Accounts tab asks `GET /balances/daily-pnl` every 5 s, and every request sums today's closed trades in the database for each broker. With 13 brokers that is about 17 000 requests and more than 200 000 database aggregates a day for a single tab left open, for a closed part that only changes when a trade closes. The Profit column beside it is already live: it comes with the `account` WebSocket message every second. This spec makes the Day P&L as live as the Profit and removes the polling.

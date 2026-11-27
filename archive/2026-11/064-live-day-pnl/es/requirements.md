@@ -1,6 +1,6 @@
 # 064 — Day P&L en vivo sin consultas periódicas
 
-> Status: **approved**
+> Status: **closed**
 
 ## Contexto
 Diario › Accounts muestra un Day P&L por broker: el resultado neto de las operaciones cerradas hoy (día del broker) más el resultado flotante de las posiciones abiertas. Hoy cada pestaña de Accounts abierta pide `GET /balances/daily-pnl` cada 5 s, y cada petición suma en la base de datos las operaciones cerradas hoy de cada broker. Con 13 brokers son unas 17 000 peticiones y más de 200 000 sumas en la base de datos al día para una sola pestaña abierta, para una parte cerrada que solo cambia cuando se cierra una operación. La columna Profit de al lado ya va en vivo: llega con el mensaje `account` del WebSocket cada segundo. Esta spec hace que el Day P&L vaya tan en vivo como el Profit y elimina las consultas periódicas.
