@@ -17,7 +17,8 @@ import { setTick } from './store/ticks';
 import { setAccount } from './store/accounts';
 import { syncColors } from './store/positionColors';
 import { entryGroups } from './store/entry-groups';
-import { register } from './store/liveness';
+import { register, isPipeLive, pipeStateOf } from './store/liveness';
+import { closedToday } from './store/closed-today';
 import { setBroadcaster } from './routes/commands';
 import { evaluateAlerts, setAlertBroadcaster } from './alerts/alert-evaluator';
 import { refreshAlerts } from './alerts/alert-store';
@@ -42,6 +43,9 @@ function startBroker(brokerName: string, bridgePath: string, wss: Wss) {
 
   let currency = '';
   let brokerOffset = 0;
+  // Spec 064: only a live pipe gets a Day P&L, so a broker whose EA is gone turns inactive.
+  const closedNow = (): number | null =>
+    isPipeLive(pipeStateOf(brokerName) ?? 'connected') ? closedToday.get(brokerName, brokerOffset) : null;
   const candleCloses = createCandleCloseState();
 
   pipe?.on('ticks', (batch) => {
@@ -76,7 +80,7 @@ function startBroker(brokerName: string, bridgePath: string, wss: Wss) {
   pipe?.on('account', (account) => {
     currency = account.currency ?? currency;
     setAccount(brokerName, { balance: account.balance, currency: account.currency ?? currency });
-    if (features.wsBroadcast) wss.broadcastAccount(brokerName, account);
+    if (features.wsBroadcast) wss.broadcastAccount(brokerName, account, closedNow());
   });
 
   // The watcher awaits each handler and logs failures with its own prefix.
@@ -87,13 +91,14 @@ function startBroker(brokerName: string, bridgePath: string, wss: Wss) {
     const operations = entries.filter(e => BALANCE_OPERATION_TYPES.has(e.type));
     await syncTrades(brokerName, trades);
     await syncBalanceOperations(brokerName, operations);
+    await closedToday.refresh(brokerName, brokerOffset);
     // The watcher only hands a history whose content changed.
     if (features.wsBroadcast) wss.broadcastTradesUpdated(brokerName);
   });
 
   watcher?.onAccount(async (account) => {
     currency = account.currency ?? currency;
-    if (features.wsBroadcast) wss.broadcastAccount(brokerName, account);
+    if (features.wsBroadcast) wss.broadcastAccount(brokerName, account, closedNow());
     await saveDailyBalances(brokerName, account);
   });
 

@@ -124,8 +124,9 @@ export function createWss(server: Server) {
       }));
       broadcast('positions', { broker, currency, brokerOffset, positions: enriched });
     },
-    broadcastAccount(broker: string, account: unknown) {
-      broadcast('account', { broker, account });
+    // Spec 064: closedToday is the closed part of the Day P&L; null while the pipe is not live.
+    broadcastAccount(broker: string, account: unknown, closedToday: number | null) {
+      broadcast('account', { broker, account, closedToday });
     },
     // A candle closed on the tick stream (spec 025); `time` in seconds like the REST candles.
     broadcastCandle(broker: string, candle: { symbol: string; timeframe: string; time: number; open: number; high: number; low: number; close: number }) {
