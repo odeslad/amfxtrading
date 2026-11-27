@@ -171,3 +171,23 @@
 - **Recursos en producción (19-nov-2026):** CPU 13 % de media (13 terminales 11,6 %, backend 2,2 %, PostgreSQL 0,5 %); RAM 2,6–3,7 GB de 16 GB.
 - **Resultado:** ✅
 - **Est vs Actual:** 1 SP · 1.5 SP (clave de deploy, los dos terminales).
+
+## Tarea 11 · [infra] Observación
+
+- **Acortada a 8 días por el operador (27-nov-2026)** en lugar de 14: ninguna señal de problemas, y el plazo de devolución del XL+ ya no es lo que decide.
+- **Eventos:** `Get-WinEvent` System 41 / 1001 / 6008 desde el cambio (19-nov 12:49) → **0**. Último arranque el 19-nov a las 10:31, antes del cambio: sin reinicios desde entonces.
+- **RAM (`RAM-Log`, 11 286 muestras por minuto, 19-nov 12:49 → 27-nov 08:54):** usada 3,12 GB de media, 5,65 GB como máximo (20-nov 20:57) de 16 GB; commit 4,13 GB de media, 6,13 GB como máximo de un límite de 18,37 GB; fichero de paginación como máximo 1,46 GB. La media diaria se mantiene entre 2,96 y 3,33 GB, sin tendencia al alza.
+- **Pendiente del operador (AC 10):** dar de baja el M+, que está parado y se guarda como vuelta atrás.
+- **Resultado:** ✅
+- **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Tarea 12 · [specs] Cierre
+
+| | Est | Real |
+|---|---|---|
+| Tareas 1–10 | 11 SP | 6.5 SP |
+| Tarea 11 | 0.5 SP | 0.25 SP |
+| Tarea 12 | 0.25 SP | 0.25 SP |
+| **Total** | **11.75 SP** | **7 SP** |
+
+- Calibración: la migración llevó en torno al 60 % de lo estimado. El único exceso fue la validación en producción (la clave de deploy y dos EA que no volvían a conectar con su pipe).

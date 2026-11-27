@@ -171,3 +171,23 @@
 - **Resources in production (2026-11-19):** CPU 13 % average (13 terminals 11.6 %, backend 2.2 %, PostgreSQL 0.5 %); RAM 2.6–3.7 GB of 16 GB.
 - **Outcome:** ✅
 - **Est vs Actual:** 1 SP · 1.5 SP (deploy key, the two terminals).
+
+## Task 11 · [infra] Observation
+
+- **Shortened to 8 days by the operator (27-nov-2026)** instead of 14: no sign of trouble, and the XL+ return deadline is no longer the deciding factor.
+- **Events:** `Get-WinEvent` System 41 / 1001 / 6008 since the switch (19-nov 12:49) → **0**. Last boot 19-nov 10:31, before the switch: no reboot since.
+- **RAM (`RAM-Log`, 11 286 minute samples, 19-nov 12:49 → 27-nov 08:54):** used 3.12 GB on average, 5.65 GB at most (20-nov 20:57) of 16 GB; commit 4.13 GB on average, 6.13 GB at most of an 18.37 GB limit; page file at most 1.46 GB. The daily average stays between 2.96 and 3.33 GB with no upward drift.
+- **Pending on the operator (AC 10):** cancel the M+, which is stopped and kept as a fallback.
+- **Result:** ✅
+- **Est vs Actual:** 0.5 SP · 0.25 SP.
+
+## Task 12 · [specs] Close
+
+| | Est | Actual |
+|---|---|---|
+| Tasks 1–10 | 11 SP | 6.5 SP |
+| Task 11 | 0.5 SP | 0.25 SP |
+| Task 12 | 0.25 SP | 0.25 SP |
+| **Total** | **11.75 SP** | **7 SP** |
+
+- Calibration: the migration took about 60 % of the estimate. The only overrun was the production validation (deploy key, two EAs that would not reconnect to their pipe).

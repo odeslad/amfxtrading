@@ -1,6 +1,6 @@
 # 050 — Migrate the platform to the VPS XL+
 
-> Status: **approved**
+> Status: **closed**
 
 ## Context
 
