@@ -901,8 +901,8 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
       },
       timeScale: {
         borderColor: 'rgba(255,255,255,0.08)',
-        // Twice the default height: an easier target to grab and drag the time axis.
-        minimumHeight: 56,
+        // Taller than the default: an easier target to grab and drag the time axis.
+        minimumHeight: 42,
         timeVisible: true,
         secondsVisible: false,
         tickMarkFormatter: (time: number, type: TickMarkType) => {
