@@ -1,6 +1,6 @@
 # 062 — Grupos de entradas mirror
 
-> Status: **approved**
+> Status: **closed**
 
 ## Contexto
 Una entrada lanzada con un mirror preset (New Trade, o las órdenes rápidas del menú del gráfico con un mirror preset seleccionado) envía un comando por cada broker del preset. Hoy las posiciones y órdenes resultantes son independientes: cambiar SL, TP o precio de la orden, o cerrarlas, se hace broker a broker. Esta spec las asocia al crearse en un grupo, marca el grupo con una estrella de color y hace que un cambio se aplique a todo el grupo.

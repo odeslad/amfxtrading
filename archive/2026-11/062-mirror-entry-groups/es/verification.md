@@ -1,3 +1,6 @@
+| 11 | despliegue + validación del usuario | ✅ (parcial, ver abajo) | 1.5 SP | 1 SP |
+| 12 | cierre y archivo | ✅ | 0.25 SP | 0.25 SP |
+| **Total** | | | **19.75 SP** | **10.25 SP** |
 # 062 — Grupos de entradas mirror · Verificación
 
 | Tarea | Mecanismo | Resultado | Est | Real |
@@ -79,3 +82,12 @@
 - `store/entry-groups.ts`: `syncOpenEntries(broker, [{ ticket, type }])` sustituye a `syncOpenTickets`. Las posiciones de un grupo de órdenes pasan a `<id>_f` mientras quedan órdenes pendientes a su lado o cuando `<id>_f` ya existe; un grupo lanzado a mercado nunca se parte; una entrada cuyo broker aún no ha informado se deja como está. Un grupo ahora solo se borra cuando se queda vacío, porque un grupo de órdenes con 1 tiene que seguir conociendo su hermano `_f` cuando esa orden se ejecute (la estrella ya se oculta con menos de 2 abiertas).
 - vitest: 10 tests del store + 5 de las rutas ✅, entre ellos 4 órdenes → se ejecuta 1 (`g1` conserva 3 con su color, `g1_f` 1 sin color) → 2 más (`g1_f` 3 con otro color) → la última (`g1` borrado, `g1_f` 4), un grupo a mercado sin partir, y se conserva con 1 abierta / se borra sin ninguna.
 - `npm run typecheck` ✅ · eslint ✅ · `npm run build` ✅ · `npm test` 242/242 ✅.
+
+## Tarea 11 — despliegue y validación
+- Desplegado: backend (tareas 1–4), frontend (tareas 5–9), backend (tarea 10); el usuario vio el build 338.294.48.
+- Validación del usuario el 2026-11-26/27: la estrella aparece en las entradas mirror y una edición llega a todo el grupo ("de momento bien").
+- **Pendiente, cerrado por decisión del usuario el 2026-11-27** (avisará si falla algo): un grupo de órdenes ejecutado en parte que se parte en `<id>_f`, el aviso de fallo parcial y un grupo que sobrevive a un reinicio del backend. Necesitan la operativa real para aparecer.
+
+## Tarea 12 — cierre
+- `npm run build` backend ✅ y frontend ✅ antes de cerrar.
+- Calibración: 10,25 SP frente a 19,75 SP. La mayoría de tareas llevaron la mitad de lo estimado; el cambio del AC 8 encontrado en la validación (tarea 10) fue el único trabajo no previsto.

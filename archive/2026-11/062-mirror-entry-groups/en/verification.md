@@ -1,3 +1,6 @@
+| 11 | deploy + user validation | ✅ (partial, see below) | 1.5 SP | 1 SP |
+| 12 | close and archive | ✅ | 0.25 SP | 0.25 SP |
+| **Total** | | | **19.75 SP** | **10.25 SP** |
 # 062 — Mirror entry groups · Verification
 
 | Task | Mechanism | Outcome | Est | Actual |
@@ -79,3 +82,12 @@
 - `store/entry-groups.ts`: `syncOpenEntries(broker, [{ ticket, type }])` replaces `syncOpenTickets`. The positions of a group of orders move to `<id>_f` while pending orders remain beside them or once `<id>_f` exists; a group placed at market is never split; an entry whose broker has not reported yet is left alone. A group is now deleted only when empty, because a group of orders left with 1 must still know its `_f` sibling when that order fills (the star already hides below 2 open members).
 - vitest: 10 store tests + 5 route tests ✅, among them 4 orders → 1 fills (`g1` keeps 3 with its colour, `g1_f` 1 without colour) → 2 more (`g1_f` 3 with another colour) → the last (`g1` deleted, `g1_f` 4), a market group not split, and keep while 1 open / delete when none.
 - `npm run typecheck` ✅ · eslint ✅ · `npm run build` ✅ · `npm test` 242/242 ✅.
+
+## Task 11 — deploy and validation
+- Deployed: backend (tasks 1–4), frontend (tasks 5–9), backend (task 10); app build 338.294.48 seen by the user.
+- User validation on 2026-11-26/27: the star appears on mirror entries and an edit reaches the whole group ("de momento bien").
+- **Pending, closed by the user's decision on 2026-11-27** (they report any failure): a group of orders partly filled splitting into `<id>_f`, the partial-failure toast, and a group surviving a backend restart. They need the real trading flow to show up.
+
+## Task 12 — close
+- `npm run build` backend ✅ and frontend ✅ before closing.
+- Calibration: 10.25 SP against 19.75 SP. Most tasks took about half the estimate; the AC 8 change found during validation (task 10) was the only unplanned work.

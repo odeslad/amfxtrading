@@ -1,6 +1,6 @@
 # 062 — Mirror entry groups
 
-> Status: **approved**
+> Status: **closed**
 
 ## Context
 An entry placed with a mirror preset (New Trade, or the chart menu's quick orders with a mirror preset selected) sends one command per broker of the preset. Today the resulting positions and orders are independent: changing the SL, TP or order price, or closing them, has to be done broker by broker. This spec links them at creation into a group, marks the group with a coloured star and makes one change apply to the whole group.
