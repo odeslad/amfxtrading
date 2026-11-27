@@ -43,3 +43,12 @@
 - `ChartPage.applySplitLayout`: fija el broker, el par y la temporalidad del izquierdo, y luego el split `{ on, rightTimeframe, linked, rightBroker, rightSymbol }`. `linked` se activa cuando los dos lados comparten broker y par; el ancho no se toca; se borra la memoria de cerrar/reabrir; el panel se cierra. Las configuraciones salen de `useSplitLayouts` (recarga por WS).
 - `npm run build` ✅ · eslint de `features/chart` e `icons` ✅.
 - 🕐 La prueba en la app en marcha pasa a la tarea 6 (necesita el backend desplegado).
+
+## Ajustes pedidos durante la validación (2026-11-27)
+- El botón de configuraciones de split está también en la barra del gráfico derecho (la maqueta lo ponía solo a la izquierda); los dos abren el mismo panel.
+- El panel es menos apretado:
+  - más espacio entre las configuraciones y dentro de cada una;
+  - el nombre en la cabecera con la etiqueta Active / Unavailable en un recuadro;
+  - una fila por gráfico con la etiqueta Left / Right, con broker, par y temporalidad en columnas propias;
+  - enlazado / desenlazado como una pequeña etiqueta debajo.
+- `npm run build` ✅ · eslint ✅.

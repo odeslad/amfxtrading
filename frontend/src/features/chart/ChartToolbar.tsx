@@ -41,7 +41,7 @@ interface ChartToolbarProps {
   splitAvailable?: boolean;
   splitActive?: boolean;
   onSplit?: () => void;
-  // Spec 063: opens the split layouts panel; the left chart only, desktop only.
+  // Spec 063: opens the split layouts panel; desktop only.
   onSplitLayouts?: () => void;
   splitLayoutsOpen?: boolean;
   // Spec 060: split view only — the two sides share broker and pair while linked.

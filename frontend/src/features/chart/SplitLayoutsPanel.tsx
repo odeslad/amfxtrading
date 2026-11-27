@@ -35,7 +35,16 @@ function unavailableReason(l: SplitLayout, v: Visibility): string | null {
   return null;
 }
 
-const sideLine = (s: LayoutSide) => `${s.broker} · ${s.symbol} · ${s.timeframe}`;
+function SideRow({ label, side }: { label: string; side: LayoutSide }) {
+  return (
+    <span className={styles.side}>
+      <span className={styles.sideLabel}>{label}</span>
+      <span className={styles.broker}>{side.broker}</span>
+      <span className={styles.symbol}>{side.symbol}</span>
+      <span className={styles.timeframe}>{side.timeframe}</span>
+    </span>
+  );
+}
 
 export const SplitLayoutsPanel = memo(function SplitLayoutsPanel({ open, onClose, layouts, shown, visibility, onApply }: SplitLayoutsPanelProps) {
   const navigate = useNavigate();
@@ -63,18 +72,25 @@ export const SplitLayoutsPanel = memo(function SplitLayoutsPanel({ open, onClose
                 disabled={reason !== null}
                 aria-current={active || undefined}
               >
-                <span className={styles.name}>
-                  {l.name}
+                <span className={styles.head}>
+                  <span className={styles.name}>{l.name}</span>
                   {active && <span className={styles.tagActive}>Active</span>}
                   {reason && <span className={styles.tagWarning}>Unavailable</span>}
                 </span>
-                <span className={styles.line}>L <b>{sideLine(l.left)}</b></span>
-                <span className={styles.line}>R <b>{sideLine(l.right)}</b> · {isLinkedLayout(l) ? 'linked' : 'unlinked'}</span>
+                <span className={styles.sides}>
+                  <SideRow label="Left" side={l.left} />
+                  <SideRow label="Right" side={l.right} />
+                </span>
+                <span className={styles.foot}>
+                  <span className={styles.link}>{isLinkedLayout(l) ? 'Linked' : 'Unlinked'}</span>
+                </span>
                 {reason && <span className={styles.reason}>{reason}</span>}
               </button>
             );
           })}
-          <LinkButton onClick={openSettings}>Edit layouts in Settings › Chart</LinkButton>
+          <div className={styles.footer}>
+            <LinkButton onClick={openSettings}>Edit layouts in Settings › Chart</LinkButton>
+          </div>
         </div>
       )}
     </SidePanel>

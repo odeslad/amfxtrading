@@ -498,7 +498,7 @@ export function ChartPage() {
   const openFiltersRight = useCallback(() => { setFiltersSide('right'); setFiltersOpen(true); }, []);
   const closeFilters = useCallback(() => setFiltersOpen(false), []);
 
-  // Spec 063: named split layouts, applied from the left chart's toolbar.
+  // Spec 063: named split layouts, applied from either chart's toolbar.
   const splitLayouts = useSplitLayouts();
   const [layoutsOpen, setLayoutsOpen] = useState(false);
   const toggleLayouts = useCallback(() => setLayoutsOpen(open => !open), []);
@@ -721,6 +721,8 @@ export function ChartPage() {
             onTimeframeChange={setRightTimeframe}
             onFullscreen={toggleFullscreenRight}
             onSplit={toggleSplitRight}
+            onSplitLayouts={toggleLayouts}
+            splitLayoutsOpen={layoutsOpen}
           />
         )}
       </div>

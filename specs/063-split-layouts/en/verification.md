@@ -43,3 +43,12 @@
 - `ChartPage.applySplitLayout`: sets the left broker, pair and timeframe, then the split `{ on, rightTimeframe, linked, rightBroker, rightSymbol }`. `linked` is set when both sides share broker and pair; the width is untouched; the close/reopen memory is cleared; the panel closes. The layouts come from `useSplitLayouts` (WS reload).
 - `npm run build` ✅ · eslint on `features/chart` and `icons` ✅.
 - 🕐 The check in the running app moves to task 6 (needs the backend deployed).
+
+## Adjustments asked during validation (2026-11-27)
+- The split layouts button is also in the right chart's toolbar (the mockup had it on the left only); both open the same panel.
+- The panel is less cramped:
+  - more padding between and inside the layouts;
+  - the name in the header with the Active / Unavailable tag in a box;
+  - one row per chart labelled Left / Right, with broker, pair and timeframe in their own columns;
+  - linked / unlinked as a small label underneath.
+- `npm run build` ✅ · eslint ✅.

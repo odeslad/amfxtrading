@@ -2,18 +2,19 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
+  gap: 12px;
 }
 
 .item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 14px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 16px;
   text-align: left;
-  background: transparent;
+  background: var(--surface2);
   border: 1px solid var(--border);
+  border-radius: 2px;
   color: var(--text);
   font-family: var(--font-sans);
   cursor: pointer;
@@ -21,6 +22,7 @@
 }
 
 .item:hover:not(:disabled) {
+  border-color: var(--border-bright);
   background: var(--tint-hover);
 }
 
@@ -39,17 +41,28 @@
   background: var(--tint-selected);
 }
 
-.name {
+.active:hover:not(:disabled) {
+  border-color: var(--orange);
+  background: var(--tint-selected);
+}
+
+.head {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  font-size: var(--text-base);
+}
+
+.name {
+  font-size: var(--text-md);
   font-weight: 600;
+  letter-spacing: var(--tracking-tight);
 }
 
 .tagActive,
 .tagWarning {
+  padding: 2px 8px;
+  border: 1px solid currentColor;
   font-size: var(--text-2xs);
   font-weight: 500;
   letter-spacing: var(--tracking-wide);
@@ -64,20 +77,67 @@
   color: var(--gold);
 }
 
-.line {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
+.sides {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.side {
+  display: grid;
+  grid-template-columns: 44px 1fr auto auto;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.sideLabel {
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
   color: var(--muted);
 }
 
-.line b {
-  font-weight: 400;
-  color: var(--text);
+.broker {
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-normal);
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.symbol,
+.timeframe {
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+}
+
+.timeframe {
+  min-width: 28px;
+  text-align: right;
+  color: var(--muted);
+}
+
+.foot {
+  display: flex;
+}
+
+.link {
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .reason {
   font-size: var(--text-sm);
   color: var(--gold);
+}
+
+.footer {
+  padding-top: 8px;
 }
 
 .empty {
