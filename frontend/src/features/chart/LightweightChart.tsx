@@ -1468,9 +1468,16 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
         .filter(l => nearMarker || selectedLevelIdRef.current === l.id);
     };
 
+    // A press on the price scale zooms the price axis; it never grabs a level.
+    const onPriceScale = (clientX: number): boolean => {
+      const series = seriesRef.current;
+      if (!series) return false;
+      return clientX >= container.getBoundingClientRect().right - series.priceScale().width();
+    };
+
     const findHit = (clientX: number, clientY: number, tolerance = HIT_PX): DraggableLevel | null => {
       const series = seriesRef.current;
-      if (!series) return null;
+      if (!series || onPriceScale(clientX)) return null;
       const y = yToClientOffset(clientY);
       let best: DraggableLevel | null = null;
       let bestDist = tolerance;
@@ -1531,7 +1538,7 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     // it; dragging starts on a level that is already selected. Pointer-down
     // away from any level deselects.
     const startDrag = (clientX: number, clientY: number, tolerance = HIT_PX): boolean => {
-      if (lockedRef.current) return false;
+      if (lockedRef.current || onPriceScale(clientX)) return false;
       const hit = findHit(clientX, clientY, tolerance);
       if (!hit) {
         setSelectedLevel(null);
