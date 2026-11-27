@@ -143,7 +143,7 @@ interface ChartAlert {
 
 const alertLevelId = (alertId: number) => `alert-${alertId}`;
 // Unselected alerts have no line: only their marker and label next to the price axis grab the pointer.
-const ALERT_MARKER_HIT_W = 90;
+const ALERT_MARKER_HIT_W = 110;
 
 interface DragState {
   level: DraggableLevel;
@@ -275,13 +275,15 @@ interface LightweightChartExtendedProps extends LightweightChartProps {
   alerts?: ChartAlert[];
   onMoveAlert?: (alertId: number, price: number) => Promise<void>;
   onSelectAlert?: (alertId: number | null) => void;
+  // A double click on an alert tag (or the line of the selected one) opens it in the Alerts panel.
+  onEditAlert?: (alertId: number) => void;
   locked?: boolean;
   // EMA cross trades overlay (spec 039), painted on the overlay canvas; never a drawing.
   emaCrossTrades?: EmaCrossTrade[];
   onContextMenu?: (request: ChartContextRequest) => void;
 }
 
-export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLoadMore, emas, drawMode, onDrawDone, positions, onEditPosition, onModifyPosition, initialDrawings, onDrawingsChange, trendlineAppearance, accountBalance, pnlMode = 'net', showSpread = false, alerts, onMoveAlert, onSelectAlert, onClosePosition, locked = false, emaCrossTrades, onContextMenu }: LightweightChartExtendedProps) {
+export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLoadMore, emas, drawMode, onDrawDone, positions, onEditPosition, onModifyPosition, initialDrawings, onDrawingsChange, trendlineAppearance, accountBalance, pnlMode = 'net', showSpread = false, alerts, onMoveAlert, onSelectAlert, onEditAlert, onClosePosition, locked = false, emaCrossTrades, onContextMenu }: LightweightChartExtendedProps) {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -482,8 +484,8 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
   const afterScaleChangeRef = useRef(afterScaleChange);
   useEffect(() => { afterScaleChangeRef.current = afterScaleChange; }, [afterScaleChange]);
 
-  // Left-pointing triangle markers pinned to the right edge of the pane (before
-  // the price axis) with the alert price as a label. Orange when armed, grey off.
+  // Alert tags pinned to the right edge of the pane, their tip on the price axis, with the
+  // crossing direction and the price. Tinted when armed, grey off, solid orange when selected.
   const drawAlertMarkers = useCallback((
     ctx: CanvasRenderingContext2D,
     chart: IChartApi,
@@ -503,7 +505,7 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     const precision = precisionRef.current;
     const drag = dragStateRef.current;
 
-    // The line stops short of the price label so it never strikes through it.
+    // Drawn before the tag, which covers its end.
     const dashedLine = (y: number, color: string, endX: number) => {
       ctx.save();
       ctx.strokeStyle = color;
@@ -516,6 +518,31 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
       ctx.restore();
     };
 
+    // A tag with its tip on the price axis: tinted when armed, grey when off, solid while
+    // selected or dragged; a 1 px dotted line runs to it only while selected.
+    const TAG_H = 20;
+    const TIP_W = 10;
+    const tag = (y: number, text: string, fill: string, ink: string) => {
+      ctx.font = '11px "DM Mono", monospace';
+      const w = ctx.measureText(text).width + 8 + 14 + TIP_W - 4;
+      const x = right - w;
+      const top = Math.round(y - TAG_H / 2);
+      ctx.fillStyle = fill;
+      ctx.beginPath();
+      ctx.moveTo(x, top);
+      ctx.lineTo(right - TIP_W, top);
+      ctx.lineTo(right, top + TAG_H / 2);
+      ctx.lineTo(right - TIP_W, top + TAG_H);
+      ctx.lineTo(x, top + TAG_H);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = ink;
+      ctx.textAlign = 'left';
+      ctx.fillText(text, x + 8, y + 1);
+      ctx.textAlign = 'right';
+      return x;
+    };
+
     for (const alert of list) {
       const levelId = alertLevelId(alert.id);
       const dragging = drag?.level.id === levelId;
@@ -524,53 +551,20 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
       const y = series.priceToCoordinate(price);
       if (y === null || y < 0 || y > bottom) continue;
 
-      const color = alert.enabled ? '#f5a623' : '#666666';
-      const size = 4;
-      const tipX = right - 5; // overlap the price-axis edge slightly
-
-      const labelLeft = tipX - 4 - ctx.measureText(String(price)).width;
+      const arrow = alert.direction === 'above' ? '▲' : '▼';
+      let text = `${arrow} ${fmtPrice(price, precision)}`;
       if (dragging) {
         const fromY = series.priceToCoordinate(drag.startPrice);
-        if (fromY !== null) dashedLine(fromY, 'rgba(245,166,35,0.25)', tipX - 2);
-      }
-      if (selected && !dragging) dashedLine(y, '#f5a623', labelLeft - 6);
-
-      // triangle pointing left
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.moveTo(tipX, y);
-      ctx.lineTo(tipX + size, y - size);
-      ctx.lineTo(tipX + size, y + size);
-      ctx.closePath();
-      ctx.fill();
-
-      if (dragging) {
-        // live label centred on the line next to the axis; pips only on desktop (spec 028)
-        const arrow = alert.direction === 'above' ? '▲' : '▼';
+        if (fromY !== null) dashedLine(fromY, 'rgba(245,166,35,0.35)', right);
+        // pips only on desktop (spec 028)
         const pips = (price - drag.startPrice) / pipSize(symbolRef.current);
-        const isPhone = window.matchMedia('(max-width: 768px)').matches;
-        const text = isPhone
-          ? `${arrow} ${fmtPrice(price, precision)}`
-          : `${arrow} ${fmtPrice(price, precision)} · ${pips >= 0 ? '+' : ''}${pips.toFixed(1)} pips`;
-        ctx.font = '11px "DM Mono", monospace';
-        const boxW = ctx.measureText(text).width + 16;
-        const boxH = 20;
-        const boxX = tipX - 4 - boxW;
-        const boxY = Math.round(y - boxH / 2);
-        dashedLine(y, '#f5a623', boxX - 4);
-        ctx.fillStyle = '#1e1e1e';
-        ctx.fillRect(boxX, boxY, boxW, boxH);
-        ctx.strokeStyle = '#f5a623';
-        ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxW - 1, boxH - 1);
-        ctx.fillStyle = '#f5a623';
-        ctx.fillText(text, boxX + boxW - 8, y + 1);
-        ctx.font = '9px "DM Mono", monospace';
-        continue;
+        if (!window.matchMedia('(max-width: 768px)').matches) text += ` · ${pips >= 0 ? '+' : ''}${pips.toFixed(1)} pips`;
       }
+      if (selected) dashedLine(y, '#f5a623', right - TIP_W);
 
-      // price label to the left of the triangle, nudged down 1px for visual alignment
-      ctx.fillStyle = color;
-      ctx.fillText(String(price), tipX - 4, y + 1);
+      if (selected) tag(y, text, '#f5a623', '#0d0d0d');
+      else if (alert.enabled) tag(y, text, '#2a2110', '#f5a623');
+      else tag(y, text, '#1e1e1e', '#8a8a8a');
     }
   }, [alertDisplayPrice]);
 
@@ -1316,10 +1310,28 @@ export function LightweightChart({ candles, broker, symbol, timeframe, ref, onLo
     forgetBarSpacing(timeframeRef.current);
   };
 
+  const alertAt = (clientX: number, clientY: number, rect: DOMRect, scaleWidth: number): number | null => {
+    const series = seriesRef.current;
+    if (!series) return null;
+    const paneRight = rect.width - scaleWidth;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    if (x >= paneRight) return null;
+    for (const a of alertsRef.current ?? []) {
+      const ay = series.priceToCoordinate(alertDisplayPrice(a));
+      if (ay === null || Math.abs(ay - y) > 10) continue;
+      if (x >= paneRight - ALERT_MARKER_HIT_W || selectedLevelIdRef.current === alertLevelId(a.id)) return a.id;
+    }
+    return null;
+  };
+
   const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const scaleWidth = seriesRef.current?.priceScale().width() ?? 0;
     const axisHeight = chartRef.current?.timeScale().height() ?? 0;
-    const { right, bottom } = e.currentTarget.getBoundingClientRect();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const { right, bottom } = rect;
+    const alertId = lockedRef.current ? null : alertAt(e.clientX, e.clientY, rect, scaleWidth);
+    if (alertId !== null) { onEditAlert?.(alertId); return; }
     if (e.clientX >= right - scaleWidth) fitPrice();
     else if (e.clientY >= bottom - axisHeight) resetTimeZoom();
   };

@@ -32,8 +32,9 @@ export function useAlerts() {
     mutate(() => apiSend(`/alerts/${a.id}`, 'PUT', { enabled: !a.enabled })), [mutate]);
 
   // A new price re-arms the alert (spec 028): enabled false → true clears triggeredAt on the server.
-  const updatePrice = useCallback((id: number, price: number) =>
-    mutate(() => apiSend(`/alerts/${id}`, 'PUT', { price, enabled: true })), [mutate]);
+  // The direction is optional: a drag on the chart moves the price only.
+  const updatePrice = useCallback((id: number, price: number, direction?: 'above' | 'below') =>
+    mutate(() => apiSend(`/alerts/${id}`, 'PUT', { price, enabled: true, ...(direction ? { direction } : {}) })), [mutate]);
 
   const remove = useCallback((id: number) =>
     mutate(() => apiSend(`/alerts/${id}`, 'DELETE')), [mutate]);

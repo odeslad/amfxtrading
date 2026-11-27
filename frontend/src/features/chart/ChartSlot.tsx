@@ -177,6 +177,10 @@ export function ChartSlot({
     [alerts],
   );
   const selectedAlert = selectedAlertId === null ? null : alerts.find(a => a.id === selectedAlertId) ?? null;
+  const editAlertById = useCallback((id: number) => {
+    const alert = alerts.find(a => a.id === id);
+    if (alert) onEditAlertPrice(alert);
+  }, [alerts, onEditAlertPrice]);
 
   // The live candle needs this slot's ticks (spec 041).
   useTickSubscription(broker, symbol);
@@ -395,7 +399,7 @@ export function ChartSlot({
           ? <div className={styles.empty}>{broker.toUpperCase()} does not offer {symbol}</div>
           : broker && symbol
           ? <ChartErrorBoundary resetKey={`${broker}-${symbol}-${timeframe}`}>
-              <LightweightChart ref={chartRef} candles={candles} broker={broker} symbol={symbol} timeframe={timeframe} onLoadMore={hasMore ? loadMoreCandles : undefined} emas={emas} drawMode={drawMode} onDrawDone={clearDrawMode} positions={chartPositions} onEditPosition={onEditPosition} onClosePosition={onClosePosition} onModifyPosition={onModifyPosition} initialDrawings={drawings ?? undefined} onDrawingsChange={handleDrawingsChange} trendlineAppearance={trendlineAppearance} accountBalance={balance} pnlMode={pnlMode} showSpread={showSpread} alerts={chartAlerts} onMoveAlert={onMoveAlert} onSelectAlert={setSelectedAlertId} locked={locked} emaCrossTrades={emaCrossTrades} onContextMenu={setMenu} />
+              <LightweightChart ref={chartRef} candles={candles} broker={broker} symbol={symbol} timeframe={timeframe} onLoadMore={hasMore ? loadMoreCandles : undefined} emas={emas} drawMode={drawMode} onDrawDone={clearDrawMode} positions={chartPositions} onEditPosition={onEditPosition} onClosePosition={onClosePosition} onModifyPosition={onModifyPosition} initialDrawings={drawings ?? undefined} onDrawingsChange={handleDrawingsChange} trendlineAppearance={trendlineAppearance} accountBalance={balance} pnlMode={pnlMode} showSpread={showSpread} alerts={chartAlerts} onMoveAlert={onMoveAlert} onSelectAlert={setSelectedAlertId} onEditAlert={editAlertById} locked={locked} emaCrossTrades={emaCrossTrades} onContextMenu={setMenu} />
               {menu && <ChartContextMenu x={menu.x} y={menu.y} sections={menuSections} onClose={closeMenu} />}
               {chartLoading && <div className={styles.chartLoadingOverlay} />}
               {selectedAlert && (

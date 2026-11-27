@@ -2,17 +2,26 @@ import { useState, type KeyboardEvent } from 'react';
 import { errorMessage } from '../../lib/api';
 import { addToast } from '../../lib/toast';
 import type { PriceAlert } from '../../lib/useAlerts';
+import { Segmented, type SegmentOption } from '../../shared/ui';
 import styles from './AlertsPanel.module.css';
+
+type Direction = PriceAlert['direction'];
+
+const DIRECTIONS: SegmentOption<Direction>[] = [
+  { value: 'above', label: '▲ Above' },
+  { value: 'below', label: '▼ Below' },
+];
 
 interface AlertPriceEditProps {
   alert: PriceAlert;
-  onSave: (id: number, price: number) => Promise<void>;
+  onSave: (id: number, price: number, direction: Direction) => Promise<void>;
   onDone: () => void;
 }
 
-// The alert row opened for a new price (spec 028): Enter saves, Esc cancels.
+// The alert row opened for a new price and crossing direction (spec 028): Enter saves, Esc cancels.
 export function AlertPriceEdit({ alert, onSave, onDone }: AlertPriceEditProps) {
   const [value, setValue] = useState(String(alert.price));
+  const [direction, setDirection] = useState<Direction>(alert.direction);
   const [invalid, setInvalid] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -21,7 +30,7 @@ export function AlertPriceEdit({ alert, onSave, onDone }: AlertPriceEditProps) {
     if (!Number.isFinite(price) || price <= 0) { setInvalid(true); return; }
     setSaving(true);
     try {
-      await onSave(alert.id, price);
+      await onSave(alert.id, price, direction);
       onDone();
     } catch (err) {
       addToast(errorMessage(err, 'Failed to update alert'), 'error');
@@ -41,9 +50,7 @@ export function AlertPriceEdit({ alert, onSave, onDone }: AlertPriceEditProps) {
           <span className={styles.itemSymbol}>{alert.symbol}</span>
           <span className={styles.itemBroker}>{alert.broker}</span>
         </div>
-        <span className={styles.editDirection}>
-          {alert.direction === 'above' ? '▲ Crosses above' : '▼ Crosses below'}
-        </span>
+        <Segmented options={DIRECTIONS} value={direction} onChange={setDirection} label="Crossing direction" size="sm" />
       </div>
       <div className={styles.editRow}>
         <input

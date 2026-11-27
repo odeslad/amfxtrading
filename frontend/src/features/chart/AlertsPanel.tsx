@@ -26,7 +26,7 @@ interface AlertsPanelProps {
   alerts: PriceAlert[];
   onCreate: (alert: { broker: string; symbol: string; price: number; direction: 'above' | 'below' }) => Promise<void>;
   onToggle: (a: PriceAlert) => Promise<void>;
-  onUpdatePrice: (id: number, price: number) => Promise<void>;
+  onUpdatePrice: (id: number, price: number, direction?: 'above' | 'below') => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   emaAlerts: EmaCrossAlert[];
   onCreateEma: (alert: NewEmaAlert) => Promise<void>;
